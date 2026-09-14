@@ -93,11 +93,18 @@ class HospitalAdmissionController extends Controller
     public function updateStatus(Request $request, HospitalAdmission $admission)
     {
         abort_unless($admission->restaurant_id === $this->restaurantId(), 404);
-        $data = $request->validate(['status' => ['required', Rule::in(['admitted', 'transferred', 'discharged'])]]);
-        $admission->update(['status' => $data['status'], 'discharged_at' => $data['status'] === 'discharged' ? now() : null]);
-        if ($data['status'] === 'discharged' && $admission->bed) {
-            $admission->bed->update(['status' => 'available']);
-        }
+        $data = $request->validate(['status' => ['required', Rule::in(['admitted', 'discharged'])]]);
+        DB::transaction(function () use ($admission, $data): void {
+            if ($data['status'] === 'discharged' && $admission->bed_id) {
+                Bed::whereKey($admission->bed_id)->lockForUpdate()->firstOrFail()
+                    ->update(['status' => 'available']);
+            }
+            $admission->update([
+                'status' => $data['status'],
+                'bed_id' => $data['status'] === 'discharged' ? null : $admission->bed_id,
+                'discharged_at' => $data['status'] === 'discharged' ? now() : null,
+            ]);
+        });
         return back()->with('success', 'Admission status updated.');
     }
 

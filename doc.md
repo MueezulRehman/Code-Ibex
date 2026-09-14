@@ -874,5 +874,15 @@ Vital Signs, followed by Laboratory and Radiology.
 - Added a transactional transfer action that validates tenant ownership,
   releases the previous bed, occupies the destination bed, updates the
   admission, and preserves the transfer history.
-- Added the transfer form to the Admissions page and kept the existing
-  admission status flow intact.
+- Added the transfer form to the Admissions page.
+
+### Transfer consistency follow-up
+
+- The generic admission status action no longer accepts `transferred`; all
+  transfers must use the formal transfer action so department, bed, requester,
+  reason, and timestamp history cannot be bypassed.
+- Discharging an admission now locks and releases its bed transactionally and
+  clears the admission's `bed_id`, preventing a discharged record from
+  retaining a stale bed reference.
+- The next implementation slice is `DischargeSummary` and a structured
+  discharge workflow, followed by readmission history.
