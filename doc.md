@@ -899,3 +899,15 @@ Vital Signs, followed by Laboratory and Radiology.
 - Applied the tenant migration successfully across all six local businesses.
 - The next lifecycle improvement is explicit readmission history and
   discharge-summary viewing/edit policy before Laboratory orders/results.
+
+### Hospital structure audit follow-up
+
+- Admission transfer and discharge timestamps are now validated so they cannot
+  precede the original admission time.
+- The current structures are tenant-scoped and preserve encounter history:
+  Vital Signs and transfers belong to the admission, while DischargeSummary is
+  unique to that admission and retains the patient snapshot.
+- Recommended before Laboratory: make discharge summaries explicitly
+  immutable or add audited corrections, add a readmission/encounter history
+  view, and enforce staff-specific authorization for discharge and transfer
+  actions rather than relying only on the Manager route boundary.

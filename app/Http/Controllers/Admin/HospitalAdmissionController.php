@@ -101,7 +101,7 @@ class HospitalAdmissionController extends Controller
             'discharge_medications' => ['nullable', 'string', 'max:10000'],
             'follow_up_instructions' => ['nullable', 'string', 'max:10000'],
             'notes' => ['nullable', 'string', 'max:10000'],
-            'discharged_at' => ['required', 'date'],
+            'discharged_at' => ['required', 'date', 'after_or_equal:' . $admission->admitted_at->format('Y-m-d H:i:s')],
         ]);
 
         DB::transaction(function () use ($admission, $data, $restaurantId, $user): void {
@@ -138,7 +138,7 @@ class HospitalAdmissionController extends Controller
         $data = $request->validate([
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('is_active', true))],
             'bed_id' => ['nullable', 'integer', Rule::exists('beds', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('status', 'available'))],
-            'transferred_at' => ['required', 'date'],
+            'transferred_at' => ['required', 'date', 'after_or_equal:' . $admission->admitted_at->format('Y-m-d H:i:s')],
             'reason' => ['required', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
