@@ -146,6 +146,7 @@ where applicable; duplicate patient or outpatient models must not be created.
 | `Department` | Both, when enabled | Admin and department managers |
 | `Ward`, `Room`, `Bed` | Professional Hospital | Admin, reception, nursing |
 | `NursingAssignment` | Professional Hospital | Nursing lead and assigned nurses |
+| `NursingAssignmentEvent` | Professional Hospital | Admin, nursing lead, audit readers |
 | `VitalSign` | Professional Hospital | Nurses and treating doctors |
 | `LabOrder`, `LabResult` | Professional Hospital | Doctors, lab technicians, authorized records staff |
 | `RadiologyOrder`, `RadiologyResult` | Professional Hospital | Doctors, radiology staff, authorized records staff |

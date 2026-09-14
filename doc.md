@@ -824,3 +824,17 @@ Vital Signs, followed by Laboratory and Radiology.
 - Reassignment validates the replacement nurse, tenant, shift, and active
   workload. A nurse may have at most five active assignments.
 - Duplicate active assignments for the same admission remain blocked.
+
+### Nursing assignment audit events
+
+- Added tenant-scoped `NursingAssignmentEvent` records for `assigned`,
+  `reassigned`, `completed`, and `cancelled` actions.
+- Each event records the assignment, previous and new nurse, acting user,
+  timestamp, and optional notes. Assignment mutations and their events are
+  committed in one transaction.
+- Assignment history now loads and displays the event trail, including the
+  actor and nurse transition. The event migration was added under the tenant
+  migration path and applied successfully to all six local tenants.
+- Focused hospital regression tests pass: 14 tests, 209 assertions. Blade
+  compilation, the production Vite build, and browser verification of the
+  active/history Nursing pages also pass.

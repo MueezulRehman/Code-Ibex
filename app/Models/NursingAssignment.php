@@ -15,4 +15,5 @@ class NursingAssignment extends Model
 
     public function admission() { return $this->belongsTo(HospitalAdmission::class, 'hospital_admission_id'); }
     public function nurse() { return $this->belongsTo(User::class, 'nurse_id'); }
+    public function events() { return $this->hasMany(NursingAssignmentEvent::class, 'nursing_assignment_id')->latest('changed_at'); }
 }
