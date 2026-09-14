@@ -32,4 +32,5 @@ class HospitalAdmission extends Model
     public function labResults() { return $this->hasMany(LabResult::class, 'hospital_admission_id'); }
     public function radiologyOrders() { return $this->hasMany(RadiologyOrder::class, 'hospital_admission_id'); }
     public function radiologyResults() { return $this->hasMany(RadiologyResult::class, 'hospital_admission_id'); }
+    public function surgeries() { return $this->hasMany(Surgery::class, 'hospital_admission_id'); }
 }

@@ -303,6 +303,14 @@
                                 </a>
                             </div>
                         @endif
+                        @if($moduleEnabled('hospital-operating-theatre'))
+                            <div class="nav-dropdown {{ request()->routeIs('manager.operating-theatre.*') ? 'has-active' : '' }}">
+                                <a href="{{ route('manager.operating-theatre.index') }}" title="Operating theatre"
+                                    class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.operating-theatre.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                                    <i class="fas fa-person-surgery text-lg"></i><span class="flex-1 truncate">Operating Theatre</span>
+                                </a>
+                            </div>
+                        @endif
                         @if($moduleEnabled('insurance'))
                             <a href="{{ route('manager.insurance.index') }}" class="{{ request()->routeIs('manager.insurance.*') ? 'is-active' : '' }}"><i class="fas fa-shield-heart"></i><span>Insurance</span></a>
                                 </div>

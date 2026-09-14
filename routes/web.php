@@ -501,6 +501,13 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::post('/radiology/orders', [App\Http\Controllers\Admin\RadiologyController::class, 'storeOrder'])->name('radiology.orders.store');
             Route::post('/radiology/orders/{order}/result', [App\Http\Controllers\Admin\RadiologyController::class, 'storeResult'])->name('radiology.results.store');
         });
+        Route::middleware('module:hospital-operating-theatre')->group(function () {
+            Route::get('/operating-theatre', [App\Http\Controllers\Admin\OperatingTheatreController::class, 'index'])->name('operating-theatre.index');
+            Route::post('/operating-theatre/rooms', [App\Http\Controllers\Admin\OperatingTheatreController::class, 'storeRoom'])->name('operating-theatre.rooms.store');
+            Route::patch('/operating-theatre/rooms/{room}', [App\Http\Controllers\Admin\OperatingTheatreController::class, 'updateRoom'])->name('operating-theatre.rooms.update');
+            Route::post('/operating-theatre/surgeries', [App\Http\Controllers\Admin\OperatingTheatreController::class, 'storeSurgery'])->name('operating-theatre.surgeries.store');
+            Route::patch('/operating-theatre/surgeries/{surgery}', [App\Http\Controllers\Admin\OperatingTheatreController::class, 'updateSurgery'])->name('operating-theatre.surgeries.update');
+        });
 
         Route::middleware('module:memberships')->group(function () {
             Route::get('/gym', [App\Http\Controllers\Admin\GymController::class, 'index'])->name('gym.index');
