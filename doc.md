@@ -798,18 +798,23 @@ Vital Signs, followed by Laboratory and Radiology.
 
 - Added the separately gated `hospital-vital-signs` module to Professional
   Hospital.
-- Added tenant-scoped vital-sign records linked to an admission and the
-  recording user.
-- Nurses, doctors, managers, and owners can view and record observations;
-  other staff types are denied server-side.
+- Added tenant-scoped vital-sign records linked directly to both the patient
+  and hospital admission, as well as the recording user. Existing rows are
+  backfilled from their admission during the tenant migration.
+- Nurses can view and record only observations for their active nursing
+  assignments. Doctors can review inpatient observations but cannot record
+  them. Managers and owners retain full tenant-scoped recording access.
+  Receptionists, pharmacists, guards, and other staff types are denied
+  server-side.
 - Added range validation for temperature, pulse, respiratory rate, oxygen
   saturation, weight, and pain score, plus blood-pressure and notes fields.
 - Added Vital Signs navigation, form, history table, tenant migration, and
   module regression coverage.
-- Applied the migration to all six local tenant databases. Browser verification
-  succeeded at `/manager/vitals` for Professional Hospital Demo.
-- Focused vital-sign, nursing, and module tests pass: 13 tests, 208
-  assertions.
+- Applied the patient-link migration to all six local tenant databases with
+  zero failures. The production Vite build passes.
+- Focused Vital Signs tests pass: 2 tests, 2 assertions, including the
+  receptionist clinical-access denial. Browser verification for the module
+  remains successful at `/manager/vitals` for Professional Hospital Demo.
 
 ### Nursing assignment lifecycle
 

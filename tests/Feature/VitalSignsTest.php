@@ -17,4 +17,25 @@ class VitalSignsTest extends TestCase
         $user = User::create(['name' => 'Manager', 'email' => 'vitals-block@example.com', 'phone' => '03000000013', 'role' => 'manager', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
         $this->actingAs($user)->get(route('manager.vitals.index'))->assertForbidden();
     }
+
+    public function test_receptionists_cannot_access_clinical_vital_signs(): void
+    {
+        $restaurant = Restaurant::create([
+            'name' => 'Hospital Tenant',
+            'slug' => 'hospital-vitals-receptionist',
+            'status' => 'active',
+            'enabled_modules' => ['hospital-vital-signs'],
+        ]);
+        $user = User::create([
+            'name' => 'Receptionist',
+            'email' => 'vitals-receptionist@example.com',
+            'phone' => '03000000014',
+            'role' => 'staff',
+            'staff_type' => 'receptionist',
+            'restaurant_id' => $restaurant->id,
+            'password' => bcrypt('password'),
+        ]);
+
+        $this->actingAs($user)->get(route('manager.vitals.index'))->assertForbidden();
+    }
 }

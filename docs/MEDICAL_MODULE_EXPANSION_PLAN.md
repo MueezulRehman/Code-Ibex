@@ -126,6 +126,14 @@ Every new feature must declare its access before implementation:
 No feature is complete until unauthorized users receive a consistent denial,
 authorized users can complete the workflow, and cross-tenant access is tested.
 
+The current Professional Hospital Vital Signs implementation applies this
+model at record level: managers and owners can record tenant observations,
+nurses can view and record only for active nursing assignments, doctors can
+review observations without recording them, and receptionist, pharmacist,
+guard, and other staff accounts are denied clinical access. Vital Sign rows
+store both `patient_id` and `hospital_admission_id` so readmission history
+remains explicit rather than relying only on a mutable admission lookup.
+
 ### Proposed full-hospital model ownership
 
 All records below are tenant-owned and must use the existing tenancy pattern.

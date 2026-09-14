@@ -24,4 +24,5 @@ class HospitalAdmission extends Model
     public function doctor() { return $this->belongsTo(Doctor::class); }
     public function department() { return $this->belongsTo(Department::class); }
     public function bed() { return $this->belongsTo(Bed::class); }
+    public function nursingAssignments() { return $this->hasMany(NursingAssignment::class, 'hospital_admission_id'); }
 }

@@ -20,19 +20,49 @@ class VitalSignController extends Controller
         return $user;
     }
 
+    private function canAccessAdmission(User $user, HospitalAdmission $admission): bool
+    {
+        if ($user->isRestaurantManager() || $user->staff_type === 'doctor') {
+            return true;
+        }
+
+        return $user->staff_type === 'nurse'
+            && $admission->status !== 'discharged'
+            && $admission->nursingAssignments()
+                ->where('nurse_id', $user->id)
+                ->where('status', 'active')
+                ->exists();
+    }
+
     public function index()
     {
         $user = $this->user();
         $restaurantId = (int) $user->effectiveRestaurantId();
+        $admissionIds = null;
+        if ($user->staff_type === 'nurse' && ! $user->isRestaurantManager()) {
+            $admissionIds = $user->nursingAssignments()
+                ->where('status', 'active')
+                ->pluck('hospital_admission_id');
+        }
+
         return view('manager.vitals.index', [
-            'vitals' => VitalSign::with(['admission.patient', 'recorder'])->latest('recorded_at')->paginate(20),
-            'admissions' => HospitalAdmission::with('patient')->where('restaurant_id', $restaurantId)->whereIn('status', ['admitted', 'transferred'])->orderBy('admitted_at')->get(),
+            'vitals' => VitalSign::with(['patient', 'admission', 'recorder'])
+                ->where('restaurant_id', $restaurantId)
+                ->when($admissionIds !== null, fn ($query) => $query->whereIn('hospital_admission_id', $admissionIds))
+                ->latest('recorded_at')->paginate(20),
+            'admissions' => HospitalAdmission::with('patient')
+                ->where('restaurant_id', $restaurantId)
+                ->whereIn('status', ['admitted', 'transferred'])
+                ->when($admissionIds !== null, fn ($query) => $query->whereIn('id', $admissionIds))
+                ->orderBy('admitted_at')->get(),
+            'canRecord' => $user->isRestaurantManager() || $user->staff_type === 'nurse',
         ]);
     }
 
     public function store(Request $request)
     {
         $user = $this->user();
+        abort_unless($user->isRestaurantManager() || $user->staff_type === 'nurse', 403, 'Only nurses and managers can record vital signs.');
         $restaurantId = (int) $user->effectiveRestaurantId();
         $data = $request->validate([
             'hospital_admission_id' => ['required', 'integer', Rule::exists('hospital_admissions', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->whereIn('status', ['admitted', 'transferred']))],
@@ -46,7 +76,14 @@ class VitalSignController extends Controller
             'pain_score' => ['nullable', 'integer', 'between:0,10'],
             'notes' => ['nullable', 'string', 'max:2000'],
         ]);
-        VitalSign::create($data + ['restaurant_id' => $restaurantId, 'recorded_by' => $user->id]);
+        $admission = HospitalAdmission::where('restaurant_id', $restaurantId)->findOrFail($data['hospital_admission_id']);
+        abort_unless($this->canAccessAdmission($user, $admission), 403);
+
+        VitalSign::create($data + [
+            'restaurant_id' => $restaurantId,
+            'patient_id' => $admission->patient_id,
+            'recorded_by' => $user->id,
+        ]);
         return back()->with('success', 'Vital signs recorded.');
     }
 }
