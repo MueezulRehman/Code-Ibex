@@ -34,4 +34,25 @@ class HospitalAdmission extends Model
     public function radiologyResults() { return $this->hasMany(RadiologyResult::class, 'hospital_admission_id'); }
     public function surgeries() { return $this->hasMany(Surgery::class, 'hospital_admission_id'); }
     public function billings() { return $this->hasMany(HospitalBilling::class, 'hospital_admission_id'); }
+
+    public function billingSummary(): array
+    {
+        $billings = $this->relationLoaded('billings')
+            ? $this->billings
+            : $this->billings()->get(['status', 'total_amount']);
+
+        $posted = $billings->whereIn('status', ['posted', 'paid']);
+        $paid = $billings->where('status', 'paid');
+
+        return [
+            'total' => (float) $posted->sum('total_amount'),
+            'paid' => (float) $paid->sum('total_amount'),
+            'outstanding' => (float) $posted->where('status', 'posted')->sum('total_amount'),
+        ];
+    }
+
+    public function hasUnpaidPostedBilling(): bool
+    {
+        return $this->billings()->where('status', 'posted')->exists();
+    }
 }

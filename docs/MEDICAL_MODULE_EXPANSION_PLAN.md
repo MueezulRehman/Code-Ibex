@@ -906,6 +906,13 @@ inpatient patient invoice. Insurance processing would build on the existing
 `InsuranceClaim` model and the approved future Visit-level linkage, but the
 multi-department inpatient invoice is a new billing workflow.
 
+The initial hospital billing slice is implemented as tenant-scoped admission
+charges with draft, posted, paid, and void states. Admission discharge now
+reconciles these states: posted charges remain outstanding until paid and block
+discharge; draft, paid, and void charges are excluded from the block. The
+admissions screen exposes total, paid, and outstanding amounts before a
+manager submits discharge.
+
 ### HR and staff scheduling
 
 This would provide duty rosters, shifts, availability, and attendance planning
@@ -926,6 +933,11 @@ This would coordinate discharge authorization, discharge-summary generation,
 follow-up scheduling, medication instructions, and final billing
 reconciliation. It is genuinely new functionality that would link admission,
 clinical records, billing, and pharmacy.
+
+The implemented discharge slice records a discharge summary and performs the
+first billing reconciliation gate. The server rechecks posted unpaid charges
+inside the discharge transaction, preserving the tenant boundary and preventing
+discharge until those charges are settled or voided.
 
 ### Medical records and EMR
 

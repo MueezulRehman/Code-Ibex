@@ -106,6 +106,15 @@ remain operational follow-up work.
 
 ## Work Order
 
+### Hospital admission billing reconciliation
+
+Hospital admission discharge now reconciles tenant-scoped hospital billing:
+posted charges must be paid or void before discharge, while draft, paid, and
+void charges do not block the workflow. The admissions screen shows total,
+paid, and outstanding posted billing amounts and warns managers before they
+submit discharge. This validation is enforced server-side in the discharge
+transaction as well as in the form.
+
 ### 1. Establish a clean baseline
 
 - Check the current Git working tree before changing files.
