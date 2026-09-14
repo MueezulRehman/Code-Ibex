@@ -60,14 +60,16 @@ class LaboratoryController extends Controller
         $user = $this->user();
         abort_unless($user->isRestaurantManager() || $user->staff_type === 'doctor', 403, 'Only doctors and managers can order laboratory tests.');
         $restaurantId = (int) $user->effectiveRestaurantId();
+        $admission = HospitalAdmission::where('restaurant_id', $restaurantId)
+            ->whereIn('status', ['admitted', 'transferred'])
+            ->findOrFail((int) $request->input('hospital_admission_id'));
         $data = $request->validate([
             'hospital_admission_id' => ['required', 'integer', Rule::exists('hospital_admissions', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->whereIn('status', ['admitted', 'transferred']))],
             'test_name' => ['required', 'string', 'max:255'],
             'priority' => ['required', Rule::in(['routine', 'urgent', 'stat'])],
-            'ordered_at' => ['required', 'date'],
+            'ordered_at' => ['required', 'date', 'after_or_equal:' . $admission->admitted_at->format('Y-m-d H:i:s')],
             'clinical_notes' => ['nullable', 'string', 'max:5000'],
         ]);
-        $admission = HospitalAdmission::where('restaurant_id', $restaurantId)->findOrFail($data['hospital_admission_id']);
         LabOrder::create($data + [
             'restaurant_id' => $restaurantId,
             'patient_id' => $admission->patient_id,
@@ -86,7 +88,7 @@ class LaboratoryController extends Controller
         abort_unless($order->status !== 'cancelled' && ! $order->result()->exists(), 422, 'This laboratory order already has a result.');
         $data = $request->validate([
             'result_value' => ['required', 'string', 'max:10000'],
-            'resulted_at' => ['required', 'date'],
+            'resulted_at' => ['required', 'date', 'after_or_equal:' . $order->ordered_at->format('Y-m-d H:i:s')],
             'notes' => ['nullable', 'string', 'max:5000'],
             'status' => ['required', Rule::in(['entered', 'verified'])],
         ]);

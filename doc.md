@@ -932,3 +932,18 @@ Vital Signs, followed by Laboratory and Radiology.
   patient, including prior admission numbers, statuses, and dates.
 - Transfer and discharge actions now require an authenticated restaurant
   manager/owner in the controller, in addition to route/module gates.
+
+### Laboratory structure audit
+
+- Laboratory orders and results are tenant-scoped and linked directly to both
+  the patient and the inpatient admission.
+- Order timestamps cannot precede admission, and result timestamps cannot
+  precede the order.
+- Managers/owners manage results, doctors can order and view records, and
+  assigned nurses can view records for their active admissions.
+- Doctor visibility is currently tenant-wide because Doctor records are not
+  yet linked to authenticated users or departments. Add that StaffProfile or
+  doctor-assignment foundation before narrowing doctor access.
+- Added a central rollout migration so existing Professional Hospital tenants
+  receive the Laboratory module flag; tenant schema migrations must still be
+  applied separately during deployment.
