@@ -508,6 +508,14 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::post('/operating-theatre/surgeries', [App\Http\Controllers\Admin\OperatingTheatreController::class, 'storeSurgery'])->name('operating-theatre.surgeries.store');
             Route::patch('/operating-theatre/surgeries/{surgery}', [App\Http\Controllers\Admin\OperatingTheatreController::class, 'updateSurgery'])->name('operating-theatre.surgeries.update');
         });
+        Route::middleware('module:hospital-billing')->group(function () {
+            Route::get('/hospital-billing', [App\Http\Controllers\Admin\HospitalBillingController::class, 'index'])->name('hospital-billing.index');
+            Route::post('/hospital-billing', [App\Http\Controllers\Admin\HospitalBillingController::class, 'store'])->name('hospital-billing.store');
+            Route::patch('/hospital-billing/{billing}', [App\Http\Controllers\Admin\HospitalBillingController::class, 'update'])->name('hospital-billing.update');
+            Route::patch('/hospital-billing/{billing}/post', [App\Http\Controllers\Admin\HospitalBillingController::class, 'post'])->name('hospital-billing.post');
+            Route::patch('/hospital-billing/{billing}/pay', [App\Http\Controllers\Admin\HospitalBillingController::class, 'pay'])->name('hospital-billing.pay');
+            Route::patch('/hospital-billing/{billing}/void', [App\Http\Controllers\Admin\HospitalBillingController::class, 'void'])->name('hospital-billing.void');
+        });
 
         Route::middleware('module:memberships')->group(function () {
             Route::get('/gym', [App\Http\Controllers\Admin\GymController::class, 'index'])->name('gym.index');

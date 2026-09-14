@@ -14,9 +14,9 @@ two-track hospital roadmap. The two business types have different scopes:
 
 Full-hospital models remain design-only until their individual scope,
 permissions, tenancy boundaries, and acceptance tests are approved. The
-admission, nursing, vital-signs, laboratory, radiology, and operating-theatre
-slices below have now been individually implemented and verified; the
-remaining hospital domains remain planning-only.
+admission, nursing, vital-signs, laboratory, radiology, operating-theatre, and
+hospital-billing slices below have now been individually implemented and
+verified; the remaining hospital domains remain planning-only.
 
 The plan follows the existing repository conventions documented in
 `docs/MEDICAL_MODULE_AUDIT.md`:

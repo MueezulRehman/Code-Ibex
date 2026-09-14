@@ -23,5 +23,6 @@ class ModuleServiceDefaultsTest extends TestCase
         $this->assertDatabaseHas('modules', ['key' => 'hospital-admissions']);
         $this->assertDatabaseHas('modules', ['key' => 'hospital-departments']);
         $this->assertDatabaseHas('modules', ['key' => 'hospital-wards-beds']);
+        $this->assertDatabaseHas('modules', ['key' => 'hospital-billing']);
     }
 }
