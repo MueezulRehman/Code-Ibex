@@ -2,7 +2,9 @@
 
 ## Current state
 
-The repository has no Doctor model, migration, controller, route, or view.
+The Doctor workflow is implemented for tenant-scoped Manager medical routes.
+It includes the Doctor model, central and tenant migrations, controller, CRUD
+routes/views, and the approved `pending`, `active`, and `declined` statuses.
 
 Existing medical and clinic models include `Medicine`, `Appointment`,
 `MedicalRecord`, `InsuranceClaim`, `Prescription`, `MedicineBatch`,
@@ -32,7 +34,7 @@ prescriptions, medical records, allergies, interactions, purchases, and
 medical reports are grouped under `module:medical`. Controlled medicines,
 insurance, follow-up reminders, and appointments use their own module keys.
 
-The consistent initial placement for Doctors is therefore:
+The implemented placement for Doctors is:
 
 - Model: `App\Models\Doctor`
 - Controller: `App\Http\Controllers\Admin\DoctorController`
@@ -41,7 +43,8 @@ The consistent initial placement for Doctors is therefore:
 - Gate: existing `module:medical`
 
 A separate `doctors` module key would require coordinated module seed,
-business-type, navigation, and Super Admin configuration changes.
+business-type, navigation, and Super Admin configuration changes. The current
+workflow intentionally remains under the existing `medical` module gate.
 
 ## Tenant migration note
 
@@ -49,8 +52,14 @@ Medical tables exist in both central migration and tenant-migration paths.
 Doctor's migration must follow the active deployment convention and include a
 restaurant-owned `restaurant_id` relationship/index.
 
-## Implementation decision still requiring confirmation
+## Audit result
 
-The minimum requested Doctor statuses are `pending`, `active`, and `declined`.
-The complete status list should be confirmed before implementation so the
-migration, validation, UI labels, and transition tests all use the same set.
+The minimum requested Doctor statuses are implemented consistently in the
+migration default, controller validation, and Manager form: `pending`,
+`active`, and `declined`.
+
+Remaining Doctor improvements are record-level authorization and clinical
+assignment rules: connect doctors to authenticated staff identities or a
+future `StaffProfile`, restrict admission/Vital Sign visibility to assigned
+patients or departments, and add transition/audit tests before expanding the
+hospital clinical departments.
