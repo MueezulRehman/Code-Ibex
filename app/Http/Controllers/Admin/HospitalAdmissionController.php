@@ -30,7 +30,15 @@ class HospitalAdmissionController extends Controller
 
     public function index()
     {
-        $admissions = HospitalAdmission::with(['patient', 'doctor', 'department', 'bed', 'dischargeSummary'])->latest('admitted_at')->paginate(20);
+        $admissions = HospitalAdmission::with([
+            'patient.hospitalAdmissions.doctor',
+            'patient.hospitalAdmissions.department',
+            'patient.hospitalAdmissions.dischargeSummary',
+            'doctor',
+            'department',
+            'bed',
+            'dischargeSummary',
+        ])->latest('admitted_at')->paginate(20);
         return view('manager.admissions.index', [
             'admissions' => $admissions,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
@@ -104,6 +112,7 @@ class HospitalAdmissionController extends Controller
     {
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
+        abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
             'discharge_diagnosis' => ['required', 'string', 'max:10000'],
@@ -143,6 +152,7 @@ class HospitalAdmissionController extends Controller
     {
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
+        abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('is_active', true))],

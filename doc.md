@@ -920,3 +920,10 @@ Vital Signs, followed by Laboratory and Radiology.
   while allowing a new admission after the previous encounter is discharged.
 - Browser verification passed for the current Admissions, Nursing, Vital Signs,
   Dashboard, and disabled Appointments surfaces before continuing.
+
+### Encounter history and discharge authorization
+
+- Admissions now show an expandable chronological encounter history for each
+  patient, including prior admission numbers, statuses, and dates.
+- Transfer and discharge actions now require an authenticated restaurant
+  manager/owner in the controller, in addition to route/module gates.
