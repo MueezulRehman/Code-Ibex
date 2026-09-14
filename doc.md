@@ -850,3 +850,16 @@ Vital Signs, followed by Laboratory and Radiology.
 - The Vital Signs page now exposes the correction form only to managers, and
   every correction is committed atomically with its audit event.
 - Applied the tenant migration successfully to all six local databases.
+
+### Professional Hospital dashboard
+
+- Added a hospital-only dashboard section to the existing Manager dashboard,
+  gated by `hospital-admissions`, without changing the restaurant dashboard for
+  non-hospital tenants.
+- The section shows active admissions, available and occupied beds, unassigned
+  admissions, active nursing assignments, admissions without a Vital Sign in
+  the last 24 hours, discharges today, and active admissions by department.
+- All metrics are tenant-scoped and link to the existing Admissions, Nursing,
+  and Vital Signs screens when those modules are enabled.
+- Blade compilation, the dashboard regression test, and browser verification
+  of the Professional Hospital dashboard passed.

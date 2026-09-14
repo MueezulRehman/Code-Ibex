@@ -41,6 +41,7 @@ class ManagerDashboardSummaryTest extends TestCase
             ->get('/manager/dashboard')
             ->assertStatus(200)
             ->assertSee('Business Performance')
-            ->assertSee('Daily');
+            ->assertSee('Daily')
+            ->assertDontSee('Inpatient operations');
     }
 }

@@ -20,4 +20,6 @@ class Department extends Model
     protected $casts = [
         'is_active' => 'boolean',
     ];
+
+    public function admissions() { return $this->hasMany(HospitalAdmission::class, 'department_id'); }
 }

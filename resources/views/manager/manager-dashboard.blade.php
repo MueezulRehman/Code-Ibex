@@ -3,6 +3,8 @@
 
 @section('page-content')
 
+@include('manager.partials.hospital-dashboard')
+
 <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-6">
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>

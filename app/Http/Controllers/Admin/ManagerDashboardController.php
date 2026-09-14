@@ -6,12 +6,17 @@ use App\Http\Controllers\Controller;
 use App\Models\Cashbook;
 use App\Models\Expense;
 use App\Models\Feedback;
+use App\Models\Bed;
+use App\Models\Department;
+use App\Models\HospitalAdmission;
 use App\Models\MenuItem;
+use App\Models\NursingAssignment;
 use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Salary;
 use App\Models\StockAdjustment;
 use App\Models\User;
+use App\Models\VitalSign;
 use App\Support\Tenancy;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -196,8 +201,50 @@ class ManagerDashboardController extends Controller
         ];
 
         $restaurant = $user->effectiveRestaurant();
+        $hospitalDashboard = null;
 
-        return view('manager.manager-dashboard', compact('stats', 'bestSeller', 'recentOrders', 'weekSales', 'restaurant'));
+        if ($user->hasModuleAccess('hospital-admissions')) {
+            $activeAdmissions = HospitalAdmission::where('restaurant_id', $restaurantId)
+                ->whereIn('status', ['admitted', 'transferred']);
+            $activeAdmissionIds = (clone $activeAdmissions)->pluck('id');
+            $recentVitalAdmissionIds = $user->hasModuleAccess('hospital-vital-signs')
+                ? VitalSign::where('restaurant_id', $restaurantId)
+                    ->whereIn('hospital_admission_id', $activeAdmissionIds)
+                    ->where('recorded_at', '>=', now()->subDay())
+                    ->pluck('hospital_admission_id')
+                    ->unique()
+                : collect();
+
+            $departmentOccupancy = Department::where('restaurant_id', $restaurantId)
+                ->where('is_active', true)
+                ->withCount(['admissions as active_admissions_count' => fn ($query) => $query->whereIn('status', ['admitted', 'transferred'])])
+                ->orderByDesc('active_admissions_count')
+                ->get();
+
+            $hospitalDashboard = [
+                'active_admissions' => $activeAdmissions->count(),
+                'available_beds' => $user->hasModuleAccess('hospital-wards-beds')
+                    ? Bed::where('restaurant_id', $restaurantId)->where('status', 'available')->count()
+                    : null,
+                'occupied_beds' => $user->hasModuleAccess('hospital-wards-beds')
+                    ? Bed::where('restaurant_id', $restaurantId)->where('status', 'occupied')->count()
+                    : null,
+                'unassigned_admissions' => (clone $activeAdmissions)->whereDoesntHave('nursingAssignments', fn ($query) => $query->where('status', 'active'))->count(),
+                'active_nursing_assignments' => $user->hasModuleAccess('hospital-nursing')
+                    ? NursingAssignment::where('restaurant_id', $restaurantId)->where('status', 'active')->count()
+                    : null,
+                'without_recent_vitals' => $user->hasModuleAccess('hospital-vital-signs')
+                    ? $activeAdmissionIds->diff($recentVitalAdmissionIds)->count()
+                    : null,
+                'discharges_today' => HospitalAdmission::where('restaurant_id', $restaurantId)
+                    ->where('status', 'discharged')
+                    ->whereDate('discharged_at', $today)
+                    ->count(),
+                'department_occupancy' => $departmentOccupancy,
+            ];
+        }
+
+        return view('manager.manager-dashboard', compact('stats', 'bestSeller', 'recentOrders', 'weekSales', 'restaurant', 'hospitalDashboard'));
     }
 
     public function subscriptionExpired()
