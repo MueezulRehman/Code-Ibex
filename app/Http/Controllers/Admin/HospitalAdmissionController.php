@@ -59,6 +59,15 @@ class HospitalAdmissionController extends Controller
             'admitted_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
+        $hasActiveAdmission = HospitalAdmission::where('restaurant_id', $restaurantId)
+            ->where('patient_id', $data['patient_id'])
+            ->whereIn('status', ['admitted', 'transferred'])
+            ->exists();
+        if ($hasActiveAdmission) {
+            return back()->withErrors([
+                'patient_id' => 'This patient already has an active hospital admission.',
+            ])->withInput();
+        }
         $data['restaurant_id'] = $restaurantId;
         $data['admission_number'] = 'ADM-' . now()->format('Ymd') . '-' . Str::upper(Str::random(5));
         $data['status'] = 'admitted';

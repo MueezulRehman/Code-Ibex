@@ -911,3 +911,12 @@ Vital Signs, followed by Laboratory and Radiology.
   immutable or add audited corrections, add a readmission/encounter history
   view, and enforce staff-specific authorization for discharge and transfer
   actions rather than relying only on the Manager route boundary.
+
+### Readmission safety
+
+- Added the inverse `Patient::hospitalAdmissions()` relationship so a patient’s
+  inpatient encounters remain available as a chronological history.
+- Admission creation now blocks a second active admission for the same patient
+  while allowing a new admission after the previous encounter is discharged.
+- Browser verification passed for the current Admissions, Nursing, Vital Signs,
+  Dashboard, and disabled Appointments surfaces before continuing.

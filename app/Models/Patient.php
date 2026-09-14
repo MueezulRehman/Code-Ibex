@@ -39,4 +39,9 @@ class Patient extends Model
     {
         return $this->hasMany(PatientAllergy::class);
     }
+
+    public function hospitalAdmissions()
+    {
+        return $this->hasMany(HospitalAdmission::class, 'patient_id')->latest('admitted_at');
+    }
 }
