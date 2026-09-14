@@ -148,6 +148,7 @@ where applicable; duplicate patient or outpatient models must not be created.
 | `NursingAssignment` | Professional Hospital | Nursing lead and assigned nurses |
 | `NursingAssignmentEvent` | Professional Hospital | Admin, nursing lead, audit readers |
 | `VitalSign` | Professional Hospital | Nurses and treating doctors |
+| `VitalSignEvent` | Professional Hospital | Admin, authorized clinical audit readers |
 | `LabOrder`, `LabResult` | Professional Hospital | Doctors, lab technicians, authorized records staff |
 | `RadiologyOrder`, `RadiologyResult` | Professional Hospital | Doctors, radiology staff, authorized records staff |
 | `OperatingRoom`, `Surgery` | Professional Hospital | Doctors, OT staff, scheduling/admin |

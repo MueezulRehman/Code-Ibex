@@ -838,3 +838,15 @@ Vital Signs, followed by Laboratory and Radiology.
 - Focused hospital regression tests pass: 14 tests, 209 assertions. Blade
   compilation, the production Vite build, and browser verification of the
   active/history Nursing pages also pass.
+
+### Vital Sign correction history
+
+- Added tenant-scoped `VitalSignEvent` records for initial recording and
+  corrections, storing previous values, new values, actor, timestamp, and a
+  required correction reason.
+- Managers and owners can correct Vital Signs through the server-side
+  `manager.vitals.update` route. Nurses and doctors remain unable to edit
+  observations.
+- The Vital Signs page now exposes the correction form only to managers, and
+  every correction is committed atomically with its audit event.
+- Applied the tenant migration successfully to all six local databases.

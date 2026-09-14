@@ -15,4 +15,5 @@ class VitalSign extends Model
     public function patient() { return $this->belongsTo(Patient::class); }
     public function admission() { return $this->belongsTo(HospitalAdmission::class, 'hospital_admission_id'); }
     public function recorder() { return $this->belongsTo(User::class, 'recorded_by'); }
+    public function events() { return $this->hasMany(VitalSignEvent::class)->latest('changed_at'); }
 }

@@ -488,6 +488,7 @@ Route::prefix('manager')->name('manager.')->group(function () {
         Route::middleware('module:hospital-vital-signs')->group(function () {
             Route::get('/vitals', [App\Http\Controllers\Admin\VitalSignController::class, 'index'])->name('vitals.index');
             Route::post('/vitals', [App\Http\Controllers\Admin\VitalSignController::class, 'store'])->name('vitals.store');
+            Route::patch('/vitals/{vital}', [App\Http\Controllers\Admin\VitalSignController::class, 'update'])->name('vitals.update');
         });
 
         Route::middleware('module:memberships')->group(function () {
