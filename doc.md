@@ -886,3 +886,16 @@ Vital Signs, followed by Laboratory and Radiology.
   retaining a stale bed reference.
 - The next implementation slice is `DischargeSummary` and a structured
   discharge workflow, followed by readmission history.
+
+### Structured discharge summary
+
+- Added tenant-scoped `DischargeSummary` with diagnosis, discharge
+  medications, follow-up instructions, notes, discharging user, and timestamp.
+- Added a one-summary-per-admission constraint and an admission relationship so
+  discharge history remains attached to the specific inpatient encounter.
+- Replaced the generic discharge status form with a validated discharge
+  workflow. The transaction releases and clears the assigned bed, creates the
+  summary, and marks the admission discharged.
+- Applied the tenant migration successfully across all six local businesses.
+- The next lifecycle improvement is explicit readmission history and
+  discharge-summary viewing/edit policy before Laboratory orders/results.

@@ -19,4 +19,5 @@ class HospitalAdmissionManagementTest extends TestCase
         $this->actingAs($user)->get(route('manager.admissions.index'))->assertForbidden();
         $this->actingAs($user)->get(route('manager.admissions.create'))->assertForbidden();
     }
+
 }

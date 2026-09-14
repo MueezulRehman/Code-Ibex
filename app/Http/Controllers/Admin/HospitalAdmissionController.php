@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Bed;
+use App\Models\DischargeSummary;
 use App\Models\Doctor;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalTransfer;
@@ -29,7 +30,7 @@ class HospitalAdmissionController extends Controller
 
     public function index()
     {
-        $admissions = HospitalAdmission::with(['patient', 'doctor', 'department', 'bed'])->latest('admitted_at')->paginate(20);
+        $admissions = HospitalAdmission::with(['patient', 'doctor', 'department', 'bed', 'dischargeSummary'])->latest('admitted_at')->paginate(20);
         return view('manager.admissions.index', [
             'admissions' => $admissions,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
@@ -90,22 +91,43 @@ class HospitalAdmissionController extends Controller
         return back()->with('success', 'Bed assigned.');
     }
 
-    public function updateStatus(Request $request, HospitalAdmission $admission)
+    public function discharge(Request $request, HospitalAdmission $admission)
     {
-        abort_unless($admission->restaurant_id === $this->restaurantId(), 404);
-        $data = $request->validate(['status' => ['required', Rule::in(['admitted', 'discharged'])]]);
-        DB::transaction(function () use ($admission, $data): void {
-            if ($data['status'] === 'discharged' && $admission->bed_id) {
-                Bed::whereKey($admission->bed_id)->lockForUpdate()->firstOrFail()
-                    ->update(['status' => 'available']);
+        $user = Auth::user();
+        $restaurantId = $this->restaurantId();
+        abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
+        $data = $request->validate([
+            'discharge_diagnosis' => ['required', 'string', 'max:10000'],
+            'discharge_medications' => ['nullable', 'string', 'max:10000'],
+            'follow_up_instructions' => ['nullable', 'string', 'max:10000'],
+            'notes' => ['nullable', 'string', 'max:10000'],
+            'discharged_at' => ['required', 'date'],
+        ]);
+
+        DB::transaction(function () use ($admission, $data, $restaurantId, $user): void {
+            if ($admission->bed_id) {
+                Bed::where('restaurant_id', $restaurantId)->whereKey($admission->bed_id)
+                    ->lockForUpdate()->firstOrFail()->update(['status' => 'available']);
             }
+            DischargeSummary::create([
+                'restaurant_id' => $restaurantId,
+                'hospital_admission_id' => $admission->id,
+                'patient_id' => $admission->patient_id,
+                'discharge_diagnosis' => $data['discharge_diagnosis'],
+                'discharge_medications' => $data['discharge_medications'] ?? null,
+                'follow_up_instructions' => $data['follow_up_instructions'] ?? null,
+                'notes' => $data['notes'] ?? null,
+                'discharged_by' => $user->id,
+                'discharged_at' => $data['discharged_at'],
+            ]);
             $admission->update([
-                'status' => $data['status'],
-                'bed_id' => $data['status'] === 'discharged' ? null : $admission->bed_id,
-                'discharged_at' => $data['status'] === 'discharged' ? now() : null,
+                'status' => 'discharged',
+                'bed_id' => null,
+                'discharged_at' => $data['discharged_at'],
             ]);
         });
-        return back()->with('success', 'Admission status updated.');
+
+        return back()->with('success', 'Discharge summary recorded.');
     }
 
     public function transfer(Request $request, HospitalAdmission $admission)
