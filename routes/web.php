@@ -491,6 +491,11 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::post('/vitals', [App\Http\Controllers\Admin\VitalSignController::class, 'store'])->name('vitals.store');
             Route::patch('/vitals/{vital}', [App\Http\Controllers\Admin\VitalSignController::class, 'update'])->name('vitals.update');
         });
+        Route::middleware('module:hospital-laboratory')->group(function () {
+            Route::get('/laboratory', [App\Http\Controllers\Admin\LaboratoryController::class, 'index'])->name('laboratory.index');
+            Route::post('/laboratory/orders', [App\Http\Controllers\Admin\LaboratoryController::class, 'storeOrder'])->name('laboratory.orders.store');
+            Route::post('/laboratory/orders/{order}/result', [App\Http\Controllers\Admin\LaboratoryController::class, 'storeResult'])->name('laboratory.results.store');
+        });
 
         Route::middleware('module:memberships')->group(function () {
             Route::get('/gym', [App\Http\Controllers\Admin\GymController::class, 'index'])->name('gym.index');

@@ -134,6 +134,13 @@ guard, and other staff accounts are denied clinical access. Vital Sign rows
 store both `patient_id` and `hospital_admission_id` so readmission history
 remains explicit rather than relying only on a mutable admission lookup.
 
+The Professional Hospital laboratory slice is implemented behind the
+`hospital-laboratory` module gate. Tenant-scoped `LabOrder` and `LabResult`
+records link both `Patient` and `HospitalAdmission`. Managers/owners can
+create orders and manage results, doctors can create and view orders/results,
+and nurses can view records for active assigned admissions. Receptionists,
+pharmacists, guards, and other staff receive a server-side 403.
+
 ### Proposed full-hospital model ownership
 
 All records below are tenant-owned and must use the existing tenancy pattern.

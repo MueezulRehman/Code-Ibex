@@ -207,6 +207,11 @@ are in place.
   with unique per-tenant codes, available/occupied status groundwork, and
   `module:hospital-wards-beds` navigation and route protection. Existing
   Clinic Hospital tenants remain unchanged.
+- Added the Professional Hospital laboratory slice behind
+  `module:hospital-laboratory`: tenant-scoped LabOrder and LabResult records
+  link Patient and HospitalAdmission. Managers/owners create orders and
+  manage results, doctors create/view records, nurses view active assigned
+  admissions, and receptionist/pharmacist/guard access is denied server-side.
 
 ### Phase 3 consultation workflow
 
