@@ -150,6 +150,7 @@ where applicable; duplicate patient or outpatient models must not be created.
 | `VitalSign` | Professional Hospital | Nurses and treating doctors |
 | `VitalSignEvent` | Professional Hospital | Admin, authorized clinical audit readers |
 | `HospitalDashboard` | Professional Hospital | Admin, manager, authorized clinical staff |
+| `HospitalTransfer` | Professional Hospital | Admin, manager, authorized admissions staff |
 | `LabOrder`, `LabResult` | Professional Hospital | Doctors, lab technicians, authorized records staff |
 | `RadiologyOrder`, `RadiologyResult` | Professional Hospital | Doctors, radiology staff, authorized records staff |
 | `OperatingRoom`, `Surgery` | Professional Hospital | Doctors, OT staff, scheduling/admin |

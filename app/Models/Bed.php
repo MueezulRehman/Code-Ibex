@@ -12,4 +12,5 @@ class Bed extends Model
     protected $fillable = ['restaurant_id', 'ward_id', 'name', 'code', 'status'];
 
     public function ward() { return $this->belongsTo(Ward::class); }
+    public function admissions() { return $this->hasMany(HospitalAdmission::class, 'bed_id'); }
 }

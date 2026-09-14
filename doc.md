@@ -863,3 +863,16 @@ Vital Signs, followed by Laboratory and Radiology.
   and Vital Signs screens when those modules are enabled.
 - Blade compilation, the dashboard regression test, and browser verification
   of the Professional Hospital dashboard passed.
+
+### Admission transfer foundation
+
+- Audited the existing hospital models and added missing inverse relationships
+  for admission Vital Signs/transfers and bed admissions.
+- Added tenant-scoped `HospitalTransfer` records capturing the admission,
+  previous/new departments and beds, requesting user, transfer time, reason,
+  and notes.
+- Added a transactional transfer action that validates tenant ownership,
+  releases the previous bed, occupies the destination bed, updates the
+  admission, and preserves the transfer history.
+- Added the transfer form to the Admissions page and kept the existing
+  admission status flow intact.
