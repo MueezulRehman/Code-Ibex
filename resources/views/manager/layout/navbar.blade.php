@@ -295,6 +295,14 @@
                                 </a>
                             </div>
                         @endif
+                        @if($moduleEnabled('hospital-radiology'))
+                            <div class="nav-dropdown {{ request()->routeIs('manager.radiology.*') ? 'has-active' : '' }}">
+                                <a href="{{ route('manager.radiology.index') }}" title="Radiology"
+                                    class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.radiology.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                                    <i class="fas fa-x-ray text-lg"></i><span class="flex-1 truncate">Radiology</span>
+                                </a>
+                            </div>
+                        @endif
                         @if($moduleEnabled('insurance'))
                             <a href="{{ route('manager.insurance.index') }}" class="{{ request()->routeIs('manager.insurance.*') ? 'is-active' : '' }}"><i class="fas fa-shield-heart"></i><span>Insurance</span></a>
                                 </div>

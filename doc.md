@@ -70,6 +70,15 @@ reliable enough that future changes can be made safely.
   departments, wards/beds/nursing, laboratory/radiology, OT, then billing and
   discharge.
 
+#### Radiology slice (implemented)
+
+Professional Hospital tenants can now use the gated `hospital-radiology`
+module. Tenant-scoped radiology orders and results link each record to a
+Patient and HospitalAdmission. Managers/owners create orders and manage
+results; doctors create and view orders; nurses see records for active
+admission assignments. Receptionists, pharmacists, and guards are denied.
+Orders cannot predate admission and results cannot predate their order.
+
 ## Work Order
 
 ### 1. Establish a clean baseline

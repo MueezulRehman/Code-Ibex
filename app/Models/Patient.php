@@ -47,4 +47,6 @@ class Patient extends Model
 
     public function labOrders() { return $this->hasMany(LabOrder::class); }
     public function labResults() { return $this->hasMany(LabResult::class); }
+    public function radiologyOrders() { return $this->hasMany(RadiologyOrder::class); }
+    public function radiologyResults() { return $this->hasMany(RadiologyResult::class); }
 }

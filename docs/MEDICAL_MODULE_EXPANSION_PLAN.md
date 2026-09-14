@@ -851,6 +851,12 @@ This would cover imaging orders and the order-to-result flow for X-ray,
 ultrasound, CT, MRI, and similar services. It is genuinely new functionality,
 with references to Patient, the ordering clinician, and the relevant encounter.
 
+**Implemented slice (2026-09-14):** Professional Hospital radiology is now
+available behind the `hospital-radiology` module gate. Tenant-scoped
+`RadiologyOrder` and `RadiologyResult` records link to Patient and
+HospitalAdmission, with manager/owner result management, doctor ordering and
+view access, assigned-nurse admission visibility, and timestamp validation.
+
 ### Pharmacy and dispensing
 
 Pharmacy and prescription dispensing are already covered by the approved

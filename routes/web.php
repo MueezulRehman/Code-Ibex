@@ -496,6 +496,11 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::post('/laboratory/orders', [App\Http\Controllers\Admin\LaboratoryController::class, 'storeOrder'])->name('laboratory.orders.store');
             Route::post('/laboratory/orders/{order}/result', [App\Http\Controllers\Admin\LaboratoryController::class, 'storeResult'])->name('laboratory.results.store');
         });
+        Route::middleware('module:hospital-radiology')->group(function () {
+            Route::get('/radiology', [App\Http\Controllers\Admin\RadiologyController::class, 'index'])->name('radiology.index');
+            Route::post('/radiology/orders', [App\Http\Controllers\Admin\RadiologyController::class, 'storeOrder'])->name('radiology.orders.store');
+            Route::post('/radiology/orders/{order}/result', [App\Http\Controllers\Admin\RadiologyController::class, 'storeResult'])->name('radiology.results.store');
+        });
 
         Route::middleware('module:memberships')->group(function () {
             Route::get('/gym', [App\Http\Controllers\Admin\GymController::class, 'index'])->name('gym.index');
