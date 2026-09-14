@@ -13,7 +13,10 @@ two-track hospital roadmap. The two business types have different scopes:
   theatre, hospital billing, discharge, and related departments.
 
 Full-hospital models remain design-only until their individual scope,
-permissions, tenancy boundaries, and acceptance tests are approved.
+permissions, tenancy boundaries, and acceptance tests are approved. The
+admission, nursing, vital-signs, laboratory, radiology, and operating-theatre
+slices below have now been individually implemented and verified; the
+remaining hospital domains remain planning-only.
 
 The plan follows the existing repository conventions documented in
 `docs/MEDICAL_MODULE_AUDIT.md`:
@@ -140,6 +143,22 @@ records link both `Patient` and `HospitalAdmission`. Managers/owners can
 create orders and manage results, doctors can create and view orders/results,
 and nurses can view records for active assigned admissions. Receptionists,
 pharmacists, guards, and other staff receive a server-side 403.
+
+The Professional Hospital Operating Theatre slice is implemented behind the
+`hospital-operating-theatre` module gate. Tenant-scoped `OperatingRoom` and
+`Surgery` records link to `Patient` and `HospitalAdmission`. Owners/managers
+manage rooms and surgery records; doctors can schedule, update, and view
+surgeries; nurses can view surgeries only for active assigned admissions; and
+receptionists, pharmacists, and guards are denied. Surgery lifecycle statuses
+are `scheduled`, `in_progress`, `completed`, and `cancelled`. Admission-window
+validation, end-after-start validation, tenant-safe room/admission validation,
+and same-room overlap prevention are covered by focused tests.
+
+The slice intentionally does not yet model anaesthetists or surgical teams,
+pre-operative checklists, post-operative notes, equipment/resource
+requirements, calendar views, or a complete edit form for room and surgery
+updates. Production-tenant migration rollout and authenticated browser
+verification are still operational follow-up items.
 
 ### Proposed full-hospital model ownership
 
@@ -833,10 +852,12 @@ although it would link to the future admission and shared Patient records.
 
 ### Operation Theatre (OT) scheduling
 
-This would coordinate surgery bookings across surgeon, anesthesiologist, OT
-room, date, and time slot, with conflict checks and an operational schedule.
-It is a genuinely new scheduling domain that may reference Doctor specialties
-and future admission records.
+This coordinates surgery bookings across surgeon, OT room, date, and time slot,
+with conflict checks and an operational schedule. The first implementation
+slice is complete as described above. Anaesthesiologist/team assignment,
+resource requirements, peri-operative documentation, and richer schedule
+views remain future work and may reference Doctor specialties and admission
+records.
 
 ### Laboratory
 
@@ -937,8 +958,11 @@ confirmed before any assumptions are made.
 
 **Future-initiative boundary:** the full-hospital list above is now an approved
 planning target, not blanket authorization to build every model at once.
-Implementation must proceed one module slice at a time, starting with the
-Professional Hospital business type and admission/department foundations.
+Implementation must proceed one module slice at a time. The recommended next
+step after the completed Operating Theatre slice is an authenticated
+production-tenant rollout and browser verification, followed by a reviewed
+hospital billing/discharge charge model that integrates admission, theatre,
+laboratory, radiology, and pharmacy services.
 # Phase 3 status
 
 The consultation workflow is implemented on the existing Visit/QueueEntry

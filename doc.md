@@ -79,6 +79,31 @@ results; doctors create and view orders; nurses see records for active
 admission assignments. Receptionists, pharmacists, and guards are denied.
 Orders cannot predate admission and results cannot predate their order.
 
+#### Operating Theatre / Surgery slice (implemented)
+
+Professional Hospital tenants can now use the separately gated
+`hospital-operating-theatre` module at `/manager/operating-theatre`. Tenant-
+scoped `OperatingRoom` and `Surgery` records link to `Patient` and
+`HospitalAdmission`; rooms and surgery schedules are visible through the
+Manager navigation. Owners/managers manage rooms and surgery records, doctors
+can schedule/update/view surgeries, and nurses can view surgeries only for
+admissions with an active nursing assignment. Receptionists, pharmacists, and
+guards are denied.
+
+The implementation supports `scheduled`, `in_progress`, `completed`, and
+`cancelled` statuses, validates surgery times against admission/discharge
+windows, requires end time after start time, and rejects overlapping
+non-cancelled surgeries in the same room. Focused Operating Theatre,
+Laboratory, and Radiology tests pass (10 tests, 23 assertions); migrations,
+view cache, and the production build also pass.
+
+Remaining limitations are intentional: there is no anaesthetist/team or
+resource checklist, no dedicated pre-operative checklist or post-operative
+notes, no calendar/drag-and-drop schedule, and room/surgery editing is
+currently endpoint-level rather than a complete edit form. Tenant migration
+rollout to every production tenant and live authenticated browser verification
+remain operational follow-up work.
+
 ## Work Order
 
 ### 1. Establish a clean baseline
@@ -163,10 +188,12 @@ A task is complete only when:
 
 ## Next Action
 
-Prepare the separate Professional Hospital business type and its first gated
-admission/department slice. Do not create inpatient models in existing Clinic /
-Doctor or Clinic Hospital tenants until the new business type and module gates
-are in place.
+Next, complete the operational rollout of the Professional Hospital slices:
+apply the tenant migrations to every target tenant and perform authenticated
+browser verification of `/manager/operating-theatre` for manager, doctor,
+nurse, and denied staff accounts. After that, the recommended product slice is
+hospital billing/discharge integration, beginning with a reviewed charge model
+that links admission, theatre, laboratory, radiology, and pharmacy services.
 
 ## Progress Log
 
