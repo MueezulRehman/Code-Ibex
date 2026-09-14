@@ -38,5 +38,16 @@ class OperatingTheatreTest extends TestCase
         $this->actingAs($manager)->post(route('manager.operating-theatre.surgeries.store'), $payload)->assertRedirect();
         $this->assertDatabaseHas('surgeries', ['status' => 'scheduled', 'patient_id' => $patient->id]);
         $this->actingAs($manager)->post(route('manager.operating-theatre.surgeries.store'), $payload)->assertStatus(422);
+
+        $surgery = Surgery::where('restaurant_id', $restaurant->id)->firstOrFail();
+        $this->actingAs($manager)->patch(route('manager.operating-theatre.surgeries.update', $surgery), [
+            'operating_room_id' => $room->id,
+            'procedure_name' => $surgery->procedure_name,
+            'starts_at' => $surgery->starts_at->format('Y-m-d H:i:s'),
+            'ends_at' => $surgery->ends_at->format('Y-m-d H:i:s'),
+            'status' => 'completed',
+            'notes' => 'Procedure completed.',
+        ])->assertRedirect();
+        $this->assertDatabaseHas('surgeries', ['id' => $surgery->id, 'status' => 'completed']);
     }
 }

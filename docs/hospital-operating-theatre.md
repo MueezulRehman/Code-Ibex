@@ -5,3 +5,5 @@ Professional Hospital tenants receive the gated `hospital-operating-theatre` mod
 Owners and managers manage rooms and surgeries. Doctors may schedule and update surgeries. Nurses see surgeries only for admissions with an active nursing assignment; receptionists, pharmacists, and guards are denied.
 
 Schedules support `scheduled`, `in_progress`, `completed`, and `cancelled`. A surgery must fall within its admission window, end after it starts, and cannot overlap another non-cancelled surgery in the same room.
+
+The schedule now exposes status transitions directly in the surgery table, so authorized managers and doctors can move a record through its lifecycle without bypassing the controller validation. The update action preserves the tenant, admission window, room conflict checks, and audit-safe surgery identity.
