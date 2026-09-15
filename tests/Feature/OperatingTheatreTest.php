@@ -47,7 +47,29 @@ class OperatingTheatreTest extends TestCase
             'ends_at' => $surgery->ends_at->format('Y-m-d H:i:s'),
             'status' => 'completed',
             'notes' => 'Procedure completed.',
+            'consent_status' => 'obtained',
+            'preop_status' => 'ready',
+            'preop_checklist' => ['identity_confirmed', 'site_marked', 'fasting_confirmed', 'labs_reviewed'],
+            'postoperative_notes' => 'Patient stable after procedure.',
         ])->assertRedirect();
         $this->assertDatabaseHas('surgeries', ['id' => $surgery->id, 'status' => 'completed']);
+        $this->assertNotNull($surgery->fresh()->completed_at);
+    }
+
+    public function test_surgery_cannot_start_without_consent_and_complete_without_postoperative_notes(): void
+    {
+        $restaurant = Restaurant::create(['name' => 'Hospital', 'slug' => 'theatre-readiness', 'status' => 'active', 'enabled_modules' => ['hospital-operating-theatre']]);
+        $manager = User::create(['name' => 'Manager', 'email' => 'theatre-readiness-manager@example.com', 'phone' => '03000000104', 'role' => 'manager', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $doctor = User::create(['name' => 'Surgeon', 'email' => 'theatre-readiness-doctor@example.com', 'phone' => '03000000105', 'role' => 'staff', 'staff_type' => 'doctor', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'PAT-READINESS', 'name' => 'Readiness Patient']);
+        $admission = HospitalAdmission::create(['restaurant_id' => $restaurant->id, 'admission_number' => 'ADM-READINESS', 'patient_id' => $patient->id, 'status' => 'admitted', 'admitted_at' => '2026-09-14 08:00:00']);
+        $room = OperatingRoom::create(['restaurant_id' => $restaurant->id, 'name' => 'OT 2', 'code' => 'OT2']);
+        $surgery = Surgery::create(['restaurant_id' => $restaurant->id, 'patient_id' => $patient->id, 'hospital_admission_id' => $admission->id, 'operating_room_id' => $room->id, 'surgeon_id' => $doctor->id, 'scheduled_by' => $manager->id, 'surgery_number' => 'SUR-READINESS', 'procedure_name' => 'Biopsy', 'status' => 'scheduled', 'starts_at' => '2026-09-14 09:00:00', 'ends_at' => '2026-09-14 10:00:00']);
+
+        $base = ['operating_room_id' => $room->id, 'surgeon_id' => $doctor->id, 'procedure_name' => 'Biopsy', 'starts_at' => '2026-09-14 09:00:00', 'ends_at' => '2026-09-14 10:00:00', 'status' => 'in_progress', 'preop_status' => 'ready', 'preop_checklist' => ['identity_confirmed', 'site_marked', 'fasting_confirmed', 'labs_reviewed']];
+        $this->actingAs($manager)->patch(route('manager.operating-theatre.surgeries.update', $surgery), $base)->assertStatus(422);
+        $base['consent_status'] = 'obtained';
+        $base['status'] = 'completed';
+        $this->actingAs($manager)->patch(route('manager.operating-theatre.surgeries.update', $surgery), $base)->assertStatus(422);
     }
 }

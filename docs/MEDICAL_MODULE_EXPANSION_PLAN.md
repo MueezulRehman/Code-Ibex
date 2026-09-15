@@ -155,7 +155,11 @@ The Professional Hospital Operating Theatre slice is implemented behind the
 `Surgery` records link to `Patient` and `HospitalAdmission`. Owners/managers
 manage rooms and surgery records; doctors can schedule, update, and view
 surgeries; nurses can view surgeries only for active assigned admissions; and
-receptionists, pharmacists, and guards are denied. Surgery lifecycle statuses
+receptionists, pharmacists, and guards are denied. Surgery lifecycle records
+also include optional anaesthetist/assistant-surgeon links, surgical team
+details, consent status, a pre-operative checklist, post-operative notes, and
+completion time. Managers/doctors can update the checklist, but consent and
+all readiness items are required before starting or completing a case.
 are `scheduled`, `in_progress`, `completed`, and `cancelled`. Admission-window
 validation, end-after-start validation, tenant-safe room/admission validation,
 and same-room overlap prevention are covered by focused tests.

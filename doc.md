@@ -101,16 +101,17 @@ guards are denied.
 The implementation supports `scheduled`, `in_progress`, `completed`, and
 `cancelled` statuses, validates surgery times against admission/discharge
 windows, requires end time after start time, and rejects overlapping
-non-cancelled surgeries in the same room. Focused Operating Theatre,
-Laboratory, and Radiology tests pass (10 tests, 23 assertions); migrations,
-view cache, and the production build also pass.
+non-cancelled surgeries in the same room. Surgery records capture optional
+anaesthetist/assistant surgeon links, surgical team details, consent, a
+pre-operative checklist, post-operative notes, and `completed_at`. Consent
+and all identity, site, fasting, and laboratory readiness items are required
+before `in_progress` or `completed`; completed cases require post-operative
+notes.
 
-Remaining limitations are intentional: there is no anaesthetist/team or
-resource checklist, no dedicated pre-operative checklist or post-operative
-notes, no calendar/drag-and-drop schedule, and room/surgery editing is
-currently endpoint-level rather than a complete edit form. Tenant migration
-rollout to every production tenant and live authenticated browser verification
-remain operational follow-up work.
+Calendar/drag-and-drop scheduling remains out of scope. The clinical
+completeness migration is applied to tenant 18; rollout to every production
+tenant and live authenticated browser verification remain operational
+follow-up work.
 
 ## Work Order
 

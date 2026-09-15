@@ -15,6 +15,8 @@ use Illuminate\Validation\Rule;
 
 class OperatingTheatreController extends Controller
 {
+    private const PREOP_ITEMS = ['identity_confirmed', 'site_marked', 'fasting_confirmed', 'labs_reviewed'];
+
     private function user(): User
     {
         $user = Auth::user();
@@ -48,7 +50,7 @@ class OperatingTheatreController extends Controller
             ? $user->nursingAssignments()->where('status', 'active')->pluck('hospital_admission_id') : null;
 
         return view('manager.operating-theatre.index', [
-            'surgeries' => Surgery::with(['patient', 'admission', 'operatingRoom', 'surgeon'])->latest('starts_at')
+            'surgeries' => Surgery::with(['patient', 'admission', 'operatingRoom', 'surgeon', 'anaesthetist', 'assistantSurgeon'])->latest('starts_at')
                 ->when($admissionIds !== null, fn ($q) => $q->whereIn('hospital_admission_id', $admissionIds))->paginate(20),
             'rooms' => OperatingRoom::where('status', 'active')->orderBy('name')->get(),
             'admissions' => HospitalAdmission::with('patient')->whereIn('status', ['admitted', 'transferred'])
@@ -88,8 +90,19 @@ class OperatingTheatreController extends Controller
             'hospital_admission_id' => ['required', 'integer', Rule::exists('hospital_admissions', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->whereIn('status', ['admitted', 'transferred']))],
             'operating_room_id' => ['required', 'integer', Rule::exists('operating_rooms', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('status', 'active'))],
             'surgeon_id' => ['required', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('staff_type', 'doctor'))],
+            'anaesthetist_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('staff_type', 'doctor'))],
+            'assistant_surgeon_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('staff_type', 'doctor'))],
+            'surgical_team_details' => ['nullable', 'string', 'max:5000'],
+            'consent_status' => ['nullable', Rule::in(['pending', 'obtained', 'declined'])],
+            'preop_status' => ['nullable', Rule::in(['pending', 'incomplete', 'ready'])],
+            'preop_checklist' => ['nullable', 'array'],
+            'preop_checklist.*' => [Rule::in(self::PREOP_ITEMS)],
+            'postoperative_notes' => ['nullable', 'string', 'max:10000'],
             'procedure_name' => ['required', 'string', 'max:255'], 'starts_at' => ['required', 'date'], 'ends_at' => ['required', 'date', 'after:starts_at'], 'notes' => ['nullable', 'string', 'max:5000'],
         ]);
+        $data['consent_status'] = $data['consent_status'] ?? 'pending';
+        $data['preop_status'] = $data['preop_status'] ?? 'pending';
+        $this->assertReadiness($data, false);
         $start = Carbon::parse($data['starts_at']); $end = Carbon::parse($data['ends_at']);
         abort_if($start->lt($admission->admitted_at), 422, 'Surgery must start on or after admission.');
         abort_if($admission->discharged_at && $end->gt($admission->discharged_at), 422, 'Surgery must end before discharge.');
@@ -103,12 +116,48 @@ class OperatingTheatreController extends Controller
         $user = $this->user();
         abort_unless($user->isRestaurantManager() || $user->staff_type === 'doctor', 403);
         abort_unless((int) $surgery->restaurant_id === (int) $user->effectiveRestaurantId(), 404);
-        $data = $request->validate(['operating_room_id' => ['required', 'integer', Rule::exists('operating_rooms', 'id')->where(fn ($q) => $q->where('restaurant_id', $user->effectiveRestaurantId())->where('status', 'active'))], 'procedure_name' => ['required', 'string', 'max:255'], 'starts_at' => ['required', 'date'], 'ends_at' => ['required', 'date', 'after:starts_at'], 'status' => ['required', Rule::in(['scheduled', 'in_progress', 'completed', 'cancelled'])], 'notes' => ['nullable', 'string', 'max:5000']]);
+        $restaurantId = (int) $user->effectiveRestaurantId();
+        $data = $request->validate([
+            'operating_room_id' => ['required', 'integer', Rule::exists('operating_rooms', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('status', 'active'))],
+            'surgeon_id' => ['sometimes', 'nullable', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('staff_type', 'doctor'))],
+            'anaesthetist_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('staff_type', 'doctor'))],
+            'assistant_surgeon_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('staff_type', 'doctor'))],
+            'surgical_team_details' => ['nullable', 'string', 'max:5000'],
+            'consent_status' => ['nullable', Rule::in(['pending', 'obtained', 'declined'])],
+            'preop_status' => ['nullable', Rule::in(['pending', 'incomplete', 'ready'])],
+            'preop_checklist' => ['nullable', 'array'],
+            'preop_checklist.*' => [Rule::in(self::PREOP_ITEMS)],
+            'postoperative_notes' => ['nullable', 'string', 'max:10000'],
+            'procedure_name' => ['required', 'string', 'max:255'], 'starts_at' => ['required', 'date'], 'ends_at' => ['required', 'date', 'after:starts_at'],
+            'status' => ['required', Rule::in(['scheduled', 'in_progress', 'completed', 'cancelled'])], 'notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+        $data['consent_status'] = $data['consent_status'] ?? $surgery->consent_status ?? 'pending';
+        $data['preop_status'] = $data['preop_status'] ?? $surgery->preop_status ?? 'pending';
+        $data['surgeon_id'] = $data['surgeon_id'] ?? $surgery->surgeon_id;
+        $this->assertReadiness($data, in_array($data['status'], ['in_progress', 'completed'], true));
+        if ($data['status'] === 'completed' && blank($data['postoperative_notes'] ?? null)) {
+            abort(422, 'Post-operative notes are required before completing surgery.');
+        }
         $admission = $surgery->admission;
         $start = Carbon::parse($data['starts_at']); $end = Carbon::parse($data['ends_at']);
         abort_if($start->lt($admission->admitted_at) || ($admission->discharged_at && $end->gt($admission->discharged_at)), 422, 'Surgery timestamps must be within the admission.');
-        $this->assertNoOverlap((int) $user->effectiveRestaurantId(), (int) $data['operating_room_id'], $start, $end, $surgery->id);
+        $this->assertNoOverlap($restaurantId, (int) $data['operating_room_id'], $start, $end, $surgery->id);
+        $data['completed_at'] = $data['status'] === 'completed' ? ($surgery->completed_at ?? now()) : null;
         $surgery->update($data);
         return back()->with('success', 'Surgery updated.');
+    }
+
+    private function assertReadiness(array $data, bool $transitioning): void
+    {
+        if (! $transitioning) {
+            return;
+        }
+        if (($data['consent_status'] ?? null) !== 'obtained') {
+            abort(422, 'Documented patient consent is required before surgery starts.');
+        }
+        $checklist = array_values(array_unique($data['preop_checklist'] ?? []));
+        if (($data['preop_status'] ?? null) !== 'ready' || count(array_diff(self::PREOP_ITEMS, $checklist)) > 0) {
+            abort(422, 'Complete the pre-operative checklist before surgery starts.');
+        }
     }
 }
