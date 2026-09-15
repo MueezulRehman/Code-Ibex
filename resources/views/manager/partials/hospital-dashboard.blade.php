@@ -16,7 +16,7 @@
             @if($hospitalDashboard['surgery_upcoming'] !== null)<a href="{{ route('manager.operating-theatre.index') }}" class="rounded-lg bg-white px-3 py-2 text-blue-700 shadow-sm">Theatre</a>@endif
         </div>
     </div>
-    <div class="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-11">
+    <div class="mt-5 grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-6">
         @foreach([
             ['Active admissions', $hospitalDashboard['active_admissions'], 'text-blue-700'],
             ['Available beds', $hospitalDashboard['available_beds'] ?? '—', 'text-emerald-700'],
@@ -35,24 +35,24 @@
             <p class="text-[11px] leading-tight text-gray-500">{{ $label }}</p>
             <p class="mt-2 text-2xl font-bold {{ $color }}">{{ $value }}</p>
         </div>
-        @if($hospitalDashboard['recent_unpaid_charges']->isNotEmpty())
-        <div class="mt-5 rounded-xl border border-white bg-white p-4 shadow-sm">
-            <div class="flex items-center justify-between">
-                <h3 class="font-semibold text-hut-dark">Recent unpaid posted charges</h3>
-                <a href="{{ route('manager.hospital-billing.index') }}" class="text-xs font-semibold text-blue-700">Review billing</a>
-            </div>
-            <div class="mt-3 divide-y divide-gray-100">
-                @foreach($hospitalDashboard['recent_unpaid_charges'] as $charge)
-                    <div class="flex items-center justify-between gap-3 py-2 text-sm">
-                        <span class="text-gray-700">{{ $charge->patient?->name ?? 'Patient' }} · {{ $charge->description }}</span>
-                        <strong class="text-red-700">Rs. {{ number_format((float) $charge->total_amount, 2) }}</strong>
-                    </div>
-                @endforeach
-            </div>
-        </div>
-        @endif
         @endforeach
     </div>
+    @if($hospitalDashboard['recent_unpaid_charges']->isNotEmpty())
+    <div class="mt-5 rounded-xl border border-white bg-white p-4 shadow-sm">
+        <div class="flex items-center justify-between">
+            <h3 class="font-semibold text-hut-dark">Recent unpaid posted charges</h3>
+            <a href="{{ route('manager.hospital-billing.index') }}" class="text-xs font-semibold text-blue-700">Review billing</a>
+        </div>
+        <div class="mt-3 divide-y divide-gray-100">
+            @foreach($hospitalDashboard['recent_unpaid_charges'] as $charge)
+                <div class="flex items-center justify-between gap-3 py-2 text-sm">
+                    <span class="text-gray-700">{{ $charge->patient?->name ?? 'Patient' }} · {{ $charge->description }}</span>
+                    <strong class="text-red-700">Rs. {{ number_format((float) $charge->total_amount, 2) }}</strong>
+                </div>
+            @endforeach
+        </div>
+    </div>
+    @endif
     <div class="mt-5 rounded-xl border border-white bg-white p-4 shadow-sm">
         <div class="flex items-center justify-between">
             <h3 class="font-semibold text-hut-dark">Department occupancy</h3>
