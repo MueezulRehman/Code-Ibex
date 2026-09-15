@@ -172,11 +172,11 @@ are `scheduled`, `in_progress`, `completed`, and `cancelled`. Admission-window
 validation, end-after-start validation, tenant-safe room/admission validation,
 and same-room overlap prevention are covered by focused tests.
 
-The slice intentionally does not yet model anaesthetists or surgical teams,
-pre-operative checklists, post-operative notes, equipment/resource
-requirements, calendar views, or a complete edit form for room and surgery
-updates. Production-tenant migration rollout and authenticated browser
-verification are still operational follow-up items.
+The slice intentionally does not yet model equipment/resource requirements or
+calendar/drag-and-drop views. Anaesthetist and surgical-team assignments,
+pre-operative checklists, post-operative notes, and the room/surgery update
+workflow are implemented. Production-tenant migration rollout and
+authenticated browser verification remain operational follow-up items.
 
 Laboratory and Radiology result corrections now require manager/owner
 authorization and a correction reason. Each initial result, verification, and
@@ -1012,9 +1012,11 @@ confirmed before any assumptions are made.
 
 **Future-initiative boundary:** the full-hospital list above is now an approved
 planning target, not blanket authorization to build every model at once.
-Implementation must proceed one module slice at a time. The recommended next
-step after the completed Operating Theatre slice is an authenticated
-production-tenant rollout and browser verification, followed by a reviewed
+Implementation must proceed one module slice at a time. The optional
+WardLocation hierarchy is now implemented as a backward-compatible
+Ward -> Room/Hall/Bay -> Bed structure. The immediate follow-up is
+authenticated production-tenant rollout and browser verification, followed by
+a reviewed
 hospital billing/discharge charge model that integrates admission, theatre,
 laboratory, radiology, and pharmacy services.
 # Phase 3 status
