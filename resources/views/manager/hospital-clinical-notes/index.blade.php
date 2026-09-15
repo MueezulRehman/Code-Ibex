@@ -8,18 +8,13 @@
     </div>
     @if(session('success'))<div class="rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>@endif
     @if($canRecord)
-        <form method="POST" action="{{ route('manager.hospital-clinical-notes.store') }}" class="grid gap-3 rounded-xl border border-gray-200 bg-white p-5 md:grid-cols-4">
+        <form method="POST" action="{{ route('manager.hospital-clinical-notes.store') }}" class="grid items-start gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:grid-cols-4">
             @csrf
-            <select name="hospital_admission_id" required class="rounded-lg border-gray-200 md:col-span-2">
-                <option value="">Admission</option>
-                @foreach($admissions as $admission)<option value="{{ $admission->id }}">{{ $admission->admission_number }} — {{ $admission->patient?->name }}</option>@endforeach
-            </select>
-            <select name="note_type" required class="rounded-lg border-gray-200">
-                @foreach($allowedTypes as $type)<option value="{{ $type }}">{{ ucfirst($type) }}</option>@endforeach
-            </select>
-            <input type="datetime-local" name="recorded_at" value="{{ now()->format('Y-m-d\TH:i') }}" required class="rounded-lg border-gray-200">
-            <textarea name="content" required maxlength="20000" placeholder="Document assessment, progress, intervention, or observation" class="min-h-24 rounded-lg border-gray-200 md:col-span-3"></textarea>
-            <button class="rounded-lg bg-hut-dark px-4 py-2 text-sm font-semibold text-white">Record Note</button>
+            <div class="md:col-span-2"><label for="clinical-note-admission" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Admission</label><select id="clinical-note-admission" name="hospital_admission_id" required class="w-full rounded-lg border border-gray-200"><option value="">Select an active admission</option>@foreach($admissions as $admission)<option value="{{ $admission->id }}">{{ $admission->admission_number }} — {{ $admission->patient?->name }}</option>@endforeach</select></div>
+            <div><label for="clinical-note-type" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Note type</label><select id="clinical-note-type" name="note_type" required class="w-full rounded-lg border border-gray-200">@foreach($allowedTypes as $type)<option value="{{ $type }}">{{ ucfirst($type) }}</option>@endforeach</select></div>
+            <div><label for="clinical-note-recorded-at" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Recorded at</label><input id="clinical-note-recorded-at" type="datetime-local" name="recorded_at" value="{{ now()->format('Y-m-d\TH:i') }}" required class="w-full rounded-lg border border-gray-200"></div>
+            <div class="md:col-span-3"><label for="clinical-note-content" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Clinical note</label><textarea id="clinical-note-content" name="content" required maxlength="20000" rows="4" placeholder="Document assessment, progress, intervention, or observation" class="w-full rounded-lg border border-gray-200"></textarea></div>
+            <div class="flex items-start"><button class="w-full rounded-lg bg-hut-dark px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800">Record Note</button></div>
         </form>
     @endif
     <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white">
