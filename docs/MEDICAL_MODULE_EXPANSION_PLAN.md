@@ -1046,17 +1046,21 @@ posted, paid, or outstanding reconciliation semantics. Central and tenant
 migrations use explicit short MySQL-safe identifiers and backfill document
 numbers for existing charges.
 
-Managers can now optionally link a hospital charge/invoice to the existing
-tenant-scoped `InsuranceClaim` record. This additive linkage does not duplicate
-insurance data or change invoice/receipt numbering, draft/posted/paid/void
-transitions, or discharge reconciliation. Server-side validation rejects a
-claim from another tenant. The current claim schema supports `customer_id` but
-not `patient_id` or `hospital_admission_id`, so the implementation validates
-tenant ownership and intentionally does not guess a Patient-to-Customer match.
-Patient/admission validation can be added when that shared identity boundary is
-designed. Managers also have a filtered report and CSV export with totals by
-status, charge type, charged date, admission, payment method, and
-insurance-linked/outstanding amounts.
+Managers can now maintain tenant-scoped `HospitalPatientInsurance` profiles
+without duplicating the existing customer-linked `InsuranceClaim` records.
+Profiles store payer, policy/member numbers, coverage dates, status, and notes,
+and are explicitly linked to a Patient. A manager-only page under the
+`hospital-billing` module provides profile CRUD and admission selection.
+Admissions and billing charges accept an optional profile link, with
+server-side tenant and Patient/admission validation. Existing
+`InsuranceClaim` linkage remains available for legacy claim processing and
+continues to be tenant-checked. A claim may additionally carry an explicit
+hospital patient profile link; when present, billing verifies that profile
+matches the admission patient/profile rather than guessing a
+customer-to-patient match. Invoice/receipt numbering, draft/posted/paid/void
+transitions, discharge reconciliation, and the existing billing report
+semantics are unchanged. Central and tenant migrations use explicit short
+MySQL-safe identifiers.
 
 ### HR and staff scheduling
 

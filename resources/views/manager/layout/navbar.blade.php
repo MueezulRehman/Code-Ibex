@@ -341,6 +341,7 @@
                                     class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.hospital-billing.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
                                     <i class="fas fa-file-invoice-dollar text-lg"></i><span class="flex-1 truncate">Billing</span>
                                 </a>
+                                <a href="{{ route('manager.hospital-billing.insurance.index') }}" class="mt-1 flex items-center gap-3 rounded-xl px-4 py-2 text-xs text-gray-300 hover:bg-white/10"><i class="fas fa-id-card"></i><span>Patient insurance</span></a>
                             </div>
                         @endif
                         @if($moduleEnabled('hospital-medication'))

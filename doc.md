@@ -172,16 +172,21 @@ when created. Managers/owners retain the existing draft, posted, paid, and
 void lifecycle; posting and payment do not change the outstanding calculation.
 Recording a payment captures the payment method, reference, payer, timestamp,
 and a tenant-scoped receipt number. Paid charges expose a manager-only
-printable receipt at `manager.hospital-billing.receipt`. Existing insurance
-claims are now optionally linked from a billing charge/invoice through the
-existing `InsuranceClaim` record. Linkage is manager-only, tenant-scoped, and
-does not alter the draft/posted/paid/void lifecycle, invoice, receipt, or
-discharge reconciliation. The current claim schema has `customer_id` but no
-patient or admission keys, so this slice validates tenant ownership only and
-reports that identity limitation rather than guessing a Patient-to-Customer
-match. The manager-only `manager.hospital-billing.report` view and CSV export
+printable receipt at `manager.hospital-billing.receipt`. Existing `InsuranceClaim` records remain customer-linked and can still be
+optionally attached to a billing charge/invoice. Hospital patient identity is
+now represented by the tenant-scoped `HospitalPatientInsurance` profile, with
+payer, policy/member numbers, coverage dates, status, notes, and an explicit
+Patient relation. Managers can create, edit, and remove profiles at
+`manager.hospital-billing.insurance`, link a profile to an admission, and
+select it on a billing charge. Every profile, admission link, and profile
+selection is checked against the current tenant and admission patient; legacy customer claims are not duplicated or rewritten. If an existing claim
+is explicitly linked to a hospital profile, billing also verifies that profile
+belongs to the admission patient (and, when selected, the admission profile).
+Claim linkage remains manager-only and tenant-scoped, and the draft/posted/paid/void lifecycle,
+invoice, receipt, and discharge reconciliation are unchanged. The
+manager-only `manager.hospital-billing.report` view and CSV export continue to
 provide filters and aggregates by status, charge type, date, admission,
-payment method, and insurance-linked/outstanding amounts.
+payment method, and insurance-linked/outstanding claim amounts.
 
 ### 1. Establish a clean baseline
 

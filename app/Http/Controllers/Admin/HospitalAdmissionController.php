@@ -10,6 +10,7 @@ use App\Models\DischargeSummary;
 use App\Models\DischargeSummaryEvent;
 use App\Models\Doctor;
 use App\Models\HospitalAdmission;
+use App\Models\HospitalPatientInsurance;
 use App\Models\HospitalTransfer;
 use App\Models\Patient;
 use App\Models\User;
@@ -43,11 +44,13 @@ class HospitalAdmissionController extends Controller
             'bedTransfers.newBed',
             'dischargeSummary',
             'billings:id,hospital_admission_id,status,total_amount',
+            'insurancePolicy',
         ])->latest('admitted_at')->paginate(20);
         return view('manager.admissions.index', [
             'admissions' => $admissions,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
             'beds' => Bed::with(['ward', 'location'])->where('status', 'available')->orderBy('code')->get(),
+            'patientInsurances' => HospitalPatientInsurance::with('patient')->orderBy('payer')->get(),
         ]);
     }
 
@@ -66,6 +69,7 @@ class HospitalAdmissionController extends Controller
         $restaurantId = $this->restaurantId();
         $data = $request->validate([
             'patient_id' => ['required', 'integer', Rule::exists('patients', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId))],
+            'hospital_patient_insurance_id' => ['nullable', 'integer', Rule::exists('hospital_patient_insurances', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId))],
             'doctor_id' => ['nullable', 'integer', Rule::exists('doctors', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId))],
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('is_active', true))],
             'bed_id' => ['nullable', 'integer', Rule::exists('beds', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('status', 'available'))],
@@ -80,6 +84,15 @@ class HospitalAdmissionController extends Controller
             return back()->withErrors([
                 'patient_id' => 'This patient already has an active hospital admission.',
             ])->withInput();
+        }
+        if ($data['hospital_patient_insurance_id'] ?? null) {
+            $policy = HospitalPatientInsurance::where('restaurant_id', $restaurantId)
+                ->findOrFail($data['hospital_patient_insurance_id']);
+            if ((int) $policy->patient_id !== (int) $data['patient_id']) {
+                return back()->withErrors([
+                    'hospital_patient_insurance_id' => 'The insurance policy does not belong to this patient.',
+                ])->withInput();
+            }
         }
         $data['restaurant_id'] = $restaurantId;
         $data['admission_number'] = 'ADM-' . now()->format('Ymd') . '-' . Str::upper(Str::random(5));

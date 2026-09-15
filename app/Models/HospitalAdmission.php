@@ -10,7 +10,7 @@ class HospitalAdmission extends Model
     use BelongsToRestaurant;
 
     protected $fillable = [
-        'restaurant_id', 'admission_number', 'patient_id', 'doctor_id',
+        'restaurant_id', 'admission_number', 'patient_id', 'hospital_patient_insurance_id', 'doctor_id',
         'department_id', 'status', 'admitted_at', 'discharged_at', 'notes',
         'bed_id',
     ];
@@ -21,6 +21,7 @@ class HospitalAdmission extends Model
     ];
 
     public function patient() { return $this->belongsTo(Patient::class); }
+    public function insurancePolicy() { return $this->belongsTo(HospitalPatientInsurance::class, 'hospital_patient_insurance_id'); }
     public function doctor() { return $this->belongsTo(Doctor::class); }
     public function department() { return $this->belongsTo(Department::class); }
     public function bed() { return $this->belongsTo(Bed::class); }

@@ -45,6 +45,7 @@ class Patient extends Model
         return $this->hasMany(HospitalAdmission::class, 'patient_id')->latest('admitted_at');
     }
     public function hospitalBillings() { return $this->hasMany(HospitalBilling::class); }
+    public function hospitalInsurances() { return $this->hasMany(HospitalPatientInsurance::class); }
 
     public function labOrders() { return $this->hasMany(LabOrder::class); }
     public function labResults() { return $this->hasMany(LabResult::class); }

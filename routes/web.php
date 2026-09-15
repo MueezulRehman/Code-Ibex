@@ -535,6 +535,11 @@ Route::prefix('manager')->name('manager.')->group(function () {
         });
         Route::middleware('module:hospital-billing')->group(function () {
             Route::get('/hospital-billing', [App\Http\Controllers\Admin\HospitalBillingController::class, 'index'])->name('hospital-billing.index');
+            Route::get('/hospital-billing/insurance', [App\Http\Controllers\Admin\HospitalPatientInsuranceController::class, 'index'])->name('hospital-billing.insurance.index');
+            Route::post('/hospital-billing/insurance', [App\Http\Controllers\Admin\HospitalPatientInsuranceController::class, 'store'])->name('hospital-billing.insurance.store');
+            Route::patch('/hospital-billing/insurance/{policy}', [App\Http\Controllers\Admin\HospitalPatientInsuranceController::class, 'update'])->name('hospital-billing.insurance.update');
+            Route::delete('/hospital-billing/insurance/{policy}', [App\Http\Controllers\Admin\HospitalPatientInsuranceController::class, 'destroy'])->name('hospital-billing.insurance.destroy');
+            Route::patch('/hospital-billing/admissions/{admission}/insurance', [App\Http\Controllers\Admin\HospitalPatientInsuranceController::class, 'linkAdmission'])->name('hospital-billing.insurance.admission');
             Route::get('/hospital-billing/report', [App\Http\Controllers\Admin\HospitalBillingController::class, 'report'])->name('hospital-billing.report');
             Route::get('/hospital-billing/report/export', [App\Http\Controllers\Admin\HospitalBillingController::class, 'exportReport'])->name('hospital-billing.report.export');
             Route::post('/hospital-billing', [App\Http\Controllers\Admin\HospitalBillingController::class, 'store'])->name('hospital-billing.store');

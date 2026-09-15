@@ -15,7 +15,7 @@ class HospitalBilling extends Model
         'description', 'quantity', 'unit_amount', 'total_amount', 'status',
         'charged_at', 'posted_by', 'paid_by', 'posted_at', 'paid_at', 'notes',
         'payment_reference', 'payment_notes', 'invoice_number', 'receipt_number',
-        'payment_method', 'receipt_issued_at', 'insurance_claim_id',
+        'payment_method', 'receipt_issued_at', 'insurance_claim_id', 'hospital_patient_insurance_id',
     ];
 
     protected $casts = [
@@ -66,6 +66,7 @@ class HospitalBilling extends Model
     public function postedBy() { return $this->belongsTo(User::class, 'posted_by'); }
     public function paidBy() { return $this->belongsTo(User::class, 'paid_by'); }
     public function insuranceClaim() { return $this->belongsTo(InsuranceClaim::class, 'insurance_claim_id'); }
+    public function insurancePolicy() { return $this->belongsTo(HospitalPatientInsurance::class, 'hospital_patient_insurance_id'); }
 
     protected static function booted(): void
     {

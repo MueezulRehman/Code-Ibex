@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalBilling;
+use App\Models\HospitalPatientInsurance;
 use App\Models\InsuranceClaim;
 use App\Models\User;
 use Illuminate\Http\Request;
@@ -61,11 +62,40 @@ class HospitalBillingController extends Controller
         }
 
         $claim = InsuranceClaim::where('restaurant_id', $restaurantId)->findOrFail($claimId);
+        if (Schema::hasColumn('insurance_claims', 'hospital_patient_insurance_id') && $claim->hospital_patient_insurance_id) {
+            $policy = HospitalPatientInsurance::where('restaurant_id', $restaurantId)
+                ->findOrFail($claim->hospital_patient_insurance_id);
+            abort_unless((int) $policy->patient_id === (int) $admission->patient_id, 422, 'Insurance claim policy does not belong to this patient.');
+            if ($admission->hospital_patient_insurance_id) {
+                abort_unless((int) $policy->id === (int) $admission->hospital_patient_insurance_id, 422, 'Insurance claim policy does not match this admission.');
+            }
+        }
         foreach (['patient_id' => (int) $admission->patient_id, 'hospital_admission_id' => (int) $admission->id] as $column => $expected) {
             if (Schema::hasColumn('insurance_claims', $column) && $claim->{$column} !== null) {
                 abort_unless((int) $claim->{$column} === $expected, 422, "Insurance claim {$column} does not match this admission.");
             }
         }
+
+    }
+
+    private function hospitalInsuranceRule(int $restaurantId): array
+    {
+        return [
+            'nullable',
+            'integer',
+            Rule::exists('hospital_patient_insurances', 'id')
+                ->where(fn ($q) => $q->where('restaurant_id', $restaurantId)),
+        ];
+    }
+
+    private function assertHospitalInsuranceMatchesAdmission(?int $policyId, HospitalAdmission $admission, int $restaurantId): void
+    {
+        if (! $policyId) {
+            return;
+        }
+
+        $policy = HospitalPatientInsurance::where('restaurant_id', $restaurantId)->findOrFail($policyId);
+        abort_unless((int) $policy->patient_id === (int) $admission->patient_id, 422, 'Insurance policy does not belong to this admission patient.');
     }
 
     public function index(Request $request)
@@ -83,7 +113,7 @@ class HospitalBillingController extends Controller
         $paymentMethod = $request->query('payment_method');
         $insuranceLinked = $request->query('insurance_linked');
 
-        $billings = HospitalBilling::with(['patient', 'admission', 'postedBy', 'paidBy', 'insuranceClaim'])
+        $billings = HospitalBilling::with(['patient', 'admission', 'postedBy', 'paidBy', 'insuranceClaim', 'insurancePolicy'])
             ->where('restaurant_id', $restaurantId)
             ->when($admissionIds !== null, fn ($q) => $q->whereIn('hospital_admission_id', $admissionIds))
             ->when($status && $status !== 'all', fn ($q) => $q->where('status', $status))
@@ -113,6 +143,7 @@ class HospitalBillingController extends Controller
             'filterPaymentMethod' => $paymentMethod ?: 'all',
             'filterInsuranceLinked' => $insuranceLinked ?: 'all',
             'insuranceClaims' => InsuranceClaim::where('restaurant_id', $restaurantId)->latest('id')->get(),
+            'patientInsurances' => HospitalPatientInsurance::where('restaurant_id', $restaurantId)->with('patient')->latest('id')->get(),
         ]);
     }
 
@@ -214,9 +245,11 @@ class HospitalBillingController extends Controller
             'charged_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'insurance_claim_id' => $this->insuranceClaimRule($restaurantId),
+            'hospital_patient_insurance_id' => $this->hospitalInsuranceRule($restaurantId),
         ]);
         $admission = HospitalAdmission::where('restaurant_id', $restaurantId)->findOrFail($data['hospital_admission_id']);
         $this->assertInsuranceClaimMatchesAdmission($data['insurance_claim_id'] ?? null, $admission, $restaurantId);
+        $this->assertHospitalInsuranceMatchesAdmission($data['hospital_patient_insurance_id'] ?? null, $admission, $restaurantId);
         HospitalBilling::create($data + ['restaurant_id' => $restaurantId, 'patient_id' => $admission->patient_id, 'status' => 'draft']);
         return back()->with('success', 'Hospital billing charge created.');
     }
@@ -234,9 +267,15 @@ class HospitalBillingController extends Controller
             'charged_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
             'insurance_claim_id' => $this->insuranceClaimRule((int) $user->effectiveRestaurantId()),
+            'hospital_patient_insurance_id' => $this->hospitalInsuranceRule((int) $user->effectiveRestaurantId()),
         ]);
         $this->assertInsuranceClaimMatchesAdmission(
             $data['insurance_claim_id'] ?? null,
+            $billing->admission()->firstOrFail(),
+            (int) $user->effectiveRestaurantId()
+        );
+        $this->assertHospitalInsuranceMatchesAdmission(
+            $data['hospital_patient_insurance_id'] ?? null,
             $billing->admission()->firstOrFail(),
             (int) $user->effectiveRestaurantId()
         );
@@ -251,13 +290,23 @@ class HospitalBillingController extends Controller
         abort_unless($billing->status !== 'void', 422, 'Void charges cannot be linked to an insurance claim.');
         $data = $request->validate([
             'insurance_claim_id' => $this->insuranceClaimRule((int) $user->effectiveRestaurantId()),
+            'hospital_patient_insurance_id' => $this->hospitalInsuranceRule((int) $user->effectiveRestaurantId()),
         ]);
+        $admission = $billing->admission()->firstOrFail();
         $this->assertInsuranceClaimMatchesAdmission(
             $data['insurance_claim_id'] ?? null,
-            $billing->admission()->firstOrFail(),
+            $admission,
             (int) $user->effectiveRestaurantId()
         );
-        $billing->update(['insurance_claim_id' => $data['insurance_claim_id'] ?? null]);
+        $this->assertHospitalInsuranceMatchesAdmission(
+            $data['hospital_patient_insurance_id'] ?? null,
+            $admission,
+            (int) $user->effectiveRestaurantId()
+        );
+        $billing->update([
+            'insurance_claim_id' => $data['insurance_claim_id'] ?? null,
+            'hospital_patient_insurance_id' => $data['hospital_patient_insurance_id'] ?? null,
+        ]);
         return back()->with('success', 'Insurance claim linkage updated.');
     }
 

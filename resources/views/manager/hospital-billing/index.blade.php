@@ -70,6 +70,7 @@
                 <input name="unit_amount" type="number" min="0.01" step="0.01" required placeholder="Unit amount" class="rounded border-gray-200 text-sm">
                 <input name="charged_at" type="datetime-local" value="{{ now()->format('Y-m-d\TH:i') }}" required class="rounded border-gray-200 text-sm">
                 <input name="notes" placeholder="Notes" class="rounded border-gray-200 text-sm md:col-span-2">
+                <select name="hospital_patient_insurance_id" class="rounded border-gray-200 text-sm"><option value="">No patient policy</option>@foreach($patientInsurances as $policy)<option value="{{ $policy->id }}">{{ $policy->patient?->name }} · {{ $policy->payer }} · {{ $policy->member_number ?: ($policy->policy_number ?: 'No number') }}</option>@endforeach</select>
                 <select name="insurance_claim_id" class="rounded border-gray-200 text-sm"><option value="">No insurance claim</option>@foreach($insuranceClaims as $claim)<option value="{{ $claim->id }}">{{ $claim->claim_number ?: ('Claim #' . $claim->id) }} · {{ ucfirst($claim->status) }}</option>@endforeach</select>
                 <button class="rounded bg-hut-yellow px-3 py-2 text-sm font-semibold text-hut-dark md:col-span-1">Add draft</button>
             </form>
@@ -107,6 +108,9 @@
                             @if($canManage && $billing->insuranceClaim)
                                 <div class="mt-1 text-[11px] text-indigo-700">Claim: {{ $billing->insuranceClaim->claim_number ?: ('#' . $billing->insurance_claim_id) }}</div>
                             @endif
+                            @if($canManage && $billing->insurancePolicy)
+                                <div class="mt-1 text-[11px] text-indigo-700">Policy: {{ $billing->insurancePolicy->payer }} · {{ $billing->insurancePolicy->member_number ?: ($billing->insurancePolicy->policy_number ?: 'No number') }}</div>
+                            @endif
                         </td>
                         <td class="px-3 py-3">
                             {{ number_format((float) $billing->total_amount, 2) }}
@@ -133,6 +137,7 @@
                                                 <input name="unit_amount" type="number" min="0.01" step="0.01" value="{{ $billing->unit_amount }}" required class="rounded border-gray-200 text-xs">
                                                 <input name="charged_at" type="datetime-local" value="{{ $billing->charged_at?->format('Y-m-d\TH:i') }}" required class="rounded border-gray-200 text-xs">
                                                 <input name="notes" value="{{ $billing->notes }}" class="rounded border-gray-200 text-xs">
+                                                <select name="hospital_patient_insurance_id" class="rounded border-gray-200 text-xs"><option value="">No patient policy</option>@foreach($patientInsurances->where('patient_id', $billing->patient_id) as $policy)<option value="{{ $policy->id }}" @selected((int) $billing->hospital_patient_insurance_id === (int) $policy->id)>{{ $policy->payer }} · {{ $policy->member_number ?: ($policy->policy_number ?: 'No number') }}</option>@endforeach</select>
                                                 <button class="rounded bg-gray-100 px-2 py-1 text-xs font-semibold">Save</button>
                                             </form>
                                         </details>
@@ -142,6 +147,7 @@
                                         <details class="text-left">
                                             <summary class="cursor-pointer text-xs font-semibold text-indigo-700">Insurance</summary>
                                             <form method="POST" action="{{ route('manager.hospital-billing.insurance-claim', $billing) }}" class="mt-2 flex gap-1">@csrf @method('PATCH')
+                                                <select name="hospital_patient_insurance_id" class="rounded border-gray-200 text-xs"><option value="">No patient policy</option>@foreach($patientInsurances->where('patient_id', $billing->patient_id) as $policy)<option value="{{ $policy->id }}" @selected((int) $billing->hospital_patient_insurance_id === (int) $policy->id)>{{ $policy->payer }} · {{ $policy->member_number ?: ($policy->policy_number ?: 'No number') }}</option>@endforeach</select>
                                                 <select name="insurance_claim_id" class="rounded border-gray-200 text-xs"><option value="">No claim</option>@foreach($insuranceClaims as $claim)<option value="{{ $claim->id }}" @selected((int) $billing->insurance_claim_id === (int) $claim->id)>{{ $claim->claim_number ?: ('#' . $claim->id) }}</option>@endforeach</select>
                                                 <button class="rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">Save</button>
                                             </form>
