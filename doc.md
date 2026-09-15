@@ -269,6 +269,9 @@ that links admission, theatre, laboratory, radiology, and pharmacy services.
   with unique per-tenant codes, available/occupied status groundwork, and
   `module:hospital-wards-beds` navigation and route protection. Existing
   Clinic Hospital tenants remain unchanged.
+- Added optional tenant-scoped physical locations beneath wards. Managers can
+  create Room, Hall, or Bay locations and place new beds under them while
+  legacy ward-level beds remain valid.
 - Added the Professional Hospital laboratory slice behind
   `module:hospital-laboratory`: tenant-scoped LabOrder and LabResult records
   link Patient and HospitalAdmission. Managers/owners create orders and
@@ -799,6 +802,13 @@ information in the audit record.
 
 - Added the tenant-scoped `Ward` and `Bed` models and the gated
   `hospital-wards-beds` module for Professional Hospital.
+- Added the optional `WardLocation` hierarchy (`Ward -> Room/Hall/Bay ->
+  Bed`). `Bed::location_id` is nullable, so existing ward/bed rows and all
+  `HospitalAdmission::bed_id` references continue to work unchanged.
+- Managers can create tenant-authorized Room, Hall, and Bay locations and
+  assign beds to a location from the Wards & Beds screen. Location codes are
+  unique per tenant, and a bed cannot reference a location from another ward
+  or tenant.
 - Added the nullable tenant-scoped `bed_id` relationship on
   `HospitalAdmission`.
 - Admissions can assign an available bed during creation or afterward.

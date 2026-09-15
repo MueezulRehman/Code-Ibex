@@ -38,7 +38,7 @@ class HospitalAdmissionController extends Controller
             'patient.hospitalAdmissions.dischargeSummary',
             'doctor',
             'department',
-            'bed',
+            'bed.location',
             'bedTransfers.previousBed',
             'bedTransfers.newBed',
             'dischargeSummary',
@@ -47,7 +47,7 @@ class HospitalAdmissionController extends Controller
         return view('manager.admissions.index', [
             'admissions' => $admissions,
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
-            'beds' => Bed::with('ward')->where('status', 'available')->orderBy('code')->get(),
+            'beds' => Bed::with(['ward', 'location'])->where('status', 'available')->orderBy('code')->get(),
         ]);
     }
 
@@ -57,7 +57,7 @@ class HospitalAdmissionController extends Controller
             'patients' => Patient::orderBy('name')->get(),
             'doctors' => Doctor::where('status', 'active')->orderBy('name')->get(),
             'departments' => Department::where('is_active', true)->orderBy('name')->get(),
-            'beds' => Bed::with('ward')->where('status', 'available')->orderBy('code')->get(),
+            'beds' => Bed::with(['ward', 'location'])->where('status', 'available')->orderBy('code')->get(),
         ]);
     }
 

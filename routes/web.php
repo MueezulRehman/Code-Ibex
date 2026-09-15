@@ -479,6 +479,9 @@ Route::prefix('manager')->name('manager.')->group(function () {
         Route::middleware('module:hospital-wards-beds')->group(function () {
             Route::get('/wards', [App\Http\Controllers\Admin\WardController::class, 'index'])->name('wards.index');
             Route::post('/wards', [App\Http\Controllers\Admin\WardController::class, 'store'])->name('wards.store');
+            Route::post('/wards/{ward}/locations', [App\Http\Controllers\Admin\WardController::class, 'storeLocation'])->name('wards.locations.store');
+            Route::patch('/ward-locations/{location}', [App\Http\Controllers\Admin\WardController::class, 'updateLocation'])->name('wards.locations.update');
+            Route::delete('/ward-locations/{location}', [App\Http\Controllers\Admin\WardController::class, 'destroyLocation'])->name('wards.locations.destroy');
             Route::post('/wards/{ward}/beds', [App\Http\Controllers\Admin\WardController::class, 'storeBed'])->name('wards.beds.store');
         });
         Route::middleware('module:hospital-nursing')->group(function () {

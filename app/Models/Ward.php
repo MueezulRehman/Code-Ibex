@@ -13,4 +13,5 @@ class Ward extends Model
     protected $casts = ['is_active' => 'boolean'];
 
     public function beds() { return $this->hasMany(Bed::class); }
+    public function locations() { return $this->hasMany(WardLocation::class); }
 }

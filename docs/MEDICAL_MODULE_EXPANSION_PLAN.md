@@ -876,6 +876,22 @@ This would track inpatient occupancy, room and bed assignment, ward transfers,
 admission duration, and length of stay. It is genuinely new functionality,
 although it would link to the future admission and shared Patient records.
 
+### Professional Hospital physical bed locations (implemented)
+
+The inpatient capacity slice now supports an optional physical hierarchy:
+`Ward -> Room/Hall/Bay -> Bed`. `WardLocation` is tenant-scoped and stores a
+validated location type (`room`, `hall`, or `bay`), while `beds.location_id`
+is nullable. This preserves existing ward-level beds and the existing
+`HospitalAdmission.bed_id` contract for deployments that do not need room
+detail.
+
+Managers can create locations and assign beds to them through the existing
+`hospital-wards-beds` screen. Server-side validation requires the location to
+belong to the selected ward and active tenant; route/model authorization also
+rejects cross-tenant wards. Admission creation and subsequent bed assignment
+continue to use the same tenant-scoped available-bed checks and occupancy
+transaction, with the optional location shown in bed selections.
+
 ### Operation Theatre (OT) scheduling
 
 This coordinates surgery bookings across surgeon, OT room, date, and time slot,
