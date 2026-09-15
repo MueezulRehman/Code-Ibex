@@ -36,23 +36,46 @@ class HospitalBillingController extends Controller
         return $user;
     }
 
-    public function index()
+    private function scopeToCurrentTenant(HospitalBilling $billing, User $user): HospitalBilling
+    {
+        abort_unless($billing->restaurant_id === (int) $user->effectiveRestaurantId(), 404);
+        return $billing;
+    }
+
+    public function index(Request $request)
     {
         $user = $this->user();
+        $restaurantId = (int) $user->effectiveRestaurantId();
         $admissionIds = $user->staff_type === 'nurse' && ! $user->isRestaurantManager()
             ? $user->nursingAssignments()->where('status', 'active')->pluck('hospital_admission_id') : null;
 
+        $status = $request->query('status');
+        $admissionId = $request->query('hospital_admission_id');
+        $dateFrom = $request->query('date_from');
+        $dateTo = $request->query('date_to');
+
         $billings = HospitalBilling::with(['patient', 'admission', 'postedBy', 'paidBy'])
+            ->where('restaurant_id', $restaurantId)
             ->when($admissionIds !== null, fn ($q) => $q->whereIn('hospital_admission_id', $admissionIds))
-            ->latest('charged_at')->paginate(20);
+            ->when($status && $status !== 'all', fn ($q) => $q->where('status', $status))
+            ->when($admissionId, fn ($q) => $q->where('hospital_admission_id', $admissionId))
+            ->when($dateFrom, fn ($q) => $q->whereDate('charged_at', '>=', $dateFrom))
+            ->when($dateTo, fn ($q) => $q->whereDate('charged_at', '<=', $dateTo))
+            ->latest('charged_at')->paginate(20)->appends($request->query());
 
         return view('manager.hospital-billing.index', [
             'billings' => $billings,
             'admissions' => HospitalAdmission::with('patient')
+                ->where('restaurant_id', $restaurantId)
                 ->whereIn('status', ['admitted', 'transferred'])
                 ->when($admissionIds !== null, fn ($q) => $q->whereIn('id', $admissionIds))
                 ->orderBy('admitted_at')->get(),
             'canManage' => $user->isRestaurantManager(),
+            'reconciliationSummary' => HospitalBilling::tenantSummary($restaurantId),
+            'filterStatus' => $status ?: 'all',
+            'filterAdmissionId' => $admissionId,
+            'filterDateFrom' => $dateFrom,
+            'filterDateTo' => $dateTo,
         ]);
     }
 
@@ -76,7 +99,8 @@ class HospitalBillingController extends Controller
 
     public function update(Request $request, HospitalBilling $billing)
     {
-        $this->manage();
+        $user = $this->manage();
+        $billing = $this->scopeToCurrentTenant($billing, $user);
         abort_unless($billing->status === 'draft', 422, 'Only draft charges can be updated.');
         $data = $request->validate([
             'charge_type' => ['required', Rule::in(['admission', 'bed', 'nursing', 'laboratory', 'radiology', 'surgery', 'medication', 'other'])],
@@ -93,24 +117,44 @@ class HospitalBillingController extends Controller
     public function post(HospitalBilling $billing)
     {
         $user = $this->manage();
+        $billing = $this->scopeToCurrentTenant($billing, $user);
         abort_unless($billing->status === 'draft', 422, 'Only draft charges can be posted.');
         $billing->update(['status' => 'posted', 'posted_by' => $user->id, 'posted_at' => now()]);
         return back()->with('success', 'Hospital billing charge posted.');
     }
 
-    public function pay(HospitalBilling $billing)
+    public function pay(Request $request, HospitalBilling $billing)
     {
         $user = $this->manage();
+        $billing = $this->scopeToCurrentTenant($billing, $user);
         abort_unless($billing->status === 'posted', 422, 'Only posted charges can be paid.');
-        $billing->update(['status' => 'paid', 'paid_by' => $user->id, 'paid_at' => now()]);
+        abort_if($billing->total_amount <= 0, 422, 'Only positive charges can be marked paid.');
+
+        $data = $request->validate([
+            'payment_reference' => ['required', 'string', 'max:255'],
+            'payment_notes' => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $billing->update([
+            'status' => 'paid',
+            'paid_by' => $user->id,
+            'paid_at' => now(),
+            'payment_reference' => trim($data['payment_reference']),
+            'payment_notes' => $data['payment_notes'] ?? null,
+        ]);
         return back()->with('success', 'Hospital billing charge paid.');
     }
 
     public function void(HospitalBilling $billing)
     {
-        $this->manage();
+        $user = $this->manage();
+        $billing = $this->scopeToCurrentTenant($billing, $user);
         abort_unless(in_array($billing->status, ['draft', 'posted'], true), 422, 'Paid or void charges cannot be voided.');
-        $billing->update(['status' => 'void']);
+        $billing->update([
+            'status' => 'void',
+            'payment_reference' => $billing->payment_reference ?: null,
+            'payment_notes' => $billing->payment_notes ?: null,
+        ]);
         return back()->with('success', 'Hospital billing charge voided.');
     }
 }

@@ -173,4 +173,73 @@ class HospitalAdmissionManagementTest extends TestCase
         ])->assertNotFound();
     }
 
+    public function test_hospital_billing_summary_tracks_draft_posted_paid_void_totals(): void
+    {
+        [$user, $admission] = $this->admissionWithManager();
+        $this->charge($admission, 'draft');
+        $this->charge($admission, 'posted');
+        $this->charge($admission, 'paid');
+        $this->charge($admission, 'void');
+
+        $summary = $admission->fresh()->billingSummary();
+
+        $this->assertSame(400.0, round($summary['gross'], 2));
+        $this->assertSame(100.0, round($summary['posted'], 2));
+        $this->assertSame(100.0, round($summary['paid'], 2));
+        $this->assertSame(100.0, round($summary['outstanding'], 2));
+        $this->assertSame(100.0, round($summary['draft'], 2));
+        $this->assertSame(100.0, round($summary['void'], 2));
+        $this->assertSame(400.0, round(HospitalBilling::tenantSummary($admission->restaurant_id)['gross'], 2));
+    }
+
+    public function test_marking_posted_charge_paid_requires_payment_reference(): void
+    {
+        [$user, $admission] = $this->admissionWithManager();
+        $billing = $this->charge($admission, 'posted');
+
+        $this->actingAs($user)->patch(route('manager.hospital-billing.pay', $billing), [])->assertSessionHasErrors('payment_reference');
+
+        $this->actingAs($user)->patch(route('manager.hospital-billing.pay', $billing), [
+            'payment_reference' => 'PAY-REF-001',
+            'payment_notes' => 'Settled by cash.',
+        ])->assertRedirect();
+
+        $this->assertSame('paid', $billing->fresh()->status);
+        $this->assertSame('PAY-REF-001', $billing->fresh()->payment_reference);
+        $this->assertSame('Settled by cash.', $billing->fresh()->payment_notes);
+    }
+
+    public function test_paid_and_void_transitions_are_restricted_and_cross_tenant_isolation_is_enforced(): void
+    {
+        [$user, $admission] = $this->admissionWithManager();
+        $billing = $this->charge($admission, 'posted');
+
+        $this->actingAs($user)->patch(route('manager.hospital-billing.pay', $billing), [
+            'payment_reference' => 'PAY-REF-002',
+        ])->assertRedirect();
+
+        $this->actingAs($user)->patch(route('manager.hospital-billing.pay', $billing), [
+            'payment_reference' => 'PAY-REF-003',
+        ])->assertStatus(422);
+
+        $this->actingAs($user)->patch(route('manager.hospital-billing.void', $billing), [])->assertStatus(422);
+
+        $other = Restaurant::create([
+            'name' => 'Other Hospital',
+            'slug' => 'other-hospital-' . uniqid(),
+            'status' => 'active',
+            'enabled_modules' => ['hospital-admissions', 'hospital-billing'],
+        ]);
+        $otherUser = User::create([
+            'name' => 'Other Manager',
+            'email' => uniqid('other-') . '@example.com',
+            'phone' => '03000' . random_int(100000, 999999),
+            'role' => 'manager',
+            'restaurant_id' => $other->id,
+            'password' => bcrypt('password'),
+        ]);
+        $this->actingAs($otherUser)->patch(route('manager.hospital-billing.pay', $billing), [
+            'payment_reference' => 'PAY-REF-OTHER',
+        ])->assertNotFound();
+    }
 }

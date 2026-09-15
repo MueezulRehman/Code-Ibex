@@ -41,13 +41,21 @@ class HospitalAdmission extends Model
             ? $this->billings
             : $this->billings()->get(['status', 'total_amount']);
 
-        $posted = $billings->whereIn('status', ['posted', 'paid']);
-        $paid = $billings->where('status', 'paid');
+        $gross = $billings->sum('total_amount');
+        $posted = $billings->where('status', 'posted')->sum('total_amount');
+        $paid = $billings->where('status', 'paid')->sum('total_amount');
+        $outstanding = $posted;
+        $draft = $billings->where('status', 'draft')->sum('total_amount');
+        $void = $billings->where('status', 'void')->sum('total_amount');
 
         return [
-            'total' => (float) $posted->sum('total_amount'),
-            'paid' => (float) $paid->sum('total_amount'),
-            'outstanding' => (float) $posted->where('status', 'posted')->sum('total_amount'),
+            'gross' => (float) $gross,
+            'posted' => (float) $posted,
+            'paid' => (float) $paid,
+            'outstanding' => (float) $outstanding,
+            'draft' => (float) $draft,
+            'void' => (float) $void,
+            'total' => (float) $gross,
         ];
     }
 
