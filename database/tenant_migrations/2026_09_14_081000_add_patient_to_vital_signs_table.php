@@ -19,7 +19,13 @@ return new class extends Migration
         });
 
         DB::statement(
-            'UPDATE vital_signs v INNER JOIN hospital_admissions a ON a.id = v.hospital_admission_id SET v.patient_id = a.patient_id WHERE v.patient_id IS NULL'
+            'UPDATE vital_signs
+             SET patient_id = (
+                 SELECT patient_id
+                 FROM hospital_admissions
+                 WHERE hospital_admissions.id = vital_signs.hospital_admission_id
+             )
+             WHERE patient_id IS NULL'
         );
     }
 
