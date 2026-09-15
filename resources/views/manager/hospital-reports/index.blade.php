@@ -18,7 +18,7 @@
         <div><label for="report-date-from" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">From</label><input id="report-date-from" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="w-full rounded-lg border border-gray-300"></div>
         <div><label for="report-date-to" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">To</label><input id="report-date-to" type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="w-full rounded-lg border border-gray-300"></div>
         <div><label for="report-ward" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Ward</label><select id="report-ward" name="ward_id" class="w-full rounded-lg border border-gray-300"><option value="">All wards</option>@foreach($wards as $ward)<option value="{{ $ward->id }}" @selected((string)($filters['ward_id'] ?? '') === (string)$ward->id)>{{ $ward->name }}</option>@endforeach</select></div>
-        <div><label for="report-location" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Location</label><select id="report-location" name="location_id" class="w-full rounded-lg border border-gray-300"><option value="">All locations</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string)($filters['location_id'] ?? '') === (string)$location->id)>{{ $location->name }}</option>@endforeach</select></div>
+        <div><label for="report-location" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Location</label><select id="report-location" name="location_id" class="w-full rounded-lg border border-gray-300"><option value="">All locations</option>@foreach($locations as $location)<option value="{{ $location->id }}" data-ward-id="{{ $location->ward_id }}" @selected((string)($filters['location_id'] ?? '') === (string)$location->id)>{{ $location->name }}</option>@endforeach</select></div>
         <div class="flex gap-2 md:col-span-2 xl:col-span-1"><button class="flex-1 rounded-lg bg-hut-yellow px-4 py-3 text-sm font-semibold text-hut-dark shadow-sm transition hover:bg-hut-yellow-dark">Apply filters</button><a href="{{ route('manager.hospital-reports.index') }}" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50" title="Clear report filters">Clear</a></div>
     </form>
 
@@ -71,4 +71,22 @@
         </x-report-card>
     </div>
 </div>
+@push('scripts')
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        var ward = document.getElementById('report-ward');
+        var location = document.getElementById('report-location');
+        if (!ward || !location) return;
+        var syncLocations = function () {
+            var wardId = ward.value;
+            Array.from(location.options).forEach(function (option) {
+                option.hidden = Boolean(wardId && option.value && option.dataset.wardId !== wardId);
+            });
+            if (location.selectedOptions[0]?.hidden) location.value = '';
+        };
+        ward.addEventListener('change', syncLocations);
+        syncLocations();
+    });
+</script>
+@endpush
 @endsection

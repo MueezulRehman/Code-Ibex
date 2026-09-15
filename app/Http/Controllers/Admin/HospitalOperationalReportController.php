@@ -93,11 +93,18 @@ class HospitalOperationalReportController extends Controller
 
     private function filters(Request $request, int $restaurantId): array
     {
+        $wardId = $request->integer('ward_id') ?: null;
+
         return $request->validate([
             'date_from' => ['nullable', 'date_format:Y-m-d'],
             'date_to' => ['nullable', 'date_format:Y-m-d', 'after_or_equal:date_from'],
             'ward_id' => ['nullable', 'integer', Rule::exists('wards', 'id')->where(fn ($query) => $query->where('restaurant_id', $restaurantId))],
-            'location_id' => ['nullable', 'integer', Rule::exists('ward_locations', 'id')->where(fn ($query) => $query->where('restaurant_id', $restaurantId))],
+            'location_id' => ['nullable', 'integer', Rule::exists('ward_locations', 'id')->where(function ($query) use ($restaurantId, $wardId): void {
+                $query->where('restaurant_id', $restaurantId);
+                if ($wardId !== null) {
+                    $query->where('ward_id', $wardId);
+                }
+            })],
             'section' => ['nullable', Rule::in(['all', 'admission_census', 'occupancy', 'bed_turnover', 'nursing_coverage', 'medication_administrations', 'pending_diagnostics', 'surgery', 'billing', 'discharges_readmissions'])],
         ]);
     }

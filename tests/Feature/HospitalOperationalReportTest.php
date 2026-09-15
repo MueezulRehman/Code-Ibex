@@ -9,6 +9,7 @@ use App\Models\Patient;
 use App\Models\Restaurant;
 use App\Models\User;
 use App\Models\Ward;
+use App\Models\WardLocation;
 use App\Services\HospitalOperationalReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -101,6 +102,28 @@ class HospitalOperationalReportTest extends TestCase
         $this->actingAs($staff)
             ->get(route('manager.hospital-reports.index'))
             ->assertForbidden();
+    }
+
+    public function test_location_filter_must_belong_to_selected_ward(): void
+    {
+        [$restaurant, $manager] = $this->hospital('filter-scope');
+        $wardA = Ward::create(['restaurant_id' => $restaurant->id, 'name' => 'Ward A', 'code' => 'WA']);
+        $wardB = Ward::create(['restaurant_id' => $restaurant->id, 'name' => 'Ward B', 'code' => 'WB']);
+        $locationB = WardLocation::create([
+            'restaurant_id' => $restaurant->id,
+            'ward_id' => $wardB->id,
+            'type' => 'room',
+            'name' => 'Room B',
+            'code' => 'ROOM-B',
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('manager.hospital-reports.index', [
+                'ward_id' => $wardA->id,
+                'location_id' => $locationB->id,
+            ]))
+            ->assertRedirect()
+            ->assertSessionHasErrors('location_id');
     }
 
     private function hospital(string $suffix): array
