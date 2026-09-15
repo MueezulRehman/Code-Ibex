@@ -535,8 +535,11 @@ Route::prefix('manager')->name('manager.')->group(function () {
         });
         Route::middleware('module:hospital-billing')->group(function () {
             Route::get('/hospital-billing', [App\Http\Controllers\Admin\HospitalBillingController::class, 'index'])->name('hospital-billing.index');
+            Route::get('/hospital-billing/report', [App\Http\Controllers\Admin\HospitalBillingController::class, 'report'])->name('hospital-billing.report');
+            Route::get('/hospital-billing/report/export', [App\Http\Controllers\Admin\HospitalBillingController::class, 'exportReport'])->name('hospital-billing.report.export');
             Route::post('/hospital-billing', [App\Http\Controllers\Admin\HospitalBillingController::class, 'store'])->name('hospital-billing.store');
             Route::patch('/hospital-billing/{billing}', [App\Http\Controllers\Admin\HospitalBillingController::class, 'update'])->name('hospital-billing.update');
+            Route::patch('/hospital-billing/{billing}/insurance-claim', [App\Http\Controllers\Admin\HospitalBillingController::class, 'linkInsuranceClaim'])->name('hospital-billing.insurance-claim');
             Route::patch('/hospital-billing/{billing}/post', [App\Http\Controllers\Admin\HospitalBillingController::class, 'post'])->name('hospital-billing.post');
             Route::patch('/hospital-billing/{billing}/pay', [App\Http\Controllers\Admin\HospitalBillingController::class, 'pay'])->name('hospital-billing.pay');
             Route::get('/hospital-billing/{billing}/receipt', [App\Http\Controllers\Admin\HospitalBillingController::class, 'receipt'])->name('hospital-billing.receipt');

@@ -12,6 +12,7 @@
                 <div class="text-right text-xs text-gray-500">
                     <div class="font-semibold text-hut-dark">Current tenant reconciliation</div>
                     <div>{{ number_format((float) ($reconciliationSummary['gross'] ?? 0), 2) }} gross / {{ number_format((float) ($reconciliationSummary['paid'] ?? 0), 2) }} paid / {{ number_format((float) ($reconciliationSummary['outstanding'] ?? 0), 2) }} outstanding</div>
+                    <a href="{{ route('manager.hospital-billing.report') }}" class="mt-2 inline-block font-semibold text-blue-700">Open billing report</a>
                 </div>
             @endif
         </div>
@@ -35,7 +36,7 @@
         @endif
 
         @if($canManage)
-            <form method="GET" action="{{ route('manager.hospital-billing.index') }}" class="mt-5 grid gap-2 md:grid-cols-5">
+            <form method="GET" action="{{ route('manager.hospital-billing.index') }}" class="mt-5 grid gap-2 md:grid-cols-4 xl:grid-cols-8">
                 <select name="status" class="rounded border-gray-200 text-sm">
                     <option value="all" @selected($filterStatus === 'all')>All statuses</option>
                     @foreach(['draft','posted','paid','void'] as $status)
@@ -50,6 +51,9 @@
                 </select>
                 <input type="date" name="date_from" value="{{ $filterDateFrom }}" class="rounded border-gray-200 text-sm" placeholder="From date">
                 <input type="date" name="date_to" value="{{ $filterDateTo }}" class="rounded border-gray-200 text-sm" placeholder="To date">
+                <select name="charge_type" class="rounded border-gray-200 text-sm"><option value="all">All charge types</option>@foreach(['admission','bed','nursing','laboratory','radiology','surgery','medication','other'] as $type)<option value="{{ $type }}" @selected($filterChargeType === $type)>{{ ucfirst($type) }}</option>@endforeach</select>
+                <select name="payment_method" class="rounded border-gray-200 text-sm"><option value="all">All payment methods</option>@foreach(['cash','card','bank_transfer','insurance','other'] as $method)<option value="{{ $method }}" @selected($filterPaymentMethod === $method)>{{ ucfirst(str_replace('_', ' ', $method)) }}</option>@endforeach</select>
+                <select name="insurance_linked" class="rounded border-gray-200 text-sm"><option value="all" @selected($filterInsuranceLinked === 'all')>All insurance links</option><option value="linked" @selected($filterInsuranceLinked === 'linked')>Insurance linked</option><option value="unlinked" @selected($filterInsuranceLinked === 'unlinked')>Not linked</option></select>
                 <div class="flex gap-2">
                     <button type="submit" class="rounded bg-hut-yellow px-3 py-2 text-sm font-semibold text-hut-dark">Filter</button>
                     <a href="{{ route('manager.hospital-billing.index') }}" class="rounded border border-gray-200 px-3 py-2 text-sm text-gray-700">Reset</a>
@@ -66,6 +70,7 @@
                 <input name="unit_amount" type="number" min="0.01" step="0.01" required placeholder="Unit amount" class="rounded border-gray-200 text-sm">
                 <input name="charged_at" type="datetime-local" value="{{ now()->format('Y-m-d\TH:i') }}" required class="rounded border-gray-200 text-sm">
                 <input name="notes" placeholder="Notes" class="rounded border-gray-200 text-sm md:col-span-2">
+                <select name="insurance_claim_id" class="rounded border-gray-200 text-sm"><option value="">No insurance claim</option>@foreach($insuranceClaims as $claim)<option value="{{ $claim->id }}">{{ $claim->claim_number ?: ('Claim #' . $claim->id) }} · {{ ucfirst($claim->status) }}</option>@endforeach</select>
                 <button class="rounded bg-hut-yellow px-3 py-2 text-sm font-semibold text-hut-dark md:col-span-1">Add draft</button>
             </form>
         @endif
@@ -99,6 +104,9 @@
                             @if($billing->payment_notes)
                                 <div class="mt-1 text-[11px] text-gray-500">{{ \Illuminate\Support\Str::limit($billing->payment_notes, 80) }}</div>
                             @endif
+                            @if($canManage && $billing->insuranceClaim)
+                                <div class="mt-1 text-[11px] text-indigo-700">Claim: {{ $billing->insuranceClaim->claim_number ?: ('#' . $billing->insurance_claim_id) }}</div>
+                            @endif
                         </td>
                         <td class="px-3 py-3">
                             {{ number_format((float) $billing->total_amount, 2) }}
@@ -129,6 +137,15 @@
                                             </form>
                                         </details>
                                         <form method="POST" action="{{ route('manager.hospital-billing.post', $billing) }}">@csrf @method('PATCH')<button class="text-xs font-semibold text-blue-700">Post</button></form>
+                                    @endif
+                                    @if($billing->status !== 'void')
+                                        <details class="text-left">
+                                            <summary class="cursor-pointer text-xs font-semibold text-indigo-700">Insurance</summary>
+                                            <form method="POST" action="{{ route('manager.hospital-billing.insurance-claim', $billing) }}" class="mt-2 flex gap-1">@csrf @method('PATCH')
+                                                <select name="insurance_claim_id" class="rounded border-gray-200 text-xs"><option value="">No claim</option>@foreach($insuranceClaims as $claim)<option value="{{ $claim->id }}" @selected((int) $billing->insurance_claim_id === (int) $claim->id)>{{ $claim->claim_number ?: ('#' . $claim->id) }}</option>@endforeach</select>
+                                                <button class="rounded bg-indigo-50 px-2 py-1 text-xs font-semibold text-indigo-700">Save</button>
+                                            </form>
+                                        </details>
                                     @endif
                                     @if($billing->status === 'posted')
                                         <details class="text-left">

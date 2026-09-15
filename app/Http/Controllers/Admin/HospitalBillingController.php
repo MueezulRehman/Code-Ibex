@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalBilling;
+use App\Models\InsuranceClaim;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
 class HospitalBillingController extends Controller
@@ -42,6 +44,30 @@ class HospitalBillingController extends Controller
         return $billing;
     }
 
+    private function insuranceClaimRule(int $restaurantId): array
+    {
+        return [
+            'nullable',
+            'integer',
+            Rule::exists('insurance_claims', 'id')
+                ->where(fn ($q) => $q->where('restaurant_id', $restaurantId)),
+        ];
+    }
+
+    private function assertInsuranceClaimMatchesAdmission(?int $claimId, HospitalAdmission $admission, int $restaurantId): void
+    {
+        if (! $claimId) {
+            return;
+        }
+
+        $claim = InsuranceClaim::where('restaurant_id', $restaurantId)->findOrFail($claimId);
+        foreach (['patient_id' => (int) $admission->patient_id, 'hospital_admission_id' => (int) $admission->id] as $column => $expected) {
+            if (Schema::hasColumn('insurance_claims', $column) && $claim->{$column} !== null) {
+                abort_unless((int) $claim->{$column} === $expected, 422, "Insurance claim {$column} does not match this admission.");
+            }
+        }
+    }
+
     public function index(Request $request)
     {
         $user = $this->user();
@@ -53,12 +79,19 @@ class HospitalBillingController extends Controller
         $admissionId = $request->query('hospital_admission_id');
         $dateFrom = $request->query('date_from');
         $dateTo = $request->query('date_to');
+        $chargeType = $request->query('charge_type');
+        $paymentMethod = $request->query('payment_method');
+        $insuranceLinked = $request->query('insurance_linked');
 
-        $billings = HospitalBilling::with(['patient', 'admission', 'postedBy', 'paidBy'])
+        $billings = HospitalBilling::with(['patient', 'admission', 'postedBy', 'paidBy', 'insuranceClaim'])
             ->where('restaurant_id', $restaurantId)
             ->when($admissionIds !== null, fn ($q) => $q->whereIn('hospital_admission_id', $admissionIds))
             ->when($status && $status !== 'all', fn ($q) => $q->where('status', $status))
             ->when($admissionId, fn ($q) => $q->where('hospital_admission_id', $admissionId))
+            ->when($chargeType && $chargeType !== 'all', fn ($q) => $q->where('charge_type', $chargeType))
+            ->when($paymentMethod && $paymentMethod !== 'all', fn ($q) => $q->where('payment_method', $paymentMethod))
+            ->when($insuranceLinked === 'linked', fn ($q) => $q->whereNotNull('insurance_claim_id'))
+            ->when($insuranceLinked === 'unlinked', fn ($q) => $q->whereNull('insurance_claim_id'))
             ->when($dateFrom, fn ($q) => $q->whereDate('charged_at', '>=', $dateFrom))
             ->when($dateTo, fn ($q) => $q->whereDate('charged_at', '<=', $dateTo))
             ->latest('charged_at')->paginate(20)->appends($request->query());
@@ -76,7 +109,96 @@ class HospitalBillingController extends Controller
             'filterAdmissionId' => $admissionId,
             'filterDateFrom' => $dateFrom,
             'filterDateTo' => $dateTo,
+            'filterChargeType' => $chargeType ?: 'all',
+            'filterPaymentMethod' => $paymentMethod ?: 'all',
+            'filterInsuranceLinked' => $insuranceLinked ?: 'all',
+            'insuranceClaims' => InsuranceClaim::where('restaurant_id', $restaurantId)->latest('id')->get(),
         ]);
+    }
+
+    public function report(Request $request)
+    {
+        $user = $this->manage();
+        $restaurantId = (int) $user->effectiveRestaurantId();
+        $filters = $request->validate([
+            'status' => ['nullable', Rule::in(['all', 'draft', 'posted', 'paid', 'void'])],
+            'charge_type' => ['nullable', Rule::in(['all', 'admission', 'bed', 'nursing', 'laboratory', 'radiology', 'surgery', 'medication', 'other'])],
+            'payment_method' => ['nullable', Rule::in(['all', 'cash', 'card', 'bank_transfer', 'insurance', 'other'])],
+            'hospital_admission_id' => ['nullable', 'integer', Rule::exists('hospital_admissions', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId))],
+            'insurance_linked' => ['nullable', Rule::in(['all', 'linked', 'unlinked'])],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+        ]);
+
+        $billings = HospitalBilling::with(['patient', 'admission', 'insuranceClaim'])
+            ->where('restaurant_id', $restaurantId)
+            ->when(($filters['status'] ?? null) && $filters['status'] !== 'all', fn ($q) => $q->where('status', $filters['status']))
+            ->when(($filters['charge_type'] ?? null) && $filters['charge_type'] !== 'all', fn ($q) => $q->where('charge_type', $filters['charge_type']))
+            ->when(($filters['payment_method'] ?? null) && $filters['payment_method'] !== 'all', fn ($q) => $q->where('payment_method', $filters['payment_method']))
+            ->when($filters['hospital_admission_id'] ?? null, fn ($q) => $q->where('hospital_admission_id', $filters['hospital_admission_id']))
+            ->when(($filters['insurance_linked'] ?? null) === 'linked', fn ($q) => $q->whereNotNull('insurance_claim_id'))
+            ->when(($filters['insurance_linked'] ?? null) === 'unlinked', fn ($q) => $q->whereNull('insurance_claim_id'))
+            ->when($filters['date_from'] ?? null, fn ($q) => $q->whereDate('charged_at', '>=', $filters['date_from']))
+            ->when($filters['date_to'] ?? null, fn ($q) => $q->whereDate('charged_at', '<=', $filters['date_to']))
+            ->latest('charged_at')->get();
+
+        $group = static function ($rows): array {
+            return [
+                'count' => $rows->count(),
+                'amount' => (float) $rows->sum('total_amount'),
+            ];
+        };
+        $groupBy = static function ($rows, callable $key) use ($group): array {
+            return $rows->groupBy($key)->map($group)->sortKeys()->all();
+        };
+        $statusTotals = $groupBy($billings, fn ($billing) => $billing->status);
+        $chargeTypeTotals = $groupBy($billings, fn ($billing) => $billing->charge_type);
+        $dateTotals = $groupBy($billings, fn ($billing) => $billing->charged_at?->format('Y-m-d') ?: 'unknown');
+        $admissionTotals = $groupBy($billings, fn ($billing) => $billing->admission?->admission_number ?: (string) $billing->hospital_admission_id);
+        $paymentMethodTotals = $groupBy($billings, fn ($billing) => $billing->payment_method ?: 'unrecorded');
+        $totals = [
+            'gross' => (float) $billings->sum('total_amount'),
+            'outstanding' => (float) $billings->where('status', 'posted')->sum('total_amount'),
+            'insurance_linked' => (float) $billings->whereNotNull('insurance_claim_id')->sum('total_amount'),
+            'insurance_outstanding' => (float) $billings->whereNotNull('insurance_claim_id')->where('status', 'posted')->sum('total_amount'),
+        ];
+        $totals['insurance_linked_amount'] = $totals['insurance_linked'];
+        $totals['insurance_linked_outstanding'] = $totals['insurance_outstanding'];
+
+        if ($request->query('format') === 'csv') {
+            return response()->streamDownload(function () use ($billings): void {
+                $output = fopen('php://output', 'w');
+                fputcsv($output, ['Invoice', 'Status', 'Charged date', 'Admission', 'Patient', 'Charge type', 'Payment method', 'Insurance claim', 'Amount']);
+                foreach ($billings as $billing) {
+                    fputcsv($output, [
+                        $billing->invoice_number,
+                        $billing->status,
+                        $billing->charged_at?->format('Y-m-d H:i:s'),
+                        $billing->admission?->admission_number,
+                        $billing->patient?->name,
+                        $billing->charge_type,
+                        $billing->payment_method ?: 'unrecorded',
+                        $billing->insuranceClaim?->claim_number ?: ($billing->insurance_claim_id ? '#' . $billing->insurance_claim_id : ''),
+                        number_format((float) $billing->total_amount, 2, '.', ''),
+                    ]);
+                }
+                fclose($output);
+            }, 'hospital-billing-report.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
+        }
+
+        return view('manager.hospital-billing.report', compact(
+            'billings', 'statusTotals', 'chargeTypeTotals', 'dateTotals',
+            'admissionTotals', 'paymentMethodTotals', 'totals', 'filters'
+        ) + [
+            'admissions' => HospitalAdmission::where('restaurant_id', $restaurantId)
+                ->with('patient')->orderByDesc('admitted_at')->get(),
+        ]);
+    }
+
+    public function exportReport(Request $request)
+    {
+        $request->merge(['format' => 'csv']);
+        return $this->report($request);
     }
 
     public function store(Request $request)
@@ -91,8 +213,10 @@ class HospitalBillingController extends Controller
             'unit_amount' => ['required', 'numeric', 'gt:0'],
             'charged_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'insurance_claim_id' => $this->insuranceClaimRule($restaurantId),
         ]);
         $admission = HospitalAdmission::where('restaurant_id', $restaurantId)->findOrFail($data['hospital_admission_id']);
+        $this->assertInsuranceClaimMatchesAdmission($data['insurance_claim_id'] ?? null, $admission, $restaurantId);
         HospitalBilling::create($data + ['restaurant_id' => $restaurantId, 'patient_id' => $admission->patient_id, 'status' => 'draft']);
         return back()->with('success', 'Hospital billing charge created.');
     }
@@ -109,9 +233,32 @@ class HospitalBillingController extends Controller
             'unit_amount' => ['required', 'numeric', 'gt:0'],
             'charged_at' => ['required', 'date'],
             'notes' => ['nullable', 'string', 'max:5000'],
+            'insurance_claim_id' => $this->insuranceClaimRule((int) $user->effectiveRestaurantId()),
         ]);
+        $this->assertInsuranceClaimMatchesAdmission(
+            $data['insurance_claim_id'] ?? null,
+            $billing->admission()->firstOrFail(),
+            (int) $user->effectiveRestaurantId()
+        );
         $billing->update($data);
         return back()->with('success', 'Hospital billing charge updated.');
+    }
+
+    public function linkInsuranceClaim(Request $request, HospitalBilling $billing)
+    {
+        $user = $this->manage();
+        $billing = $this->scopeToCurrentTenant($billing, $user);
+        abort_unless($billing->status !== 'void', 422, 'Void charges cannot be linked to an insurance claim.');
+        $data = $request->validate([
+            'insurance_claim_id' => $this->insuranceClaimRule((int) $user->effectiveRestaurantId()),
+        ]);
+        $this->assertInsuranceClaimMatchesAdmission(
+            $data['insurance_claim_id'] ?? null,
+            $billing->admission()->firstOrFail(),
+            (int) $user->effectiveRestaurantId()
+        );
+        $billing->update(['insurance_claim_id' => $data['insurance_claim_id'] ?? null]);
+        return back()->with('success', 'Insurance claim linkage updated.');
     }
 
     public function post(HospitalBilling $billing)

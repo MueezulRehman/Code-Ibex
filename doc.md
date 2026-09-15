@@ -173,9 +173,15 @@ void lifecycle; posting and payment do not change the outstanding calculation.
 Recording a payment captures the payment method, reference, payer, timestamp,
 and a tenant-scoped receipt number. Paid charges expose a manager-only
 printable receipt at `manager.hospital-billing.receipt`. Existing insurance
-claims remain the generic customer-linked workflow; linking a claim to an
-inpatient Patient/admission is intentionally deferred until that identity
-boundary is designed rather than duplicating insurance data.
+claims are now optionally linked from a billing charge/invoice through the
+existing `InsuranceClaim` record. Linkage is manager-only, tenant-scoped, and
+does not alter the draft/posted/paid/void lifecycle, invoice, receipt, or
+discharge reconciliation. The current claim schema has `customer_id` but no
+patient or admission keys, so this slice validates tenant ownership only and
+reports that identity limitation rather than guessing a Patient-to-Customer
+match. The manager-only `manager.hospital-billing.report` view and CSV export
+provide filters and aggregates by status, charge type, date, admission,
+payment method, and insurance-linked/outstanding amounts.
 
 ### 1. Establish a clean baseline
 

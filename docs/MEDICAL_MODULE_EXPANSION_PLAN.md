@@ -1046,10 +1046,17 @@ posted, paid, or outstanding reconciliation semantics. Central and tenant
 migrations use explicit short MySQL-safe identifiers and backfill document
 numbers for existing charges.
 
-The existing `InsuranceClaim` model is customer-linked, while inpatient
-charges are Patient/admission-linked. No duplicate insurance schema or unsafe
-cross-identity foreign key was introduced; clean inpatient claim linkage is
-deferred to a future insurance design.
+Managers can now optionally link a hospital charge/invoice to the existing
+tenant-scoped `InsuranceClaim` record. This additive linkage does not duplicate
+insurance data or change invoice/receipt numbering, draft/posted/paid/void
+transitions, or discharge reconciliation. Server-side validation rejects a
+claim from another tenant. The current claim schema supports `customer_id` but
+not `patient_id` or `hospital_admission_id`, so the implementation validates
+tenant ownership and intentionally does not guess a Patient-to-Customer match.
+Patient/admission validation can be added when that shared identity boundary is
+designed. Managers also have a filtered report and CSV export with totals by
+status, charge type, charged date, admission, payment method, and
+insurance-linked/outstanding amounts.
 
 ### HR and staff scheduling
 
