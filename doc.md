@@ -113,6 +113,14 @@ completeness migration is applied to tenant 18; rollout to every production
 tenant and live authenticated browser verification remain operational
 follow-up work.
 
+#### Professional Hospital dashboard operations (implemented)
+
+The Manager dashboard's hospital panel now adds tenant-safe outstanding posted
+billing totals, a short recent unpaid-charge list, surgery counts for today and
+the next seven days, and pending laboratory/radiology order counts. Links are
+shown only when the corresponding Professional Hospital module is enabled;
+clinic and non-hospital dashboards retain their existing metrics and layout.
+
 ## Work Order
 
 ### Hospital admission billing reconciliation

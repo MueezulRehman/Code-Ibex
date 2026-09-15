@@ -9,6 +9,8 @@ use App\Models\Feedback;
 use App\Models\Bed;
 use App\Models\Department;
 use App\Models\HospitalAdmission;
+use App\Models\HospitalBilling;
+use App\Models\LabOrder;
 use App\Models\MenuItem;
 use App\Models\NursingAssignment;
 use App\Models\Order;
@@ -17,9 +19,12 @@ use App\Models\Salary;
 use App\Models\StockAdjustment;
 use App\Models\User;
 use App\Models\VitalSign;
+use App\Models\RadiologyOrder;
+use App\Models\Surgery;
 use App\Support\Tenancy;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class ManagerDashboardController extends Controller
 {
@@ -229,7 +234,9 @@ class ManagerDashboardController extends Controller
                 'occupied_beds' => $user->hasModuleAccess('hospital-wards-beds')
                     ? Bed::where('restaurant_id', $restaurantId)->where('status', 'occupied')->count()
                     : null,
-                'unassigned_admissions' => (clone $activeAdmissions)->whereDoesntHave('nursingAssignments', fn ($query) => $query->where('status', 'active'))->count(),
+                'unassigned_admissions' => Schema::hasTable('nursing_assignments')
+                    ? (clone $activeAdmissions)->whereDoesntHave('nursingAssignments', fn ($query) => $query->where('status', 'active'))->count()
+                    : 0,
                 'active_nursing_assignments' => $user->hasModuleAccess('hospital-nursing')
                     ? NursingAssignment::where('restaurant_id', $restaurantId)->where('status', 'active')->count()
                     : null,
@@ -242,6 +249,34 @@ class ManagerDashboardController extends Controller
                     ->count(),
                 'department_occupancy' => $departmentOccupancy,
             ];
+
+            if ($user->hasModuleAccess('hospital-billing')) {
+                $hospitalDashboard['billing_outstanding'] = (float) HospitalBilling::where('restaurant_id', $restaurantId)
+                    ->where('status', 'posted')->sum('total_amount');
+                $hospitalDashboard['recent_unpaid_charges'] = HospitalBilling::with('patient:id,name')
+                    ->where('restaurant_id', $restaurantId)
+                    ->where('status', 'posted')
+                    ->latest('posted_at')->limit(5)->get();
+            } else {
+                $hospitalDashboard['billing_outstanding'] = null;
+                $hospitalDashboard['recent_unpaid_charges'] = collect();
+            }
+
+            $hospitalDashboard['surgery_scheduled_today'] = $user->hasModuleAccess('hospital-operating-theatre')
+                ? Surgery::where('restaurant_id', $restaurantId)->whereDate('starts_at', $today)
+                    ->whereNotIn('status', ['cancelled', 'completed'])->count()
+                : null;
+            $hospitalDashboard['surgery_upcoming'] = $user->hasModuleAccess('hospital-operating-theatre')
+                ? Surgery::where('restaurant_id', $restaurantId)->where('starts_at', '>=', now())
+                    ->where('starts_at', '<=', now()->addDays(7))
+                    ->whereNotIn('status', ['cancelled', 'completed'])->count()
+                : null;
+            $hospitalDashboard['pending_lab_orders'] = $user->hasModuleAccess('hospital-laboratory')
+                ? LabOrder::where('restaurant_id', $restaurantId)->whereIn('status', ['ordered', 'in_progress'])->count()
+                : null;
+            $hospitalDashboard['pending_radiology_orders'] = $user->hasModuleAccess('hospital-radiology')
+                ? RadiologyOrder::where('restaurant_id', $restaurantId)->whereIn('status', ['ordered', 'in_progress'])->count()
+                : null;
         }
 
         return view('manager.manager-dashboard', compact('stats', 'bestSeller', 'recentOrders', 'weekSales', 'restaurant', 'hospitalDashboard'));

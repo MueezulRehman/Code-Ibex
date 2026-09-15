@@ -150,6 +150,14 @@ create orders and manage results, doctors can create and view orders/results,
 and nurses can view records for active assigned admissions. Receptionists,
 pharmacists, guards, and other staff receive a server-side 403.
 
+The Manager dashboard now includes a tenant-scoped Professional Hospital
+operations panel. In addition to admissions, beds, nursing, vitals,
+discharges, and department occupancy, it shows outstanding posted billing,
+recent unpaid charges, today's and next-seven-day surgery counts, and pending
+laboratory/radiology orders. Each enabled metric links to its operational
+screen; queries are aggregate/eager-loaded and are not emitted for tenants
+without the relevant hospital module.
+
 The Professional Hospital Operating Theatre slice is implemented behind the
 `hospital-operating-theatre` module gate. Tenant-scoped `OperatingRoom` and
 `Surgery` records link to `Patient` and `HospitalAdmission`. Owners/managers
