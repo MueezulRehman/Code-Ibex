@@ -6,10 +6,11 @@ use App\Http\Controllers\Controller;
 use App\Models\HospitalAdmission;
 use App\Models\LabOrder;
 use App\Models\LabResult;
-use App\Models\Patient;
+use App\Models\LabResultEvent;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -39,7 +40,7 @@ class LaboratoryController extends Controller
             ? $user->nursingAssignments()->where('status', 'active')->pluck('hospital_admission_id')
             : null;
 
-        $orders = LabOrder::with(['patient', 'admission', 'orderedBy', 'result'])
+        $orders = LabOrder::with(['patient', 'admission', 'orderedBy', 'result.events.changedBy'])
             ->latest('ordered_at')
             ->when($admissionIds !== null, fn ($query) => $query->whereIn('hospital_admission_id', $admissionIds))
             ->paginate(20);
@@ -85,24 +86,127 @@ class LaboratoryController extends Controller
     {
         $user = $this->user();
         abort_unless($user->isRestaurantManager(), 403, 'Only managers and owners can manage laboratory results.');
+        abort_unless((int) $order->restaurant_id === (int) $user->effectiveRestaurantId(), 404);
         abort_unless($order->status !== 'cancelled' && ! $order->result()->exists(), 422, 'This laboratory order already has a result.');
-        $data = $request->validate([
+
+        $data = $request->validate($this->resultRules($order));
+        $payload = $this->preparePayload($order, $data, $user->id);
+
+        DB::transaction(function () use ($payload, $order, $user, $data): void {
+            $result = LabResult::create($payload);
+            $this->recordEvent($result, $user, $data['status'] === 'verified' ? 'verified' : 'recorded', null, $this->resultSnapshot($result), $data['status'] === 'verified' ? 'Result verified on entry.' : 'Initial result recorded.');
+        });
+
+        $order->update(['status' => $data['status'] === 'verified' ? 'resulted' : 'in_progress']);
+
+        return back()->with('success', 'Laboratory result recorded.');
+    }
+
+    public function updateResult(Request $request, LabResult $result)
+    {
+        $user = $this->user();
+        abort_unless($user->isRestaurantManager(), 403, 'Only managers can correct laboratory results.');
+        abort_unless((int) $result->restaurant_id === (int) $user->effectiveRestaurantId(), 404);
+
+        $order = $result->order()->firstOrFail();
+        $data = $request->validate($this->resultRules($order, $result) + [
+            'correction_notes' => ['required', 'string', 'max:2000'],
+        ]);
+
+        $previous = $this->resultSnapshot($result);
+        $candidate = [
+            'result_value' => trim((string) $data['result_value']),
+            'status' => $data['status'],
+            'resulted_at' => $data['resulted_at'],
+            'notes' => $data['notes'] ?? null,
+            'verified_by' => $data['status'] === 'verified' ? $user->id : null,
+            'verified_at' => $data['status'] === 'verified' ? $result->verified_at?->format('Y-m-d H:i:s') : null,
+        ];
+
+        if ($previous === $candidate) {
+            return back()->withErrors(['result_value' => 'No changes detected. Provide a different result before saving.'])->withInput();
+        }
+
+        $payload = [
+            'result_value' => trim((string) $data['result_value']),
+            'status' => $data['status'],
+            'resulted_at' => $data['resulted_at'],
+            'notes' => $data['notes'] ?? null,
+        ];
+
+        if ($data['status'] === 'verified') {
+            $payload['verified_by'] = $user->id;
+            $payload['verified_at'] = $result->verified_at ?? now();
+        } else {
+            $payload['verified_by'] = null;
+            $payload['verified_at'] = null;
+        }
+
+        DB::transaction(function () use ($result, $user, $payload, $data, $previous): void {
+            $result->update($payload);
+            $this->recordEvent($result, $user, $data['status'] === 'verified' ? 'verified' : 'edited', $previous, $this->resultSnapshot($result), $data['correction_notes']);
+        });
+
+        $result->order->update(['status' => $data['status'] === 'verified' ? 'resulted' : 'in_progress']);
+
+        return back()->with('success', 'Laboratory result corrected and audit history recorded.');
+    }
+
+    private function resultRules(LabOrder $order, ?LabResult $result = null): array
+    {
+        return [
             'result_value' => ['required', 'string', 'max:10000'],
             'resulted_at' => ['required', 'date', 'after_or_equal:' . $order->ordered_at->format('Y-m-d H:i:s')],
             'notes' => ['nullable', 'string', 'max:5000'],
             'status' => ['required', Rule::in(['entered', 'verified'])],
-        ]);
-        LabResult::create($data + [
+        ];
+    }
+
+    private function preparePayload(LabOrder $order, array $data, int $editorId): array
+    {
+        $payload = [
             'restaurant_id' => $order->restaurant_id,
             'lab_order_id' => $order->id,
             'patient_id' => $order->patient_id,
             'hospital_admission_id' => $order->hospital_admission_id,
-            'entered_by' => $user->id,
-            'verified_by' => $data['status'] === 'verified' ? $user->id : null,
-            'verified_at' => $data['status'] === 'verified' ? now() : null,
-        ]);
-        $order->update(['status' => $data['status'] === 'verified' ? 'resulted' : 'in_progress']);
+            'result_value' => trim((string) $data['result_value']),
+            'status' => $data['status'],
+            'resulted_at' => $data['resulted_at'],
+            'notes' => $data['notes'] ?? null,
+            'entered_by' => $editorId,
+        ];
 
-        return back()->with('success', 'Laboratory result recorded.');
+        if ($data['status'] === 'verified') {
+            $payload['verified_by'] = $editorId;
+            $payload['verified_at'] = now();
+        }
+
+        return $payload;
+    }
+
+    private function resultSnapshot(LabResult $result): array
+    {
+        return [
+            'result_value' => $result->result_value,
+            'status' => $result->status,
+            'resulted_at' => $result->resulted_at?->format('Y-m-d H:i:s'),
+            'notes' => $result->notes,
+            'verified_by' => $result->verified_by,
+            'verified_at' => $result->verified_at?->format('Y-m-d H:i:s'),
+        ];
+    }
+
+    private function recordEvent(LabResult $result, User $actor, string $action, ?array $previous, array $new, string $notes): void
+    {
+        LabResultEvent::create([
+            'restaurant_id' => $result->restaurant_id,
+            'lab_result_id' => $result->id,
+            'action' => $action,
+            'previous_values' => $previous,
+            'new_values' => $new,
+            'changed_by' => $actor->id,
+            'changed_at' => now(),
+            'notes' => $notes,
+        ]);
     }
 }

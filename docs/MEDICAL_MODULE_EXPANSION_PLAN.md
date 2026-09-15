@@ -160,6 +160,13 @@ requirements, calendar views, or a complete edit form for room and surgery
 updates. Production-tenant migration rollout and authenticated browser
 verification are still operational follow-up items.
 
+Laboratory and Radiology result corrections now require manager/owner
+authorization and a correction reason. Each initial result, verification, and
+subsequent edit writes a tenant-scoped event containing the previous values,
+new values, actor, timestamp, and notes. Silent no-op edits and cross-tenant
+updates are rejected. Result audit history is visible to authorized managers
+from the respective module pages.
+
 ### Proposed full-hospital model ownership
 
 All records below are tenant-owned and must use the existing tenancy pattern.
@@ -179,6 +186,7 @@ where applicable; duplicate patient or outpatient models must not be created.
 | `HospitalTransfer` | Professional Hospital | Admin, manager, authorized admissions staff |
 | `LabOrder`, `LabResult` | Professional Hospital | Doctors, lab technicians, authorized records staff |
 | `RadiologyOrder`, `RadiologyResult` | Professional Hospital | Doctors, radiology staff, authorized records staff |
+| `LabResultEvent`, `RadiologyResultEvent` | Professional Hospital | Admin, authorized clinical audit readers |
 | `OperatingRoom`, `Surgery` | Professional Hospital | Doctors, OT staff, scheduling/admin |
 | `HospitalBilling` | Professional Hospital | Billing staff, admin, authorized managers |
 | `DischargeSummary` | Professional Hospital | Treating doctor, nursing lead, admin |

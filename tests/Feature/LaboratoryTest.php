@@ -2,9 +2,9 @@
 
 namespace Tests\Feature;
 
-use App\Models\Restaurant;
-use App\Models\Patient;
 use App\Models\HospitalAdmission;
+use App\Models\Patient;
+use App\Models\Restaurant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -59,5 +59,142 @@ class LaboratoryTest extends TestCase
             'status' => 'verified',
         ])->assertRedirect();
         $this->assertDatabaseHas('lab_results', ['lab_order_id' => $order->id, 'status' => 'verified']);
+    }
+
+    public function test_manager_result_edit_creates_audit_history(): void
+    {
+        $restaurant = Restaurant::create(['name' => 'Hospital Tenant', 'slug' => 'lab-audit-tenant', 'status' => 'active', 'enabled_modules' => ['hospital-laboratory']]);
+        $manager = User::create(['name' => 'Owner', 'email' => 'lab-audit-owner@example.com', 'phone' => '03000000041', 'role' => 'admin', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'PAT-LAB-2', 'name' => 'Audit Patient']);
+        $admission = HospitalAdmission::create(['restaurant_id' => $restaurant->id, 'admission_number' => 'ADM-LAB-2', 'patient_id' => $patient->id, 'status' => 'admitted', 'admitted_at' => now()]);
+
+        $this->actingAs($manager)->post(route('manager.laboratory.orders.store'), [
+            'hospital_admission_id' => $admission->id,
+            'test_name' => 'Hemoglobin',
+            'priority' => 'urgent',
+            'ordered_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+        $order = \App\Models\LabOrder::firstOrFail();
+
+        $this->actingAs($manager)->post(route('manager.laboratory.results.store', $order), [
+            'result_value' => '12.2',
+            'resulted_at' => now()->format('Y-m-d H:i:s'),
+            'status' => 'entered',
+        ]);
+        $result = $order->result()->firstOrFail();
+
+        $this->actingAs($manager)->patch(route('manager.laboratory.results.update', $result), [
+            'result_value' => '12.8',
+            'resulted_at' => now()->format('Y-m-d H:i:s'),
+            'status' => 'verified',
+            'notes' => 'Corrected after review.',
+            'correction_notes' => 'Verified with repeat lab check.',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('lab_result_events', ['lab_result_id' => $result->id, 'action' => 'verified']);
+        $this->assertSame('12.8', $result->fresh()->result_value);
+    }
+
+    public function test_non_managers_cannot_correct_laboratory_results(): void
+    {
+        $restaurant = Restaurant::create(['name' => 'Hospital Tenant', 'slug' => 'lab-edit-denied', 'status' => 'active', 'enabled_modules' => ['hospital-laboratory']]);
+        $manager = User::create(['name' => 'Manager', 'email' => 'lab-edit-manager@example.com', 'phone' => '03000000042', 'role' => 'manager', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $doctor = User::create(['name' => 'Doctor', 'email' => 'lab-edit-doctor@example.com', 'phone' => '03000000043', 'role' => 'staff', 'staff_type' => 'doctor', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'PAT-LAB-3', 'name' => 'Restricted Patient']);
+        $admission = HospitalAdmission::create(['restaurant_id' => $restaurant->id, 'admission_number' => 'ADM-LAB-3', 'patient_id' => $patient->id, 'status' => 'admitted', 'admitted_at' => now()]);
+
+        $this->actingAs($manager)->post(route('manager.laboratory.orders.store'), [
+            'hospital_admission_id' => $admission->id,
+            'test_name' => 'Liver enzymes',
+            'priority' => 'routine',
+            'ordered_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+        $order = \App\Models\LabOrder::firstOrFail();
+        $result = $order->result()->create([
+            'restaurant_id' => $restaurant->id,
+            'patient_id' => $patient->id,
+            'hospital_admission_id' => $admission->id,
+            'result_value' => 'Normal',
+            'status' => 'entered',
+            'resulted_at' => now(),
+            'entered_by' => $manager->id,
+        ]);
+
+        $this->actingAs($doctor)->patch(route('manager.laboratory.results.update', $result), [
+            'result_value' => 'Abnormal',
+            'resulted_at' => now()->format('Y-m-d H:i:s'),
+            'status' => 'verified',
+            'notes' => 'Not allowed',
+            'correction_notes' => 'Without permission',
+        ])->assertForbidden();
+    }
+
+    public function test_cross_tenant_result_update_is_rejected(): void
+    {
+        $tenantA = Restaurant::create(['name' => 'Hospital A', 'slug' => 'lab-tenant-a', 'status' => 'active', 'enabled_modules' => ['hospital-laboratory']]);
+        $tenantB = Restaurant::create(['name' => 'Hospital B', 'slug' => 'lab-tenant-b', 'status' => 'active', 'enabled_modules' => ['hospital-laboratory']]);
+        $managerA = User::create(['name' => 'Tenant A Manager', 'email' => 'lab-cross-a@example.com', 'phone' => '03000000044', 'role' => 'manager', 'restaurant_id' => $tenantA->id, 'password' => bcrypt('password')]);
+        $managerB = User::create(['name' => 'Tenant B Manager', 'email' => 'lab-cross-b@example.com', 'phone' => '03000000045', 'role' => 'manager', 'restaurant_id' => $tenantB->id, 'password' => bcrypt('password')]);
+        $patientB = Patient::create(['restaurant_id' => $tenantB->id, 'patient_number' => 'PAT-LAB-4', 'name' => 'Tenant B Patient']);
+        $admissionB = HospitalAdmission::create(['restaurant_id' => $tenantB->id, 'admission_number' => 'ADM-LAB-4', 'patient_id' => $patientB->id, 'status' => 'admitted', 'admitted_at' => now()]);
+        $order = \App\Models\LabOrder::create([
+            'restaurant_id' => $tenantB->id,
+            'patient_id' => $patientB->id,
+            'hospital_admission_id' => $admissionB->id,
+            'ordered_by' => $managerB->id,
+            'order_number' => 'LAB-CROSS-1',
+            'test_name' => 'Troponin',
+            'priority' => 'routine',
+            'ordered_at' => now(),
+            'status' => 'ordered',
+        ]);
+        $result = $order->result()->create([
+            'restaurant_id' => $tenantB->id,
+            'patient_id' => $patientB->id,
+            'hospital_admission_id' => $admissionB->id,
+            'result_value' => 'Low',
+            'status' => 'entered',
+            'resulted_at' => now(),
+            'entered_by' => $managerB->id,
+        ]);
+
+        $this->actingAs($managerA)->patch(route('manager.laboratory.results.update', $result), [
+            'result_value' => 'High',
+            'resulted_at' => now()->format('Y-m-d H:i:s'),
+            'status' => 'verified',
+            'notes' => 'Should fail',
+            'correction_notes' => 'Attempted cross-tenant edit',
+        ])->assertNotFound();
+    }
+
+    public function test_lab_result_rejects_silent_edits(): void
+    {
+        $restaurant = Restaurant::create(['name' => 'Hospital Tenant', 'slug' => 'lab-silent-edit', 'status' => 'active', 'enabled_modules' => ['hospital-laboratory']]);
+        $manager = User::create(['name' => 'Manager', 'email' => 'lab-silent@example.com', 'phone' => '03000000046', 'role' => 'manager', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'PAT-LAB-5', 'name' => 'Silent Patient']);
+        $admission = HospitalAdmission::create(['restaurant_id' => $restaurant->id, 'admission_number' => 'ADM-LAB-5', 'patient_id' => $patient->id, 'status' => 'admitted', 'admitted_at' => now()]);
+        $this->actingAs($manager)->post(route('manager.laboratory.orders.store'), [
+            'hospital_admission_id' => $admission->id,
+            'test_name' => 'Calcium',
+            'priority' => 'stat',
+            'ordered_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+        $order = \App\Models\LabOrder::firstOrFail();
+        $this->actingAs($manager)->post(route('manager.laboratory.results.store', $order), [
+            'result_value' => '9.5',
+            'resulted_at' => now()->format('Y-m-d H:i:s'),
+            'status' => 'entered',
+        ]);
+        $result = $order->result()->firstOrFail();
+
+        $this->actingAs($manager)->patch(route('manager.laboratory.results.update', $result), [
+            'result_value' => '9.5',
+            'resulted_at' => $result->resulted_at->format('Y-m-d H:i:s'),
+            'status' => 'entered',
+            'notes' => $result->notes,
+            'correction_notes' => 'No actual change',
+        ])->assertRedirect()->assertSessionHasErrors('result_value');
+
+        $this->assertDatabaseCount('lab_result_events', 1);
     }
 }

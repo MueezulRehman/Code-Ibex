@@ -14,6 +14,14 @@ The immediate goal is not to expand the product. The immediate goal is to make
 the current admin, manager, authentication, tenancy, and core business flows
 reliable enough that future changes can be made safely.
 
+### Clinical result audit history
+
+Laboratory and Radiology result creation, verification, and correction now
+record tenant-scoped audit events with before/after snapshots, actor,
+timestamp, and correction notes. Manager-only corrections reject silent
+no-op edits and cross-tenant access. Focused Laboratory and Radiology tests
+cover authorization, tenant isolation, and audit event creation.
+
 ### Business-type medical defaults audit
 
 - Clinic / Doctor defaults now select Medical, Medical Records, Patient

@@ -22,4 +22,5 @@ class LabResult extends Model
     public function admission() { return $this->belongsTo(HospitalAdmission::class, 'hospital_admission_id'); }
     public function enteredBy() { return $this->belongsTo(User::class, 'entered_by'); }
     public function verifiedBy() { return $this->belongsTo(User::class, 'verified_by'); }
+    public function events() { return $this->hasMany(LabResultEvent::class); }
 }
