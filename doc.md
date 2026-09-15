@@ -121,6 +121,21 @@ the next seven days, and pending laboratory/radiology order counts. Links are
 shown only when the corresponding Professional Hospital module is enabled;
 clinic and non-hospital dashboards retain their existing metrics and layout.
 
+#### Professional Hospital inpatient medication (implemented)
+
+Professional Hospital tenants now have the separately gated
+`hospital-medication` module. Admission-linked medication orders reuse the
+tenant medicine catalog without duplicating outpatient prescriptions or
+dispensing records. Managers/owners and doctors assigned to an admission (or
+its department) can create orders; managers and nurses with an active nursing
+assignment can record scheduled, administered, omitted, refused, or cancelled
+doses. Server-side checks enforce tenant isolation, admission/order time
+windows, required reasons, non-future administration times, and one record per
+scheduled dose. Records capture dose, route, scheduled/administered times,
+actor, notes, and audit timestamps. Existing hospital billing remains a
+focused manual charge workflow; medication does not silently create speculative
+stock or billing transactions.
+
 ## Work Order
 
 ### Hospital admission billing reconciliation

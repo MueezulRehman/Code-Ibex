@@ -18,6 +18,9 @@ admission, nursing, vital-signs, laboratory, radiology, operating-theatre, and
 hospital-billing slices below have now been individually implemented and
 verified; the remaining hospital domains remain planning-only.
 
+The inpatient medication administration slice is also implemented behind the
+dedicated `hospital-medication` module.
+
 Discharge summaries now have an append-only tenant audit trail. Initial
 discharge recording creates a `recorded` event; manager/owner corrections
 require a reason and create an `edited` event containing previous and new
@@ -118,6 +121,26 @@ models, routes, and permissions for:
 Professional Hospital should be represented by a distinct persisted
 `BusinessType` and a separate module bundle. Existing Clinic / Doctor and
 Clinic Hospital tenants must not receive these modules automatically.
+
+#### Inpatient medication administration slice (implemented)
+
+The separately gated `hospital-medication` module adds tenant-scoped
+`HospitalMedicationOrder` and `HospitalMedicationAdministration` records. An
+order links a catalog `Medicine`, `Patient`, and active
+`HospitalAdmission`; it does not copy or replace outpatient `Prescription` or
+dispensing data. Owners/managers and doctors assigned directly to an admission
+or its department may create orders. Owners/managers can administer for
+operational correction, while a nurse must have an active
+`NursingAssignment` for the admission to record or update a dose.
+
+Orders and administration records capture dose, route, frequency, scheduled
+and administered times, status, reason/notes, actor, and recorded timestamps.
+Admission and order windows are validated server-side. Administered times
+cannot be in the future or precede the scheduled dose. A tenant-scoped unique
+scheduled-dose key plus optional idempotency key prevents unsafe duplicate
+administration. No automatic stock decrement or billing charge is introduced:
+existing medicine stock and the established manual `medication` hospital
+billing charge type remain available without speculative coupling.
 
 ### Access model for both tracks
 
@@ -922,10 +945,13 @@ view access, assigned-nurse admission visibility, and timestamp validation.
 
 ### Pharmacy and dispensing
 
-Pharmacy and prescription dispensing are already covered by the approved
-Phase 4 plan. The hospital initiative would link inpatient medication charges
-and fulfillment to that existing medical/pharmacy workflow rather than
-reimplementing it.
+Outpatient pharmacy and prescription dispensing remain covered by the approved
+Phase 4 plan. The inpatient medication slice now adds admission-linked orders
+and administration records behind `hospital-medication`, reusing the
+tenant-scoped Medicine catalog without copying outpatient prescriptions.
+Medication stock decrement, fulfillment, and automatic billing remain
+intentionally out of scope; the existing manual hospital `medication` charge
+type can be used when a hospital chooses to bill a dose.
 
 ### Blood bank
 

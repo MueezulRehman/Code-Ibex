@@ -522,6 +522,12 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/hospital-billing/{billing}/pay', [App\Http\Controllers\Admin\HospitalBillingController::class, 'pay'])->name('hospital-billing.pay');
             Route::patch('/hospital-billing/{billing}/void', [App\Http\Controllers\Admin\HospitalBillingController::class, 'void'])->name('hospital-billing.void');
         });
+        Route::middleware('module:hospital-medication')->group(function () {
+            Route::get('/hospital-medication', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'index'])->name('hospital-medication.index');
+            Route::post('/hospital-medication/orders', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'storeOrder'])->name('hospital-medication.orders.store');
+            Route::post('/hospital-medication/orders/{order}/administrations', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'storeAdministration'])->name('hospital-medication.administrations.store');
+            Route::patch('/hospital-medication/administrations/{administration}', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'updateAdministration'])->name('hospital-medication.administrations.update');
+        });
 
         Route::middleware('module:memberships')->group(function () {
             Route::get('/gym', [App\Http\Controllers\Admin\GymController::class, 'index'])->name('gym.index');
