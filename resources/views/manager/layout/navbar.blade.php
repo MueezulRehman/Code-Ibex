@@ -295,6 +295,14 @@
                                 </a>
                             </div>
                         @endif
+                        @if($moduleEnabled('hospital-care-plans'))
+                            <div class="nav-dropdown {{ request()->routeIs('manager.hospital-care-plans.*') ? 'has-active' : '' }}">
+                                <a href="{{ route('manager.hospital-care-plans.index') }}" title="Inpatient care plans"
+                                    class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.hospital-care-plans.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                                    <i class="fas fa-clipboard-list text-lg"></i><span class="flex-1 truncate">Care Plans</span>
+                                </a>
+                            </div>
+                        @endif
                         @if($moduleEnabled('hospital-laboratory'))
                             <div class="nav-dropdown {{ request()->routeIs('manager.laboratory.*') ? 'has-active' : '' }}">
                                 <a href="{{ route('manager.laboratory.index') }}" title="Laboratory"

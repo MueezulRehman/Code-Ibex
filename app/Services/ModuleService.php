@@ -83,6 +83,7 @@ class ModuleService
             ['name' => 'Hospital Admissions', 'key' => 'hospital-admissions', 'description' => 'Inpatient admission, transfer, and discharge workflows', 'sort_order' => 23, 'is_active' => true],
             ['name' => 'Hospital Departments', 'key' => 'hospital-departments', 'description' => 'Hospital department setup and assignment workflows', 'sort_order' => 24, 'is_active' => true],
             ['name' => 'Hospital Wards & Beds', 'key' => 'hospital-wards-beds', 'description' => 'Ward, room, and bed capacity management', 'sort_order' => 25, 'is_active' => true],
+            ['name' => 'Hospital Care Plans', 'key' => 'hospital-care-plans', 'description' => 'Structured inpatient problems, goals, interventions, and nursing progress', 'sort_order' => 26, 'is_active' => true],
             ['name' => 'General Store', 'key' => 'general_store', 'description' => 'Core modules for general-store workflows', 'sort_order' => 23, 'is_active' => true],
             ['name' => 'Pharmacy', 'key' => 'pharmacy', 'description' => 'Core modules for pharmacy workflows', 'sort_order' => 24, 'is_active' => true],
             ['name' => 'Allergies', 'key' => 'allergies', 'description' => 'Customer allergy tracking and warnings', 'sort_order' => 25, 'is_active' => true],
@@ -171,7 +172,7 @@ class ModuleService
             'salon / beauty' => ['pos', 'customers', 'appointments', 'memberships', 'service-packages', 'staff', 'attendance', 'salary', 'commissions', 'cashbook', 'expenses', 'reports', 'loyalty'],
             'clinic / doctor' => ['pos', 'customers', 'appointments', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders'],
             'hospital' => ['pos', 'customers', 'appointments', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders'],
-            'professional hospital' => ['pos', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders', 'hospital-admissions', 'hospital-departments', 'hospital-wards-beds', 'hospital-nursing', 'hospital-vital-signs', 'hospital-clinical-notes', 'hospital-laboratory', 'hospital-radiology', 'hospital-operating-theatre', 'hospital-billing', 'hospital-medication'],
+            'professional hospital' => ['pos', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders', 'hospital-admissions', 'hospital-departments', 'hospital-wards-beds', 'hospital-nursing', 'hospital-vital-signs', 'hospital-clinical-notes', 'hospital-care-plans', 'hospital-laboratory', 'hospital-radiology', 'hospital-operating-theatre', 'hospital-billing', 'hospital-medication'],
             'gym / fitness' => ['pos', 'customers', 'memberships', 'trainer-management', 'attendance', 'staff', 'salary', 'cashbook', 'expenses', 'reports', 'notifications'],
             'services / repair business' => ['pos', 'customers', 'service-tickets', 'inventory', 'stock', 'suppliers', 'purchasing', 'cashbook', 'expenses', 'reports', 'notifications'],
             'electronics store' => ['pos', 'inventory', 'categories', 'variants', 'stock', 'customers', 'suppliers', 'purchasing', 'sales-returns', 'warranty', 'repairs', 'trade-ins', 'device-tracking', 'installments', 'brands', 'barcode-labels', 'profit-margins'],
@@ -270,7 +271,7 @@ class ModuleService
             [
                 'name' => 'Professional Hospital',
                 'description' => 'Inpatient hospital operations with separately gated admissions and departments',
-                'modules' => ['pos', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders', 'hospital-admissions', 'hospital-departments', 'hospital-wards-beds', 'hospital-nursing', 'hospital-vital-signs', 'hospital-clinical-notes', 'hospital-laboratory', 'hospital-radiology', 'hospital-operating-theatre', 'hospital-billing', 'hospital-medication'],
+                'modules' => ['pos', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders', 'hospital-admissions', 'hospital-departments', 'hospital-wards-beds', 'hospital-nursing', 'hospital-vital-signs', 'hospital-clinical-notes', 'hospital-care-plans', 'hospital-laboratory', 'hospital-radiology', 'hospital-operating-theatre', 'hospital-billing', 'hospital-medication'],
             ],
             [
                 'name' => 'Gym / Fitness',

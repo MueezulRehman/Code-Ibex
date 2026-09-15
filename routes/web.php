@@ -501,6 +501,11 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/hospital-clinical-notes/{note}', [App\Http\Controllers\Admin\HospitalClinicalNoteController::class, 'update'])->name('hospital-clinical-notes.update');
             Route::patch('/hospital-clinical-notes/{note}/void', [App\Http\Controllers\Admin\HospitalClinicalNoteController::class, 'void'])->name('hospital-clinical-notes.void');
         });
+        Route::middleware('module:hospital-care-plans')->group(function () {
+            Route::get('/hospital-care-plans', [App\Http\Controllers\Admin\HospitalCarePlanController::class, 'index'])->name('hospital-care-plans.index');
+            Route::post('/hospital-care-plans', [App\Http\Controllers\Admin\HospitalCarePlanController::class, 'store'])->name('hospital-care-plans.store');
+            Route::patch('/hospital-care-plans/{plan}', [App\Http\Controllers\Admin\HospitalCarePlanController::class, 'update'])->name('hospital-care-plans.update');
+        });
         Route::middleware('module:hospital-laboratory')->group(function () {
             Route::get('/laboratory', [App\Http\Controllers\Admin\LaboratoryController::class, 'index'])->name('laboratory.index');
             Route::post('/laboratory/orders', [App\Http\Controllers\Admin\LaboratoryController::class, 'storeOrder'])->name('laboratory.orders.store');

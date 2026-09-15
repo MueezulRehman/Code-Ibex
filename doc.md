@@ -136,6 +136,24 @@ actor, notes, and audit timestamps. Existing hospital billing remains a
 focused manual charge workflow; medication does not silently create speculative
 stock or billing transactions.
 
+#### Professional Hospital inpatient care plans (implemented)
+
+The separately gated `hospital-care-plans` module adds tenant-scoped,
+admission- and patient-linked `HospitalCarePlan` records without duplicating
+outpatient medical records. Plans capture a problem/diagnosis, goal,
+interventions, optional responsible role/user, active/resolved/cancelled
+status, opening/review/resolution timestamps, notes, and nursing progress.
+Owners/managers and doctors authorized for the admission can create and update
+plans. Nurses can view plans for active nursing assignments and update only
+nursing progress/status fields; tenant and admission ownership is never
+client-editable.
+
+Admission-window and review ordering validation is enforced server-side.
+Resolved plans require `resolved_at`, resolved/cancelled plans are terminal
+and cannot be reopened, and corrections, status changes, and nursing updates
+write append-only `HospitalCarePlanEvent` audit snapshots. Central and tenant
+migrations use explicit short MySQL-safe foreign-key and index identifiers.
+
 ## Work Order
 
 ### Hospital admission billing reconciliation

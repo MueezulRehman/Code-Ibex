@@ -195,6 +195,28 @@ discharge boundary when present. Manager corrections require a reason and
 preserve before/after content and timestamp snapshots in the append-only
 `HospitalClinicalNoteEvent` audit trail; voids likewise require a reason.
 
+### Structured inpatient care plans (implemented)
+
+The separately gated `hospital-care-plans` module builds on the admission EMR
+foundation with tenant-scoped `HospitalCarePlan` and append-only
+`HospitalCarePlanEvent` records. Each plan links both `Patient` and the
+specific `HospitalAdmission`, and stores a problem/diagnosis, goal,
+interventions, optional responsible role/user, status, opened/review/resolved
+timestamps, notes, and nursing progress fields. It intentionally does not
+copy or replace outpatient `MedicalRecord`, `Visit`, prescription, or
+dispensing records.
+
+Owners/managers and doctors assigned directly to an admission or its
+department can create and update plans. Nurses must have an active assignment
+for the admission; they can view and update only nursing progress/status and
+cannot change tenant, admission, patient, or clinical ownership fields.
+Timestamps are checked against admission/discharge boundaries and
+`review_due_at` cannot precede `opened_at`. Resolved plans require
+`resolved_at`; active plans may resolve or cancel, while resolved/cancelled
+plans are terminal and cannot be reopened. Corrections, status changes, and
+nursing progress changes record before/after audit snapshots. Central and
+tenant migrations use explicit short MySQL-safe FK/index names.
+
 The Manager dashboard now includes a tenant-scoped Professional Hospital
 operations panel. In addition to admissions, beds, nursing, vitals,
 discharges, and department occupancy, it shows outstanding posted billing,
