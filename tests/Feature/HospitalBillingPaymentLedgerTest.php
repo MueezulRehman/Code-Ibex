@@ -1,0 +1,137 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\HospitalAdmission;
+use App\Models\HospitalBilling;
+use App\Models\Patient;
+use App\Models\Restaurant;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class HospitalBillingPaymentLedgerTest extends TestCase
+{
+    use RefreshDatabase;
+
+    private function fixture(string $suffix = ''): array
+    {
+        $restaurant = Restaurant::create([
+            'name' => 'Ledger Hospital ' . $suffix,
+            'slug' => 'ledger-' . uniqid(),
+            'status' => 'active',
+            'enabled_modules' => ['hospital-admissions', 'hospital-billing'],
+        ]);
+        $manager = User::create([
+            'name' => 'Ledger Manager',
+            'email' => uniqid('ledger-manager-') . '@example.com',
+            'phone' => '03000' . random_int(100000, 999999),
+            'role' => 'manager',
+            'restaurant_id' => $restaurant->id,
+            'password' => bcrypt('password'),
+        ]);
+        $patient = Patient::create([
+            'restaurant_id' => $restaurant->id,
+            'patient_number' => 'PAT-' . strtoupper(substr(uniqid(), -8)),
+            'name' => 'Ledger Patient',
+        ]);
+        $admission = HospitalAdmission::create([
+            'restaurant_id' => $restaurant->id,
+            'admission_number' => 'ADM-' . strtoupper(substr(uniqid(), -8)),
+            'patient_id' => $patient->id,
+            'status' => 'admitted',
+            'admitted_at' => now()->subDay(),
+        ]);
+        $billing = HospitalBilling::create([
+            'restaurant_id' => $restaurant->id,
+            'patient_id' => $patient->id,
+            'hospital_admission_id' => $admission->id,
+            'charge_type' => 'bed',
+            'description' => 'Ledger room',
+            'quantity' => 1,
+            'unit_amount' => 100,
+            'status' => 'posted',
+            'charged_at' => now()->subHour(),
+            'posted_at' => now()->subHour(),
+        ]);
+
+        return [$restaurant, $manager, $admission, $billing];
+    }
+
+    public function test_partial_and_full_payments_settle_only_when_the_charge_is_full(): void
+    {
+        [, $manager, , $billing] = $this->fixture();
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 40, 'method' => 'cash', 'reference' => 'DEP-1',
+        ])->assertRedirect();
+        $billing->refresh();
+        $this->assertSame('posted', $billing->status);
+        $this->assertSame(60.0, $billing->outstandingAmount());
+
+        $this->actingAs($manager)->patch(route('manager.hospital-billing.pay', $billing), [
+            'amount' => 60, 'payment_method' => 'card', 'payment_reference' => 'BAL-1',
+        ])->assertRedirect();
+        $billing->refresh();
+        $this->assertSame('paid', $billing->status);
+        $this->assertSame(100.0, $billing->settledAmount());
+        $this->assertDatabaseCount('hospital_billing_payments', 2);
+    }
+
+    public function test_refund_reopens_a_paid_charge_and_cannot_exceed_settlement(): void
+    {
+        [, $manager, , $billing] = $this->fixture();
+        $this->actingAs($manager)->patch(route('manager.hospital-billing.pay', $billing), [
+            'payment_reference' => 'FULL-1',
+        ])->assertRedirect();
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.refunds.store', $billing), [
+            'amount' => 25, 'reference' => 'REF-1',
+        ])->assertRedirect();
+        $billing->refresh();
+        $this->assertSame('posted', $billing->status);
+        $this->assertSame(75.0, $billing->settledAmount());
+        $this->assertSame(25.0, $billing->outstandingAmount());
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.refunds.store', $billing), [
+            'amount' => 76, 'reference' => 'REF-2',
+        ])->assertStatus(422);
+    }
+
+    public function test_payment_overage_staff_action_and_tenant_boundary_are_rejected(): void
+    {
+        [$restaurant, $manager, , $billing] = $this->fixture('one');
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 101, 'reference' => 'TOO-MUCH',
+        ])->assertStatus(422);
+
+        $staff = User::create([
+            'name' => 'Ledger Staff', 'email' => uniqid('ledger-staff-') . '@example.com',
+            'phone' => '03000' . random_int(100000, 999999), 'role' => 'staff',
+            'restaurant_id' => $restaurant->id, 'password' => bcrypt('password'),
+        ]);
+        $this->actingAs($staff)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 10, 'reference' => 'STAFF',
+        ])->assertForbidden();
+
+        [, $otherManager, ,] = $this->fixture('two');
+        $this->actingAs($otherManager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 10, 'reference' => 'CROSS-TENANT',
+        ])->assertNotFound();
+        $this->assertDatabaseHas('hospital_billings', ['id' => $billing->id, 'restaurant_id' => $restaurant->id]);
+        $this->assertDatabaseCount('hospital_billing_payments', 0);
+    }
+
+    public function test_partial_settlement_still_blocks_discharge(): void
+    {
+        [, $manager, $admission, $billing] = $this->fixture();
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 50, 'reference' => 'PARTIAL',
+        ])->assertRedirect();
+
+        $this->actingAs($manager)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable',
+            'discharged_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertSessionHasErrors('billing');
+    }
+}

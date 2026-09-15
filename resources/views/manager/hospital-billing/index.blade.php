@@ -114,14 +114,28 @@
                         </td>
                         <td class="px-3 py-3">
                             {{ number_format((float) $billing->total_amount, 2) }}
-                            @if($billing->status === 'paid')
-                                <div class="mt-1 text-[11px] text-gray-500">Paid {{ $billing->paid_at?->format('d M Y H:i') ?? '?' }}</div>
-                            @endif
+                            <div class="mt-1 text-[11px] text-gray-500">Settled {{ number_format($billing->settledAmount(), 2) }} · Outstanding {{ number_format($billing->outstandingAmount(), 2) }}</div>
+                            @if($billing->status === 'paid')<div class="mt-1 text-[11px] text-gray-500">Paid {{ $billing->paid_at?->format('d M Y H:i') ?? '?' }}</div>@endif
                         </td>
                         <td class="px-3 py-3">
                             <span class="rounded-full bg-blue-50 px-2 py-1 text-xs capitalize text-blue-700">{{ $billing->status }}</span>
                             @if($billing->status === 'paid')
                                 <div class="mt-2 text-[11px] text-gray-500">Payer: {{ $billing->paidBy?->name ?? 'Unknown' }}<br>Time: {{ $billing->paid_at?->format('d M Y H:i') ?? '?' }}<br>Method: {{ ucfirst(str_replace('_', ' ', $billing->payment_method ?: 'other')) }}<br>Reference: {{ $billing->payment_reference ?: '?' }}</div>
+                            @endif
+                            @if($canManage && $billing->payments->isNotEmpty())
+                                <details class="mt-2 text-left">
+                                    <summary class="cursor-pointer text-[11px] font-semibold text-gray-700">Ledger ({{ $billing->payments->count() }})</summary>
+                                    <div class="mt-1 space-y-1 text-[11px] text-gray-500">
+                                        @foreach($billing->payments as $payment)
+                                            <div class="flex items-center justify-between gap-2">
+                                                <span class="capitalize">{{ $payment->type }} {{ number_format((float) $payment->amount, 2) }} · {{ $payment->reference ?: 'No ref' }} ({{ $payment->status }})</span>
+                                                @if($payment->status === 'posted')
+                                                    <form method="POST" action="{{ route('manager.hospital-billing.payments.void', [$billing, $payment]) }}">@csrf @method('PATCH')<button class="font-semibold text-red-700">Void</button></form>
+                                                @endif
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                </details>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
@@ -162,9 +176,21 @@
                                                         <option value="{{ $method }}">{{ ucfirst(str_replace('_', ' ', $method)) }}</option>
                                                     @endforeach
                                                 </select>
+                                                <input name="amount" type="number" min="0.01" max="{{ $billing->outstandingAmount() }}" step="0.01" placeholder="Amount (blank = full outstanding)" class="rounded border-gray-200 text-xs">
                                                 <input name="payment_reference" required maxlength="255" placeholder="Payment reference" class="rounded border-gray-200 text-xs">
                                                 <textarea name="payment_notes" rows="2" maxlength="5000" placeholder="Payment notes (optional)" class="rounded border-gray-200 text-xs"></textarea>
                                                 <button class="rounded bg-green-700 px-2 py-1 text-xs font-semibold text-white">Record payment</button>
+                                            </form>
+                                        </details>
+                                    @endif
+                                    @if(in_array($billing->status, ['posted', 'paid'], true) && $billing->settledAmount() > 0)
+                                        <details class="text-left">
+                                            <summary class="cursor-pointer text-xs font-semibold text-orange-700">Refund</summary>
+                                            <form method="POST" action="{{ route('manager.hospital-billing.refunds.store', $billing) }}" class="mt-2 grid gap-2 w-60">@csrf
+                                                <input name="amount" type="number" min="0.01" max="{{ $billing->settledAmount() }}" step="0.01" required placeholder="Refund amount" class="rounded border-gray-200 text-xs">
+                                                <input name="reference" maxlength="255" placeholder="Refund reference" class="rounded border-gray-200 text-xs">
+                                                <textarea name="payment_notes" rows="2" maxlength="5000" placeholder="Refund notes (optional)" class="rounded border-gray-200 text-xs"></textarea>
+                                                <button class="rounded bg-orange-600 px-2 py-1 text-xs font-semibold text-white">Record refund</button>
                                             </form>
                                         </details>
                                     @endif

@@ -251,8 +251,7 @@ class ManagerDashboardController extends Controller
             ];
 
             if ($user->hasModuleAccess('hospital-billing')) {
-                $hospitalDashboard['billing_outstanding'] = (float) HospitalBilling::where('restaurant_id', $restaurantId)
-                    ->where('status', 'posted')->sum('total_amount');
+                $hospitalDashboard['billing_outstanding'] = HospitalBilling::tenantSummary($restaurantId)['outstanding'];
                 $hospitalDashboard['recent_unpaid_charges'] = HospitalBilling::with('patient:id,name')
                     ->where('restaurant_id', $restaurantId)
                     ->where('status', 'posted')

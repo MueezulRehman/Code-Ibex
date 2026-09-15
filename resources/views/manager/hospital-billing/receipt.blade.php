@@ -38,7 +38,7 @@
                     <p class="mt-1 text-xs text-gray-500">{{ $billing->payment_notes }}</p>
                 @endif
             </div>
-            <p class="text-2xl font-bold">{{ number_format((float) $billing->total_amount, 2) }}</p>
+            <p class="text-right text-2xl font-bold">{{ number_format($billing->settledAmount(), 2) }}<span class="block text-xs font-normal text-gray-500">of {{ number_format((float) $billing->total_amount, 2) }} settled</span></p>
         </div>
 
         <p class="mt-6 text-xs text-gray-500">This receipt confirms payment against the inpatient invoice shown above.</p>

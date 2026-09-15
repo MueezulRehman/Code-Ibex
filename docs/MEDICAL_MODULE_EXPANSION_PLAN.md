@@ -1038,13 +1038,18 @@ manager submits discharge.
 #### Formal inpatient invoice and receipt support (implemented)
 
 Each admission charge now receives a tenant-scoped unique invoice number.
-Managers/owners can record a payment using the existing lifecycle and capture
-payment method, payment reference, payer, timestamp, and a unique receipt
-number. Paid charges have a manager-only printable receipt route and the
-billing page exposes invoice and receipt details without changing gross,
-posted, paid, or outstanding reconciliation semantics. Central and tenant
-migrations use explicit short MySQL-safe identifiers and backfill document
-numbers for existing charges.
+Managers/owners can record tenant-scoped `HospitalBillingPayment` ledger rows
+for positive partial payments and refunds, each linked to the billing charge
+and admission with method, reference, notes, actor, timestamp, and status.
+Posted rows are immutable except for an explicit manager void action. Net
+settlement cannot exceed the charge amount and refunds cannot exceed the
+settled balance. A posted charge remains posted while partially settled and
+becomes paid only at full settlement; a refund can safely return it to posted.
+The outstanding net balance remains the discharge reconciliation gate. Paid
+charges have a manager-only printable receipt route and the billing page and
+report expose settled, refunded, and outstanding aggregates. Central and
+tenant migrations use explicit short MySQL-safe identifiers and backfill
+document numbers for existing charges.
 
 Managers can now maintain tenant-scoped `HospitalPatientInsurance` profiles
 without duplicating the existing customer-linked `InsuranceClaim` records.

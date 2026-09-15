@@ -30,13 +30,13 @@ class HospitalBilling extends Model
 
     public static function tenantSummary(?int $restaurantId = null): array
     {
-        $query = static::query();
+        $query = static::with('payments');
 
         if ($restaurantId !== null) {
             $query->where('restaurant_id', $restaurantId);
         }
 
-        $billings = $query->get(['status', 'total_amount']);
+        $billings = $query->get(['id', 'status', 'total_amount']);
 
         $sum = function (array $statuses) use ($billings): float {
             return (float) $billings
@@ -46,8 +46,10 @@ class HospitalBilling extends Model
 
         $gross = $sum(['draft', 'posted', 'paid', 'void']);
         $posted = $sum(['posted']);
-        $paid = $sum(['paid']);
-        $outstanding = $posted;
+        $paid = (float) $billings->sum(fn (self $billing): float => $billing->settledAmount());
+        $outstanding = (float) $billings
+            ->where('status', 'posted')
+            ->sum(fn (self $billing): float => $billing->outstandingAmount());
         $draft = $sum(['draft']);
         $void = $sum(['void']);
 
@@ -63,10 +65,39 @@ class HospitalBilling extends Model
 
     public function patient() { return $this->belongsTo(Patient::class); }
     public function admission() { return $this->belongsTo(HospitalAdmission::class, 'hospital_admission_id'); }
+    public function payments() { return $this->hasMany(HospitalBillingPayment::class, 'hospital_billing_id'); }
     public function postedBy() { return $this->belongsTo(User::class, 'posted_by'); }
     public function paidBy() { return $this->belongsTo(User::class, 'paid_by'); }
     public function insuranceClaim() { return $this->belongsTo(InsuranceClaim::class, 'insurance_claim_id'); }
     public function insurancePolicy() { return $this->belongsTo(HospitalPatientInsurance::class, 'hospital_patient_insurance_id'); }
+
+    public function settledAmount(): float
+    {
+        if ($this->relationLoaded('payments')) {
+            $payments = $this->payments->where('status', 'posted');
+            $hasPaymentRow = $this->payments->contains('type', 'payment');
+            if (! $hasPaymentRow && $this->status === 'paid') {
+                return max(round((float) $this->total_amount - (float) $payments->where('type', 'refund')->sum('amount'), 2), 0.0);
+            }
+            return round((float) $payments->where('type', 'payment')->sum('amount')
+                - (float) $payments->where('type', 'refund')->sum('amount'), 2);
+        }
+
+        $payments = $this->payments()->where('status', 'posted');
+        $payment = (float) (clone $payments)->where('type', 'payment')->sum('amount');
+        $refund = (float) (clone $payments)->where('type', 'refund')->sum('amount');
+
+        if (! $this->payments()->where('type', 'payment')->exists() && $this->status === 'paid') {
+            return max(round((float) $this->total_amount - $refund, 2), 0.0);
+        }
+
+        return round($payment - $refund, 2);
+    }
+
+    public function outstandingAmount(): float
+    {
+        return max(round((float) $this->total_amount - $this->settledAmount(), 2), 0.0);
+    }
 
     protected static function booted(): void
     {

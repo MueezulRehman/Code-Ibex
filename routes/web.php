@@ -547,6 +547,9 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/hospital-billing/{billing}/insurance-claim', [App\Http\Controllers\Admin\HospitalBillingController::class, 'linkInsuranceClaim'])->name('hospital-billing.insurance-claim');
             Route::patch('/hospital-billing/{billing}/post', [App\Http\Controllers\Admin\HospitalBillingController::class, 'post'])->name('hospital-billing.post');
             Route::patch('/hospital-billing/{billing}/pay', [App\Http\Controllers\Admin\HospitalBillingController::class, 'pay'])->name('hospital-billing.pay');
+            Route::post('/hospital-billing/{billing}/payments', [App\Http\Controllers\Admin\HospitalBillingController::class, 'pay'])->name('hospital-billing.payments.store');
+            Route::post('/hospital-billing/{billing}/refunds', [App\Http\Controllers\Admin\HospitalBillingController::class, 'refund'])->name('hospital-billing.refunds.store');
+            Route::patch('/hospital-billing/{billing}/payments/{payment}/void', [App\Http\Controllers\Admin\HospitalBillingController::class, 'voidPayment'])->name('hospital-billing.payments.void');
             Route::get('/hospital-billing/{billing}/receipt', [App\Http\Controllers\Admin\HospitalBillingController::class, 'receipt'])->name('hospital-billing.receipt');
             Route::patch('/hospital-billing/{billing}/void', [App\Http\Controllers\Admin\HospitalBillingController::class, 'void'])->name('hospital-billing.void');
         });

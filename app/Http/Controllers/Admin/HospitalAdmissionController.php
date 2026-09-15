@@ -43,7 +43,7 @@ class HospitalAdmissionController extends Controller
             'bedTransfers.previousBed',
             'bedTransfers.newBed',
             'dischargeSummary',
-            'billings:id,hospital_admission_id,status,total_amount',
+            'billings:id,restaurant_id,hospital_admission_id,status,total_amount',
             'insurancePolicy',
         ])->latest('admitted_at')->paginate(20);
         return view('manager.admissions.index', [
@@ -190,8 +190,10 @@ class HospitalAdmissionController extends Controller
         }
 
         DB::transaction(function () use ($admission, $data, $restaurantId, $user): void {
+            $postedBillings = $admission->billings()->where('status', 'posted')
+                ->with('payments')->lockForUpdate()->get();
             abort_if(
-                $admission->billings()->where('status', 'posted')->lockForUpdate()->exists(),
+                $postedBillings->contains(fn ($billing): bool => $billing->outstandingAmount() > 0),
                 422,
                 'This patient cannot be discharged while posted hospital billing charges remain unpaid.'
             );

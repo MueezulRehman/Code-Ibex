@@ -171,8 +171,15 @@ Hospital billing charges now receive a tenant-scoped, unique invoice number
 when created. Managers/owners retain the existing draft, posted, paid, and
 void lifecycle; posting and payment do not change the outstanding calculation.
 Recording a payment captures the payment method, reference, payer, timestamp,
-and a tenant-scoped receipt number. Paid charges expose a manager-only
-printable receipt at `manager.hospital-billing.receipt`. Existing `InsuranceClaim` records remain customer-linked and can still be
+and a tenant-scoped receipt number. Payments are append-only ledger rows:
+managers can record positive partial payments and refunds, while a posted
+ledger row may only be voided with its actor and timestamp retained. Net
+settlement cannot exceed the invoice amount and a refund cannot exceed the
+already settled balance. A charge remains `posted` while partially settled and
+becomes `paid` only at full settlement; a refund can return a paid charge to
+`posted`. Posted outstanding balance (not gross charge total) continues to
+block discharge. Paid charges expose a manager-only printable receipt at
+`manager.hospital-billing.receipt`. Existing `InsuranceClaim` records remain customer-linked and can still be
 optionally attached to a billing charge/invoice. Hospital patient identity is
 now represented by the tenant-scoped `HospitalPatientInsurance` profile, with
 payer, policy/member numbers, coverage dates, status, notes, and an explicit

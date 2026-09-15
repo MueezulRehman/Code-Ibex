@@ -45,12 +45,12 @@ class HospitalAdmission extends Model
     {
         $billings = $this->relationLoaded('billings')
             ? $this->billings
-            : $this->billings()->get(['status', 'total_amount']);
+            : $this->billings()->with('payments')->get(['id', 'status', 'total_amount']);
 
         $gross = $billings->sum('total_amount');
         $posted = $billings->where('status', 'posted')->sum('total_amount');
-        $paid = $billings->where('status', 'paid')->sum('total_amount');
-        $outstanding = $posted;
+        $paid = $billings->sum(fn (HospitalBilling $billing): float => $billing->settledAmount());
+        $outstanding = $billings->where('status', 'posted')->sum(fn (HospitalBilling $billing): float => $billing->outstandingAmount());
         $draft = $billings->where('status', 'draft')->sum('total_amount');
         $void = $billings->where('status', 'void')->sum('total_amount');
 
@@ -67,6 +67,8 @@ class HospitalAdmission extends Model
 
     public function hasUnpaidPostedBilling(): bool
     {
-        return $this->billings()->where('status', 'posted')->exists();
+        return $this->billings()->where('status', 'posted')->with('payments')->get()->contains(
+            fn (HospitalBilling $billing): bool => $billing->outstandingAmount() > 0
+        );
     }
 }

@@ -5,11 +5,13 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalBilling;
+use App\Models\HospitalBillingPayment;
 use App\Models\HospitalPatientInsurance;
 use App\Models\InsuranceClaim;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Validation\Rule;
 
@@ -43,6 +45,21 @@ class HospitalBillingController extends Controller
     {
         abort_unless($billing->restaurant_id === (int) $user->effectiveRestaurantId(), 404);
         return $billing;
+    }
+
+    private function syncSettlement(HospitalBilling $billing, User $user): void
+    {
+        $settled = $billing->settledAmount();
+        if ($settled >= (float) $billing->total_amount) {
+            $updates = ['status' => 'paid', 'paid_by' => $billing->paid_by ?: $user->id, 'paid_at' => $billing->paid_at ?: now()];
+            if (! $billing->receipt_number) {
+                $updates['receipt_number'] = HospitalBilling::nextDocumentNumber('RCT', (int) $user->effectiveRestaurantId());
+                $updates['receipt_issued_at'] = now();
+            }
+            $billing->update($updates);
+        } elseif ($billing->status === 'paid') {
+            $billing->update(['status' => 'posted']);
+        }
     }
 
     private function insuranceClaimRule(int $restaurantId): array
@@ -113,7 +130,7 @@ class HospitalBillingController extends Controller
         $paymentMethod = $request->query('payment_method');
         $insuranceLinked = $request->query('insurance_linked');
 
-        $billings = HospitalBilling::with(['patient', 'admission', 'postedBy', 'paidBy', 'insuranceClaim', 'insurancePolicy'])
+        $billings = HospitalBilling::with(['patient', 'admission', 'postedBy', 'paidBy', 'payments', 'insuranceClaim', 'insurancePolicy'])
             ->where('restaurant_id', $restaurantId)
             ->when($admissionIds !== null, fn ($q) => $q->whereIn('hospital_admission_id', $admissionIds))
             ->when($status && $status !== 'all', fn ($q) => $q->where('status', $status))
@@ -161,7 +178,7 @@ class HospitalBillingController extends Controller
             'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
         ]);
 
-        $billings = HospitalBilling::with(['patient', 'admission', 'insuranceClaim'])
+        $billings = HospitalBilling::with(['patient', 'admission', 'payments', 'insuranceClaim'])
             ->where('restaurant_id', $restaurantId)
             ->when(($filters['status'] ?? null) && $filters['status'] !== 'all', fn ($q) => $q->where('status', $filters['status']))
             ->when(($filters['charge_type'] ?? null) && $filters['charge_type'] !== 'all', fn ($q) => $q->where('charge_type', $filters['charge_type']))
@@ -189,9 +206,11 @@ class HospitalBillingController extends Controller
         $paymentMethodTotals = $groupBy($billings, fn ($billing) => $billing->payment_method ?: 'unrecorded');
         $totals = [
             'gross' => (float) $billings->sum('total_amount'),
-            'outstanding' => (float) $billings->where('status', 'posted')->sum('total_amount'),
+            'settled' => (float) $billings->sum(fn ($billing) => $billing->settledAmount()),
+            'refunded' => (float) $billings->sum(fn ($billing) => $billing->payments->where('status', 'posted')->where('type', 'refund')->sum('amount')),
+            'outstanding' => (float) $billings->where('status', 'posted')->sum(fn ($billing) => $billing->outstandingAmount()),
             'insurance_linked' => (float) $billings->whereNotNull('insurance_claim_id')->sum('total_amount'),
-            'insurance_outstanding' => (float) $billings->whereNotNull('insurance_claim_id')->where('status', 'posted')->sum('total_amount'),
+            'insurance_outstanding' => (float) $billings->whereNotNull('insurance_claim_id')->where('status', 'posted')->sum(fn ($billing) => $billing->outstandingAmount()),
         ];
         $totals['insurance_linked_amount'] = $totals['insurance_linked'];
         $totals['insurance_linked_outstanding'] = $totals['insurance_outstanding'];
@@ -199,7 +218,7 @@ class HospitalBillingController extends Controller
         if ($request->query('format') === 'csv') {
             return response()->streamDownload(function () use ($billings): void {
                 $output = fopen('php://output', 'w');
-                fputcsv($output, ['Invoice', 'Status', 'Charged date', 'Admission', 'Patient', 'Charge type', 'Payment method', 'Insurance claim', 'Amount']);
+                fputcsv($output, ['Invoice', 'Status', 'Charged date', 'Admission', 'Patient', 'Charge type', 'Payment method', 'Insurance claim', 'Amount', 'Settled', 'Outstanding']);
                 foreach ($billings as $billing) {
                     fputcsv($output, [
                         $billing->invoice_number,
@@ -211,6 +230,8 @@ class HospitalBillingController extends Controller
                         $billing->payment_method ?: 'unrecorded',
                         $billing->insuranceClaim?->claim_number ?: ($billing->insurance_claim_id ? '#' . $billing->insurance_claim_id : ''),
                         number_format((float) $billing->total_amount, 2, '.', ''),
+                        number_format($billing->settledAmount(), 2, '.', ''),
+                        number_format($billing->outstandingAmount(), 2, '.', ''),
                     ]);
                 }
                 fclose($output);
@@ -324,25 +345,123 @@ class HospitalBillingController extends Controller
         $user = $this->manage();
         $billing = $this->scopeToCurrentTenant($billing, $user);
         abort_unless($billing->status === 'posted', 422, 'Only posted charges can be paid.');
-        abort_if($billing->total_amount <= 0, 422, 'Only positive charges can be marked paid.');
 
         $data = $request->validate([
-            'payment_reference' => ['required', 'string', 'max:255'],
+            'amount' => ['nullable', 'numeric', 'gt:0'],
+            'payment_reference' => ['required_without:reference', 'nullable', 'string', 'max:255'],
+            'reference' => ['nullable', 'string', 'max:255'],
+            'method' => ['nullable', Rule::in(['cash', 'card', 'bank_transfer', 'insurance', 'other'])],
+            'notes' => ['nullable', 'string', 'max:5000'],
             'payment_method' => ['nullable', Rule::in(['cash', 'card', 'bank_transfer', 'insurance', 'other'])],
             'payment_notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        $billing->update([
-            'status' => 'paid',
-            'paid_by' => $user->id,
-            'paid_at' => now(),
-            'payment_reference' => trim($data['payment_reference']),
-            'payment_method' => $data['payment_method'] ?? 'other',
-            'payment_notes' => $data['payment_notes'] ?? null,
-            'receipt_number' => HospitalBilling::nextDocumentNumber('RCT', (int) $user->effectiveRestaurantId()),
-            'receipt_issued_at' => now(),
+        $reference = trim($data['payment_reference'] ?? $data['reference'] ?? '');
+        abort_unless($reference !== '', 422, 'A payment reference is required.');
+
+        DB::transaction(function () use ($billing, $data, $reference, $user): void {
+            $billing = HospitalBilling::where('restaurant_id', $user->effectiveRestaurantId())
+                ->whereKey($billing->id)->lockForUpdate()->firstOrFail();
+            abort_unless($billing->status === 'posted', 422, 'Only posted charges can be paid.');
+            $amount = round((float) ($data['amount'] ?? $billing->outstandingAmount()), 2);
+            abort_if($amount <= 0, 422, 'This charge has no outstanding balance.');
+            abort_if($amount > $billing->outstandingAmount(), 422, 'Payment cannot exceed the outstanding balance.');
+
+            HospitalBillingPayment::create([
+                'restaurant_id' => $billing->restaurant_id,
+                'hospital_billing_id' => $billing->id,
+                'hospital_admission_id' => $billing->hospital_admission_id,
+                'type' => 'payment',
+                'amount' => $amount,
+                'method' => $data['payment_method'] ?? $data['method'] ?? 'other',
+                'reference' => $reference,
+                'notes' => $data['payment_notes'] ?? $data['notes'] ?? null,
+                'recorded_by' => $user->id,
+                'recorded_at' => now(),
+                'status' => 'posted',
+            ]);
+
+            $billing->load('payments');
+            $billing->update([
+                'payment_reference' => $reference,
+                'payment_method' => $data['payment_method'] ?? $data['method'] ?? 'other',
+                'payment_notes' => $data['payment_notes'] ?? $data['notes'] ?? null,
+            ]);
+            $this->syncSettlement($billing, $user);
+        });
+
+        return back()->with('success', 'Hospital billing payment recorded.');
+    }
+
+    public function refund(Request $request, HospitalBilling $billing)
+    {
+        $user = $this->manage();
+        $billing = $this->scopeToCurrentTenant($billing, $user);
+        abort_unless(in_array($billing->status, ['posted', 'paid'], true), 422, 'Only settled charges can be refunded.');
+        $data = $request->validate([
+            'amount' => ['required', 'numeric', 'gt:0'],
+            'reference' => ['nullable', 'string', 'max:255'],
+            'payment_reference' => ['nullable', 'string', 'max:255'],
+            'method' => ['nullable', Rule::in(['cash', 'card', 'bank_transfer', 'insurance', 'other'])],
+            'notes' => ['nullable', 'string', 'max:5000'],
+            'payment_method' => ['nullable', Rule::in(['cash', 'card', 'bank_transfer', 'insurance', 'other'])],
+            'payment_notes' => ['nullable', 'string', 'max:5000'],
         ]);
-        return back()->with('success', 'Hospital billing charge paid.');
+
+        DB::transaction(function () use ($billing, $data, $user): void {
+            $billing = HospitalBilling::with('payments')->where('restaurant_id', $user->effectiveRestaurantId())
+                ->whereKey($billing->id)->lockForUpdate()->firstOrFail();
+            $settled = $billing->settledAmount();
+            $amount = round((float) $data['amount'], 2);
+            abort_if($settled <= 0, 422, 'This charge has no settled payment to refund.');
+            abort_if($amount > $settled, 422, 'Refund cannot exceed the settled payment balance.');
+
+            HospitalBillingPayment::create([
+                'restaurant_id' => $billing->restaurant_id,
+                'hospital_billing_id' => $billing->id,
+                'hospital_admission_id' => $billing->hospital_admission_id,
+                'type' => 'refund',
+                'amount' => $amount,
+                'method' => $data['payment_method'] ?? $data['method'] ?? $billing->payment_method ?? 'other',
+                'reference' => $data['reference'] ?? $data['payment_reference'] ?? null,
+                'notes' => $data['payment_notes'] ?? $data['notes'] ?? null,
+                'recorded_by' => $user->id,
+                'recorded_at' => now(),
+                'status' => 'posted',
+            ]);
+            $billing->load('payments');
+            $this->syncSettlement($billing, $user);
+        });
+
+        return back()->with('success', 'Hospital billing refund recorded.');
+    }
+
+    public function voidPayment(Request $request, HospitalBilling $billing, HospitalBillingPayment $payment)
+    {
+        $user = $this->manage();
+        $data = $request->validate(['void_reason' => ['nullable', 'string', 'max:1000']]);
+        $billing = $this->scopeToCurrentTenant($billing, $user);
+        abort_unless((int) $payment->hospital_billing_id === (int) $billing->id
+            && (int) $payment->restaurant_id === (int) $user->effectiveRestaurantId(), 404);
+        abort_unless($payment->status === 'posted', 422, 'Only posted payment records can be voided.');
+
+        DB::transaction(function () use ($billing, $payment, $user, $data): void {
+            $billing = HospitalBilling::with('payments')->where('restaurant_id', $user->effectiveRestaurantId())
+                ->whereKey($billing->id)->lockForUpdate()->firstOrFail();
+            $payment = HospitalBillingPayment::where('restaurant_id', $user->effectiveRestaurantId())
+                ->where('hospital_billing_id', $billing->id)->whereKey($payment->id)->lockForUpdate()->firstOrFail();
+            abort_unless($payment->status === 'posted', 422, 'Only posted payment records can be voided.');
+            $payment->update([
+                'status' => 'void',
+                'voided_by' => $user->id,
+                'voided_at' => now(),
+                'void_reason' => $data['void_reason'] ?? null,
+            ]);
+            $billing->load('payments');
+            $this->syncSettlement($billing, $user);
+        });
+
+        return back()->with('success', 'Hospital billing payment record voided.');
     }
 
     public function receipt(HospitalBilling $billing)
@@ -352,7 +471,7 @@ class HospitalBillingController extends Controller
         abort_unless($billing->status === 'paid', 422, 'Payment receipts are available only for paid charges.');
 
         return view('manager.hospital-billing.receipt', [
-            'billing' => $billing->load(['patient', 'admission', 'paidBy']),
+            'billing' => $billing->load(['patient', 'admission', 'paidBy', 'payments.recordedBy']),
         ]);
     }
 
