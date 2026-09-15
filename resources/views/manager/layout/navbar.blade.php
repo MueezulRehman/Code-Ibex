@@ -279,6 +279,14 @@
                                 </a>
                             </div>
                         @endif
+                        @if($moduleEnabled('hospital-staff-rosters'))
+                            <div class="nav-dropdown {{ request()->routeIs('manager.staff-rosters.*') ? 'has-active' : '' }}">
+                                <a href="{{ route('manager.staff-rosters.index') }}" title="Hospital staff rosters"
+                                    class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.staff-rosters.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                                    <i class="fas fa-calendar-days text-lg"></i><span class="flex-1 truncate">Staff Rosters</span>
+                                </a>
+                            </div>
+                        @endif
                         @if($moduleEnabled('hospital-vital-signs'))
                             <div class="nav-dropdown {{ request()->routeIs('manager.vitals.*') ? 'has-active' : '' }}">
                                 <a href="{{ route('manager.vitals.index') }}" title="Vital signs"

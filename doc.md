@@ -929,6 +929,22 @@ separately gated slices.
 - Focused nursing and module tests pass: 13 tests, 208 assertions. The
   production Vite build also passes.
 
+### Professional Hospital staff duty rosters
+
+- Added the separately gated `hospital-staff-rosters` module to Professional
+  Hospital defaults and existing Professional Hospital tenants.
+- Added tenant-scoped `HospitalStaffRoster` shifts linking active nurse/doctor
+  User accounts to a shift date, start/end window, shift type, optional
+  department/ward, status, and notes.
+- Hospital owners/managers can schedule, edit, delete, confirm, and cancel
+  shifts. Active nurses and doctors can view only their own roster rows.
+- Server-side validation rejects cross-tenant staff/location references,
+  overlapping scheduled/confirmed windows, invalid date ranges, and shifts
+  ending before they start. Central and tenant migrations use explicit short
+  MySQL-safe foreign-key and index names.
+- Added Staff Rosters navigation and the Manager roster screen at
+  `/manager/staff-rosters`; existing Nursing Assignments remain unchanged.
+
 ### Professional Hospital vital signs
 
 - Added the separately gated `hospital-vital-signs` module to Professional

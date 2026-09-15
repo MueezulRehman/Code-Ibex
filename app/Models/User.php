@@ -88,6 +88,11 @@ class User extends Authenticatable
         return $this->hasMany(NursingAssignment::class, 'nurse_id');
     }
 
+    public function hospitalStaffRosters()
+    {
+        return $this->hasMany(HospitalStaffRoster::class, 'staff_user_id');
+    }
+
     public function doctorProfile()
     {
         return $this->hasOne(Doctor::class);

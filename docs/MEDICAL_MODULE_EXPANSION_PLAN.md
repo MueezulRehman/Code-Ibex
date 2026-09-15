@@ -22,6 +22,13 @@ planning-only.
 The inpatient medication administration slice is also implemented behind the
 dedicated `hospital-medication` module.
 
+The inpatient staff duty-roster slice is also implemented behind the dedicated
+`hospital-staff-rosters` module. It schedules tenant-scoped nurse and doctor
+shifts, optionally associates them with a department or ward, prevents
+overlapping active windows for a staff account, and supports manager
+confirmation/cancellation. Active clinical staff can view only their own
+rosters.
+
 Discharge summaries now have an append-only tenant audit trail. Initial
 discharge recording creates a `recorded` event; manager/owner corrections
 require a reason and create an `edited` event containing previous and new
@@ -111,6 +118,7 @@ models, routes, and permissions for:
 - Patient registration and inpatient admissions;
 - Departments, wards, rooms, beds, transfers, and occupancy;
 - Nursing assignments, rounds, and vital signs;
+- Staff duty scheduling and shift rosters;
 - Laboratory orders, samples, verification, and results;
 - Radiology/imaging orders, reports, and result verification;
 - Operating theatre scheduling and surgery records;

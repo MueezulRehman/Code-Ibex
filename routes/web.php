@@ -490,6 +490,14 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/nursing/{assignment}/reassign', [App\Http\Controllers\Admin\NursingAssignmentController::class, 'reassign'])->name('nursing.reassign');
             Route::patch('/nursing/{assignment}/end', [App\Http\Controllers\Admin\NursingAssignmentController::class, 'end'])->name('nursing.end');
         });
+        // The controller performs the module check because active clinical
+        // staff accounts may view their own shifts without manager modules.
+        Route::get('/staff-rosters', [App\Http\Controllers\Admin\HospitalStaffRosterController::class, 'index'])->name('staff-rosters.index');
+        Route::post('/staff-rosters', [App\Http\Controllers\Admin\HospitalStaffRosterController::class, 'store'])->name('staff-rosters.store');
+        Route::patch('/staff-rosters/{roster}', [App\Http\Controllers\Admin\HospitalStaffRosterController::class, 'update'])->name('staff-rosters.update');
+        Route::delete('/staff-rosters/{roster}', [App\Http\Controllers\Admin\HospitalStaffRosterController::class, 'destroy'])->name('staff-rosters.destroy');
+        Route::patch('/staff-rosters/{roster}/confirm', [App\Http\Controllers\Admin\HospitalStaffRosterController::class, 'confirm'])->name('staff-rosters.confirm');
+        Route::patch('/staff-rosters/{roster}/cancel', [App\Http\Controllers\Admin\HospitalStaffRosterController::class, 'cancel'])->name('staff-rosters.cancel');
         Route::middleware('module:hospital-vital-signs')->group(function () {
             Route::get('/vitals', [App\Http\Controllers\Admin\VitalSignController::class, 'index'])->name('vitals.index');
             Route::post('/vitals', [App\Http\Controllers\Admin\VitalSignController::class, 'store'])->name('vitals.store');
