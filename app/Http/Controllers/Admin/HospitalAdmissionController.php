@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Bed;
+use App\Models\BedTransfer;
 use App\Models\DischargeSummary;
 use App\Models\DischargeSummaryEvent;
 use App\Models\Doctor;
@@ -38,6 +39,8 @@ class HospitalAdmissionController extends Controller
             'doctor',
             'department',
             'bed',
+            'bedTransfers.previousBed',
+            'bedTransfers.newBed',
             'dischargeSummary',
             'billings:id,hospital_admission_id,status,total_amount',
         ])->latest('admitted_at')->paginate(20);
@@ -93,19 +96,62 @@ class HospitalAdmissionController extends Controller
 
     public function assignBed(Request $request, HospitalAdmission $admission)
     {
+        $user = Auth::user();
         $restaurantId = $this->restaurantId();
+        abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
             'bed_id' => ['required', 'integer', Rule::exists('beds', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('status', 'available'))],
         ]);
-        DB::transaction(function () use ($admission, $data, $restaurantId): void {
+        if ($admission->bed_id && (int) $data['bed_id'] === (int) $admission->bed_id) {
+            return back()->withErrors(['bed_id' => 'Admission is already assigned to this bed.']);
+        }
+
+        DB::transaction(function () use ($admission, $data, $restaurantId, $user): void {
             $bed = Bed::where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
                 ->where('status', 'available')->lockForUpdate()->firstOrFail();
-            if ($admission->bed_id && $admission->bed_id !== $bed->id) {
-                Bed::whereKey($admission->bed_id)->update(['status' => 'available']);
+            $previousBedId = $admission->bed_id;
+            $previousDepartmentId = $admission->department_id;
+            $previousWardId = $previousBedId ? Bed::whereKey($previousBedId)->value('ward_id') : null;
+            $newWardId = $bed->ward_id;
+            $newDepartmentId = $previousDepartmentId;
+
+            if ($previousBedId && $previousBedId !== $bed->id) {
+                Bed::whereKey($previousBedId)->update(['status' => 'available']);
             }
-            $admission->update(['bed_id' => $bed->id]);
+
+            $admission->update(['bed_id' => $bed->id, 'department_id' => $newDepartmentId]);
             $bed->update(['status' => 'occupied']);
+
+            BedTransfer::create([
+                'restaurant_id' => $restaurantId,
+                'hospital_admission_id' => $admission->id,
+                'patient_id' => $admission->patient_id,
+                'previous_bed_id' => $previousBedId,
+                'new_bed_id' => $bed->id,
+                'previous_ward_id' => $previousWardId,
+                'new_ward_id' => $newWardId,
+                'previous_department_id' => $previousDepartmentId,
+                'new_department_id' => $newDepartmentId,
+                'requested_by' => $user->id,
+                'approved_by' => $user->id,
+                'transferred_at' => now(),
+                'reason' => 'Bed assignment update',
+                'notes' => 'Bed assigned by manager.',
+            ]);
+
+            HospitalTransfer::create([
+                'restaurant_id' => $restaurantId,
+                'hospital_admission_id' => $admission->id,
+                'from_department_id' => $previousDepartmentId,
+                'to_department_id' => $newDepartmentId,
+                'from_bed_id' => $previousBedId,
+                'to_bed_id' => $bed->id,
+                'requested_by' => $user->id,
+                'transferred_at' => now(),
+                'reason' => 'Bed assignment update',
+                'notes' => 'Bed assigned by manager.',
+            ]);
         });
         return back()->with('success', 'Bed assigned.');
     }
@@ -224,10 +270,19 @@ class HospitalAdmissionController extends Controller
         $data = $request->validate([
             'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('is_active', true))],
             'bed_id' => ['nullable', 'integer', Rule::exists('beds', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('status', 'available'))],
-            'transferred_at' => ['required', 'date', 'after_or_equal:' . $admission->admitted_at->format('Y-m-d H:i:s')],
+            'transferred_at' => ['required', 'date', 'after_or_equal:' . $admission->admitted_at->format('Y-m-d H:i:s'), 'before_or_equal:now'],
             'reason' => ['required', 'string', 'max:500'],
             'notes' => ['nullable', 'string', 'max:5000'],
         ]);
+
+        $intendedDepartmentId = $data['department_id'] ?? $admission->department_id;
+        if ($admission->bed_id && ! empty($data['bed_id']) && (int) $data['bed_id'] === (int) $admission->bed_id && (int) $intendedDepartmentId === (int) $admission->department_id) {
+            return back()->withErrors(['bed_id' => 'Admission is already assigned to this bed.']);
+        }
+
+        if (! $admission->bed_id && empty($data['bed_id']) && (int) ($data['department_id'] ?? $admission->department_id) === (int) $admission->department_id) {
+            return back()->withErrors(['bed_id' => 'Select a bed or release the current bed before recording an empty transfer.']);
+        }
 
         DB::transaction(function () use ($data, $admission, $restaurantId, $user): void {
             $newBed = null;
@@ -235,19 +290,46 @@ class HospitalAdmissionController extends Controller
                 $newBed = Bed::where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
                     ->where('status', 'available')->lockForUpdate()->firstOrFail();
             }
+
             $oldBedId = $admission->bed_id;
             $oldDepartmentId = $admission->department_id;
+            $previousWardId = $oldBedId ? Bed::whereKey($oldBedId)->value('ward_id') : null;
+            $newWardId = $newBed?->ward_id;
+            $newDepartmentId = $data['department_id'] ?? $oldDepartmentId;
+
             if ($oldBedId && (! $newBed || $newBed->id !== $oldBedId)) {
                 Bed::whereKey($oldBedId)->update(['status' => 'available']);
             }
             if ($newBed) {
                 $newBed->update(['status' => 'occupied']);
             }
+
+            $bedTransferCreated = false;
+            if ($oldBedId !== $newBed?->id || $previousWardId !== $newWardId || $oldDepartmentId !== $newDepartmentId) {
+                $bedTransferCreated = true;
+                BedTransfer::create([
+                    'restaurant_id' => $restaurantId,
+                    'hospital_admission_id' => $admission->id,
+                    'patient_id' => $admission->patient_id,
+                    'previous_bed_id' => $oldBedId,
+                    'new_bed_id' => $newBed?->id,
+                    'previous_ward_id' => $previousWardId,
+                    'new_ward_id' => $newWardId,
+                    'previous_department_id' => $oldDepartmentId,
+                    'new_department_id' => $newDepartmentId,
+                    'requested_by' => $user->id,
+                    'approved_by' => $user->id,
+                    'transferred_at' => $data['transferred_at'],
+                    'reason' => $data['reason'],
+                    'notes' => $data['notes'] ?? null,
+                ]);
+            }
+
             HospitalTransfer::create([
                 'restaurant_id' => $restaurantId,
                 'hospital_admission_id' => $admission->id,
                 'from_department_id' => $oldDepartmentId,
-                'to_department_id' => $data['department_id'] ?? null,
+                'to_department_id' => $newDepartmentId,
                 'from_bed_id' => $oldBedId,
                 'to_bed_id' => $newBed?->id,
                 'requested_by' => $user->id,
@@ -256,10 +338,14 @@ class HospitalAdmissionController extends Controller
                 'notes' => $data['notes'] ?? null,
             ]);
             $admission->update([
-                'department_id' => $data['department_id'] ?? null,
+                'department_id' => $newDepartmentId,
                 'bed_id' => $newBed?->id,
                 'status' => 'transferred',
             ]);
+
+            if ($bedTransferCreated && $admission->wasChanged('bed_id')) {
+                $admission->refresh();
+            }
         });
 
         return back()->with('success', 'Admission transfer recorded.');

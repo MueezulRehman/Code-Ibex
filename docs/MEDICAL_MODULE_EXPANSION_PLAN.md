@@ -1010,3 +1010,7 @@ prescription slip. Prescriptions carry Visit/Patient/Doctor links and are
 checked against active patient allergy triggers and existing medicine
 interactions before saving. Pharmacist dispensing, stock deduction, billing,
 SMS, and hospital scope are intentionally deferred.
+
+### Professional Hospital bed transfer history (implemented)
+
+Bed movements now persist as explicit tenant-scoped `BedTransfer` records with patient/admission links, previous and new bed/ward/department references, manager request and approval references, transfer timestamps, reasons, and notes. The transfer transaction updates the target bed availability, keeps `HospitalTransfer` records in sync, blocks no-op and cross-tenant requests, and rejects timestamps that fall before admission or after the current time. The Manager admissions UI shows the recent bed-movement history directly on each admission.

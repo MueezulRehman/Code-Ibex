@@ -1009,3 +1009,7 @@ Vital Signs, followed by Laboratory and Radiology.
 - Added a central rollout migration so existing Professional Hospital tenants
   receive the Laboratory module flag; tenant schema migrations must still be
   applied separately during deployment.
+
+## Professional Hospital bed transfer history
+
+Manager bed assignments and transfers are now persisted as explicit tenant-scoped `BedTransfer` records that link to the active admission, patient, previous/new bed and ward, department, actor, timestamp, reason, and notes. This history supplements the existing `HospitalTransfer` event log while preserving bed availability checks, duplicate rejection, manager-only approval, and cross-tenant isolation.
