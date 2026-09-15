@@ -262,6 +262,12 @@
                                     <i class="fas fa-bed-pulse text-lg"></i><span class="flex-1 truncate">Admissions</span>
                                 </a>
                             </div>
+                            <div class="nav-dropdown {{ request()->routeIs('manager.hospital-reports.*') ? 'has-active' : '' }}">
+                                <a href="{{ route('manager.hospital-reports.index') }}" title="Hospital operational reports"
+                                    class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.hospital-reports.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                                    <i class="fas fa-chart-line text-lg"></i><span class="flex-1 truncate">Hospital Reports</span>
+                                </a>
+                            </div>
                         @endif
                         @if($moduleEnabled('hospital-wards-beds'))
                             <div class="nav-dropdown {{ request()->routeIs('manager.wards.*') ? 'has-active' : '' }}">

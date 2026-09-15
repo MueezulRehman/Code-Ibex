@@ -476,6 +476,10 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/discharge-summaries/{summary}', [App\Http\Controllers\Admin\HospitalAdmissionController::class, 'updateDischargeSummary'])->name('admissions.discharge-summary.update');
             Route::patch('/admissions/{admission}/transfer', [App\Http\Controllers\Admin\HospitalAdmissionController::class, 'transfer'])->name('admissions.transfer');
         });
+        // Operational reporting is manager-only and intentionally performs
+        // its own authorization so it can combine several hospital modules.
+        Route::get('/hospital-reports', [App\Http\Controllers\Admin\HospitalOperationalReportController::class, 'index'])->name('hospital-reports.index');
+        Route::get('/hospital-reports/export', [App\Http\Controllers\Admin\HospitalOperationalReportController::class, 'export'])->name('hospital-reports.export');
         Route::middleware('module:hospital-wards-beds')->group(function () {
             Route::get('/wards', [App\Http\Controllers\Admin\WardController::class, 'index'])->name('wards.index');
             Route::post('/wards', [App\Http\Controllers\Admin\WardController::class, 'store'])->name('wards.store');
