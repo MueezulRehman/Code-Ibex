@@ -95,3 +95,19 @@
     @stack('scripts')
 
     @include('partials.manager-new-order-listener')
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('main input[required], main select[required], main textarea[required]').forEach(function (field) {
+                field.setAttribute('aria-required', 'true');
+                var label = field.id ? document.querySelector('label[for="' + CSS.escape(field.id) + '"]') : field.closest('div')?.querySelector('label');
+                if (!label || label.querySelector('[data-required-indicator]')) return;
+                var indicator = document.createElement('span');
+                indicator.dataset.requiredIndicator = 'true';
+                indicator.className = 'ml-1 text-red-600';
+                indicator.textContent = '*';
+                indicator.title = 'Required field';
+                indicator.setAttribute('aria-label', 'Required field');
+                label.appendChild(indicator);
+            });
+        });
+    </script>

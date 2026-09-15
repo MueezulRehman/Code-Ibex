@@ -180,13 +180,13 @@
     .page-form-grid--2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
     .page-form-grid--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   }
-  .page-field label { display: block; margin-bottom: .35rem; color: var(--tenant-dark, #0D2440); font-size: .8rem; font-weight: 600; }
+  .page-field label { display: block; margin-bottom: .4rem; color: var(--tenant-dark, #0D2440); font-size: .8rem; font-weight: 600; }
   .page-field input, .page-field select, .page-field textarea {
     width: 100%;
     border: 1px solid #dbe3ec;
     border-radius: .65rem;
     background: white;
-    padding: .65rem .75rem;
+    padding: .75rem .875rem;
     color: #1e293b;
     font-size: .875rem;
     outline: none;
@@ -194,6 +194,21 @@
   .page-field input:focus, .page-field select:focus, .page-field textarea:focus {
     border-color: var(--tenant-primary, #2E5E99);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--tenant-primary, #2E5E99) 16%, transparent);
+  }
+  .manager-panel main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  .manager-panel main select,
+  .manager-panel main textarea {
+    border-width: 1px;
+    border-style: solid;
+    border-color: #dbe3ec;
+    padding: .75rem .875rem;
+  }
+  .manager-panel main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
+  .manager-panel main select:focus,
+  .manager-panel main textarea:focus {
+    border-color: var(--tenant-primary, #2E5E99);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--tenant-primary, #2E5E99) 16%, transparent);
+    outline: none;
   }
   .page-field__help, .page-field__error { margin-top: .35rem; font-size: .75rem; }
   .page-field__help { color: #64748b; }
