@@ -75,7 +75,7 @@
         <table class="w-full text-left text-sm">
             <thead class="border-b bg-gray-50 text-xs uppercase text-gray-500">
                 <tr>
-                    <th class="px-4 py-3">Admission / Patient</th>
+                    <th class="px-4 py-3">Invoice / Admission</th>
                     <th class="px-3 py-3">Charge</th>
                     <th class="px-3 py-3">Amount</th>
                     <th class="px-3 py-3">Status</th>
@@ -86,6 +86,7 @@
                 @forelse($billings as $billing)
                     <tr>
                         <td class="px-4 py-3">
+                            <div class="font-semibold">{{ $billing->invoice_number }}</div>
                             {{ $billing->admission?->admission_number }}
                             <div class="text-xs text-gray-500">{{ $billing->patient?->name }}</div>
                         </td>
@@ -108,7 +109,7 @@
                         <td class="px-3 py-3">
                             <span class="rounded-full bg-blue-50 px-2 py-1 text-xs capitalize text-blue-700">{{ $billing->status }}</span>
                             @if($billing->status === 'paid')
-                                <div class="mt-2 text-[11px] text-gray-500">Payer: {{ $billing->paidBy?->name ?? 'Unknown' }}<br>Time: {{ $billing->paid_at?->format('d M Y H:i') ?? '?' }}<br>Reference: {{ $billing->payment_reference ?: '?' }}</div>
+                                <div class="mt-2 text-[11px] text-gray-500">Payer: {{ $billing->paidBy?->name ?? 'Unknown' }}<br>Time: {{ $billing->paid_at?->format('d M Y H:i') ?? '?' }}<br>Method: {{ ucfirst(str_replace('_', ' ', $billing->payment_method ?: 'other')) }}<br>Reference: {{ $billing->payment_reference ?: '?' }}</div>
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
@@ -133,6 +134,11 @@
                                         <details class="text-left">
                                             <summary class="cursor-pointer text-xs font-semibold text-green-700">Pay</summary>
                                             <form method="POST" action="{{ route('manager.hospital-billing.pay', $billing) }}" class="mt-2 grid gap-2 w-60">@csrf @method('PATCH')
+                                                <select name="payment_method" class="rounded border-gray-200 text-xs">
+                                                    @foreach(['cash','card','bank_transfer','insurance','other'] as $method)
+                                                        <option value="{{ $method }}">{{ ucfirst(str_replace('_', ' ', $method)) }}</option>
+                                                    @endforeach
+                                                </select>
                                                 <input name="payment_reference" required maxlength="255" placeholder="Payment reference" class="rounded border-gray-200 text-xs">
                                                 <textarea name="payment_notes" rows="2" maxlength="5000" placeholder="Payment notes (optional)" class="rounded border-gray-200 text-xs"></textarea>
                                                 <button class="rounded bg-green-700 px-2 py-1 text-xs font-semibold text-white">Record payment</button>
@@ -141,6 +147,9 @@
                                     @endif
                                     @if(in_array($billing->status, ['draft', 'posted'], true))
                                         <form method="POST" action="{{ route('manager.hospital-billing.void', $billing) }}">@csrf @method('PATCH')<button class="text-xs font-semibold text-red-700">Void</button></form>
+                                    @endif
+                                    @if($billing->status === 'paid')
+                                        <a href="{{ route('manager.hospital-billing.receipt', $billing) }}" target="_blank" class="text-xs font-semibold text-green-700">Receipt</a>
                                     @endif
                                 </div>
                             @endif

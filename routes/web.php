@@ -539,6 +539,7 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/hospital-billing/{billing}', [App\Http\Controllers\Admin\HospitalBillingController::class, 'update'])->name('hospital-billing.update');
             Route::patch('/hospital-billing/{billing}/post', [App\Http\Controllers\Admin\HospitalBillingController::class, 'post'])->name('hospital-billing.post');
             Route::patch('/hospital-billing/{billing}/pay', [App\Http\Controllers\Admin\HospitalBillingController::class, 'pay'])->name('hospital-billing.pay');
+            Route::get('/hospital-billing/{billing}/receipt', [App\Http\Controllers\Admin\HospitalBillingController::class, 'receipt'])->name('hospital-billing.receipt');
             Route::patch('/hospital-billing/{billing}/void', [App\Http\Controllers\Admin\HospitalBillingController::class, 'void'])->name('hospital-billing.void');
         });
         Route::middleware('module:hospital-medication')->group(function () {

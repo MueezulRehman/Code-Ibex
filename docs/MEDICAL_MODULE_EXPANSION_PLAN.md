@@ -1035,6 +1035,22 @@ discharge; draft, paid, and void charges are excluded from the block. The
 admissions screen exposes total, paid, and outstanding amounts before a
 manager submits discharge.
 
+#### Formal inpatient invoice and receipt support (implemented)
+
+Each admission charge now receives a tenant-scoped unique invoice number.
+Managers/owners can record a payment using the existing lifecycle and capture
+payment method, payment reference, payer, timestamp, and a unique receipt
+number. Paid charges have a manager-only printable receipt route and the
+billing page exposes invoice and receipt details without changing gross,
+posted, paid, or outstanding reconciliation semantics. Central and tenant
+migrations use explicit short MySQL-safe identifiers and backfill document
+numbers for existing charges.
+
+The existing `InsuranceClaim` model is customer-linked, while inpatient
+charges are Patient/admission-linked. No duplicate insurance schema or unsafe
+cross-identity foreign key was introduced; clean inpatient claim linkage is
+deferred to a future insurance design.
+
 ### HR and staff scheduling
 
 This would provide duty rosters, shifts, availability, and attendance planning

@@ -132,6 +132,7 @@ class HospitalBillingController extends Controller
 
         $data = $request->validate([
             'payment_reference' => ['required', 'string', 'max:255'],
+            'payment_method' => ['nullable', Rule::in(['cash', 'card', 'bank_transfer', 'insurance', 'other'])],
             'payment_notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
@@ -140,9 +141,23 @@ class HospitalBillingController extends Controller
             'paid_by' => $user->id,
             'paid_at' => now(),
             'payment_reference' => trim($data['payment_reference']),
+            'payment_method' => $data['payment_method'] ?? 'other',
             'payment_notes' => $data['payment_notes'] ?? null,
+            'receipt_number' => HospitalBilling::nextDocumentNumber('RCT', (int) $user->effectiveRestaurantId()),
+            'receipt_issued_at' => now(),
         ]);
         return back()->with('success', 'Hospital billing charge paid.');
+    }
+
+    public function receipt(HospitalBilling $billing)
+    {
+        $user = $this->manage();
+        $billing = $this->scopeToCurrentTenant($billing, $user);
+        abort_unless($billing->status === 'paid', 422, 'Payment receipts are available only for paid charges.');
+
+        return view('manager.hospital-billing.receipt', [
+            'billing' => $billing->load(['patient', 'admission', 'paidBy']),
+        ]);
     }
 
     public function void(HospitalBilling $billing)

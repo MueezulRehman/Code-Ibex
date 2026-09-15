@@ -165,6 +165,18 @@ paid, and outstanding posted billing amounts and warns managers before they
 submit discharge. This validation is enforced server-side in the discharge
 transaction as well as in the form.
 
+#### Formal inpatient invoice and payment receipts
+
+Hospital billing charges now receive a tenant-scoped, unique invoice number
+when created. Managers/owners retain the existing draft, posted, paid, and
+void lifecycle; posting and payment do not change the outstanding calculation.
+Recording a payment captures the payment method, reference, payer, timestamp,
+and a tenant-scoped receipt number. Paid charges expose a manager-only
+printable receipt at `manager.hospital-billing.receipt`. Existing insurance
+claims remain the generic customer-linked workflow; linking a claim to an
+inpatient Patient/admission is intentionally deferred until that identity
+boundary is designed rather than duplicating insurance data.
+
 ### 1. Establish a clean baseline
 
 - Check the current Git working tree before changing files.
