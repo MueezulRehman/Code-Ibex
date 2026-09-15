@@ -9,15 +9,17 @@
             <h1 class="text-2xl font-semibold text-hut-dark">Hospital operational reports</h1>
             <p class="mt-1 text-sm text-gray-500">Manager-only, tenant-scoped reporting for admissions, care operations and finance.</p>
         </div>
-        <a href="{{ route('manager.hospital-reports.export', request()->query()) }}" class="rounded-lg bg-hut-dark px-4 py-2 text-sm font-semibold text-white hover:bg-gray-800">Export all CSV</a>
+        <div class="flex flex-wrap gap-2">
+            <a href="{{ route('manager.hospital-reports.export', request()->query()) }}" class="inline-flex items-center rounded-lg bg-hut-dark px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-gray-800">Export all CSV</a>
+        </div>
     </div>
 
-    <form method="get" class="grid gap-3 rounded-2xl border border-gray-200 bg-white p-4 shadow-sm md:grid-cols-5">
-        <label class="text-sm text-gray-600">From<input type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="mt-1 w-full rounded-lg border-gray-300"></label>
-        <label class="text-sm text-gray-600">To<input type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="mt-1 w-full rounded-lg border-gray-300"></label>
-        <label class="text-sm text-gray-600">Ward<select name="ward_id" class="mt-1 w-full rounded-lg border-gray-300"><option value="">All wards</option>@foreach($wards as $ward)<option value="{{ $ward->id }}" @selected((string)($filters['ward_id'] ?? '') === (string)$ward->id)>{{ $ward->name }}</option>@endforeach</select></label>
-        <label class="text-sm text-gray-600">Location<select name="location_id" class="mt-1 w-full rounded-lg border-gray-300"><option value="">All locations</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string)($filters['location_id'] ?? '') === (string)$location->id)>{{ $location->name }}</option>@endforeach</select></label>
-        <button class="self-end rounded-lg bg-hut-yellow px-4 py-2 font-semibold text-hut-dark">Apply filters</button>
+    <form method="get" class="grid items-end gap-4 rounded-2xl border border-gray-200 bg-white p-5 shadow-sm md:grid-cols-2 xl:grid-cols-5">
+        <div><label for="report-date-from" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">From</label><input id="report-date-from" type="date" name="date_from" value="{{ $filters['date_from'] ?? '' }}" class="w-full rounded-lg border border-gray-300"></div>
+        <div><label for="report-date-to" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">To</label><input id="report-date-to" type="date" name="date_to" value="{{ $filters['date_to'] ?? '' }}" class="w-full rounded-lg border border-gray-300"></div>
+        <div><label for="report-ward" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Ward</label><select id="report-ward" name="ward_id" class="w-full rounded-lg border border-gray-300"><option value="">All wards</option>@foreach($wards as $ward)<option value="{{ $ward->id }}" @selected((string)($filters['ward_id'] ?? '') === (string)$ward->id)>{{ $ward->name }}</option>@endforeach</select></div>
+        <div><label for="report-location" class="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-gray-600">Location</label><select id="report-location" name="location_id" class="w-full rounded-lg border border-gray-300"><option value="">All locations</option>@foreach($locations as $location)<option value="{{ $location->id }}" @selected((string)($filters['location_id'] ?? '') === (string)$location->id)>{{ $location->name }}</option>@endforeach</select></div>
+        <div class="flex gap-2 md:col-span-2 xl:col-span-1"><button class="flex-1 rounded-lg bg-hut-yellow px-4 py-3 text-sm font-semibold text-hut-dark shadow-sm transition hover:bg-hut-yellow-dark">Apply filters</button><a href="{{ route('manager.hospital-reports.index') }}" class="inline-flex items-center rounded-lg border border-gray-200 px-3 py-2 text-sm font-medium text-gray-600 transition hover:bg-gray-50" title="Clear report filters">Clear</a></div>
     </form>
 
     <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
