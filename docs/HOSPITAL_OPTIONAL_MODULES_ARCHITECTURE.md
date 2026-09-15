@@ -1,8 +1,18 @@
 # Professional Hospital: optional module architecture
 
-Status: **architecture only**. Blood Bank, Ambulance Dispatch, Biomedical
-Equipment, Mortuary, Complaints, and Statutory Compliance are explicitly not
-implemented in this slice.
+Status: **architecture only for roadmap modules**. The implemented
+Professional Hospital bundle is managed centrally by
+`ModuleService::professionalHospitalModuleKeys()`. Emergency, Blood Bank, and
+Dialysis are represented as inactive catalogue records and are never enabled
+by the default bundle. Ambulance Dispatch, Biomedical Equipment, Mortuary,
+Complaints, and Statutory Compliance remain explicitly unimplemented in this
+slice.
+
+The local Professional Hospital demo tenant can be populated with
+`php artisan hospital:seed-demo --restaurant=18 --dry-run` and then
+`php artisan hospital:seed-demo --restaurant=18`. The command requires an
+explicit, dedicated Professional Hospital database and the seeder is
+tenant-scoped and idempotent. It does not seed arbitrary tenants.
 
 ## Boundaries and shared entities
 

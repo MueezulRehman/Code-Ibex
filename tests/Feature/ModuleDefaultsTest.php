@@ -199,4 +199,35 @@ class ModuleDefaultsTest extends TestCase
             $this->assertTrue(true);
         }
     }
+
+    public function test_professional_hospital_bundle_contains_implemented_workflows_and_excludes_roadmap_modules(): void
+    {
+        ModuleService::ensureDefaults();
+
+        $bundle = ModuleService::professionalHospitalModuleKeys();
+        foreach ([
+            'hospital-admissions',
+            'hospital-departments',
+            'hospital-wards-beds',
+            'hospital-nursing',
+            'hospital-staff-rosters',
+            'hospital-vital-signs',
+            'hospital-clinical-notes',
+            'hospital-care-plans',
+            'hospital-laboratory',
+            'hospital-radiology',
+            'hospital-operating-theatre',
+            'hospital-billing',
+            'hospital-medication',
+            'insurance',
+        ] as $module) {
+            $this->assertContains($module, $bundle);
+            $this->assertDatabaseHas('modules', ['key' => $module, 'is_active' => true]);
+        }
+
+        foreach (ModuleService::professionalHospitalOptionalModuleKeys() as $module) {
+            $this->assertNotContains($module, $bundle);
+            $this->assertDatabaseHas('modules', ['key' => $module, 'is_active' => false]);
+        }
+    }
 }

@@ -59,7 +59,10 @@
                             <td class="px-4 py-3 text-sm text-gray-600">
                                 {{ $restaurant->hasTenantDatabase() ? 'Tenant DB' : 'Shared DB' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">
-                                {{ is_array($restaurant->enabled_modules) ? count($restaurant->enabled_modules) : 0 }}</td>
+                                <div>{{ is_array($restaurant->enabled_modules) ? count($restaurant->enabled_modules) : 0 }} enabled</div>
+                                @if($restaurant->businessType?->name === 'Professional Hospital')
+                                    <div class="mt-1 text-xs font-semibold text-emerald-700">Professional Hospital bundle</div>
+                                @endif
                             <td class="px-4 py-3">
                                 <span
                                     class="rounded-full px-2.5 py-1 text-xs font-semibold {{ $restaurant->status === 'active' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700' }}">{{ ucfirst($restaurant->status) }}</span>

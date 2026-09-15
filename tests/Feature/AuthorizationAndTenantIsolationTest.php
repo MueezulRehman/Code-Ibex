@@ -166,6 +166,28 @@ class AuthorizationAndTenantIsolationTest extends TestCase
             ->assertOk();
     }
 
+    public function test_professional_hospital_sidebar_groups_only_enabled_hospital_workflows(): void
+    {
+        ModuleService::ensureDefaults();
+        $restaurant = $this->createRestaurant([
+            'enabled_modules' => ModuleService::professionalHospitalModuleKeys(),
+        ]);
+
+        $html = view('manager.layout.hospital-navigation', [
+            'moduleEnabled' => fn (string $key): bool => in_array($key, $restaurant->enabled_modules, true),
+        ])->render();
+
+        $this->assertStringContainsString('Pharmacy', $html);
+        $this->assertStringContainsString('Laboratory &amp; Diagnostics', $html);
+        $this->assertStringContainsString('Inpatient Care', $html);
+        $this->assertStringContainsString('Operating Theatre', $html);
+        $this->assertStringContainsString('Billing &amp; Insurance', $html);
+        $this->assertStringContainsString('Reports', $html);
+        $this->assertStringContainsString(route('manager.admissions.index'), $html);
+        $this->assertStringContainsString(route('manager.hospital-billing.index'), $html);
+        $this->assertStringNotContainsString('Hospital Emergency Department', $html);
+    }
+
     private function createRestaurant(array $attributes = []): Restaurant
     {
         $restaurant = Restaurant::create(array_merge([

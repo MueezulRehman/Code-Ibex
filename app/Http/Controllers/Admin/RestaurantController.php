@@ -30,7 +30,7 @@ class RestaurantController extends Controller
         $user = Auth::user();
         abort_unless($user instanceof User && $user->isSuperAdmin(), 403);
 
-        $restaurants = Restaurant::with(['subscription.plan'])->withCount('users')->latest()->paginate(15);
+        $restaurants = Restaurant::with(['subscription.plan', 'businessType'])->withCount('users')->latest()->paginate(15);
 
         return view('super-admin.businesses.index', compact('restaurants'));
     }
@@ -73,6 +73,7 @@ class RestaurantController extends Controller
 
         $businessTypes = BusinessType::where('is_active', true)->orderBy('sort_order')->get();
         $modules = Module::where('is_active', true)->orderBy('sort_order')->get();
+        $inactiveModules = Module::where('is_active', false)->orderBy('sort_order')->get();
         $subscriptionPlans = SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->get();
         $selectedTypeId = old('business_type_id') ?: ($businessTypes->first()?->id ?? null);
         $selectedModules = old('enabled_modules', []);
@@ -221,6 +222,9 @@ class RestaurantController extends Controller
 
         $businessTypes = BusinessType::where('is_active', true)->orderBy('sort_order')->get();
         $modules = Module::where('is_active', true)->orderBy('sort_order')->get();
+        $inactiveModules = Module::whereIn('key', ModuleService::professionalHospitalOptionalModuleKeys())
+            ->orderBy('sort_order')
+            ->get();
         $subscriptionPlans = SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->get();
 
         $selectedModules = old('enabled_modules');
@@ -236,7 +240,7 @@ class RestaurantController extends Controller
         $selectedTemplate = old('customer_template', $restaurant->customer_template ?? 'default');
         $customerTemplates = Restaurant::getAvailableCustomerMenuTemplates();
 
-        return view('super-admin.businesses.edit', compact('restaurant', 'businessTypes', 'modules', 'selectedModules', 'subscriptionPlans', 'selectedPlanSlug', 'selectedTemplate', 'customerTemplates'));
+        return view('super-admin.businesses.edit', compact('restaurant', 'businessTypes', 'modules', 'inactiveModules', 'selectedModules', 'subscriptionPlans', 'selectedPlanSlug', 'selectedTemplate', 'customerTemplates'));
     }
 
     public function update(Request $request, Restaurant $restaurant)

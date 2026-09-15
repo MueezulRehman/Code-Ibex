@@ -53,6 +53,22 @@
                     <p class="text-xs text-gray-500 mt-2">The business type supplies recommendations; platform admins can
                         add or remove any active module within the plan limit. These settings enable modules for the
                         business; individual managers with explicit grants may still need access assigned separately.</p>
+                    @if(($inactiveModules ?? collect())->isNotEmpty())
+                        <div class="mt-4 rounded-xl border border-dashed border-amber-300 bg-amber-50 p-4">
+                            <p class="text-xs font-semibold uppercase tracking-wide text-amber-800">Planned modules — not enabled</p>
+                            <p class="mt-1 text-xs text-amber-700">These workflows are intentionally disabled until their routes,
+                                tenant schema, and authorization are implemented.</p>
+                            <div class="mt-3 grid gap-2 sm:grid-cols-2">
+                                @foreach($inactiveModules as $module)
+                                    <div class="flex items-center gap-2 rounded-lg border border-amber-200 bg-white/70 px-3 py-2 text-sm text-amber-900">
+                                        <i class="fas fa-lock text-xs" aria-hidden="true"></i>
+                                        <span>{{ $module->name }}</span>
+                                        <span class="ml-auto text-[10px] uppercase tracking-wide text-amber-600">Unavailable</span>
+                                    </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    @endif
                     <p id="module-cap-notice" class="text-xs text-gray-500 mt-1"></p>
                 </div>
                 <div>

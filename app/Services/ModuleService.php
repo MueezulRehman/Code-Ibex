@@ -8,6 +8,61 @@ use Illuminate\Support\Facades\DB;
 
 class ModuleService
 {
+    /**
+     * Modules currently implemented by the Professional Hospital workflow.
+     *
+     * Keep this list in one place so the business-type defaults, provisioning
+     * tools, and Super Admin UI cannot drift apart as hospital features land.
+     */
+    public static function professionalHospitalModuleKeys(): array
+    {
+        return [
+            'pos',
+            'patient-records',
+            'medical-records',
+            'prescriptions',
+            'medical',
+            'allergies',
+            'pharmacy',
+            'inventory',
+            'stock',
+            'item-sales',
+            'cashbook',
+            'expenses',
+            'reports',
+            'notifications',
+            'follow-up-reminders',
+            'insurance',
+            'hospital-admissions',
+            'hospital-departments',
+            'hospital-wards-beds',
+            'hospital-nursing',
+            'hospital-staff-rosters',
+            'hospital-vital-signs',
+            'hospital-clinical-notes',
+            'hospital-care-plans',
+            'hospital-laboratory',
+            'hospital-radiology',
+            'hospital-operating-theatre',
+            'hospital-billing',
+            'hospital-medication',
+        ];
+    }
+
+    /**
+     * Roadmap modules are deliberately inactive until their routes and
+     * tenant data model are implemented. They are shown as unavailable in
+     * the Super Admin module picker rather than silently being granted.
+     */
+    public static function professionalHospitalOptionalModuleKeys(): array
+    {
+        return [
+            'hospital-emergency',
+            'hospital-blood-bank',
+            'hospital-dialysis',
+        ];
+    }
+
     public static function isEnabled(string $moduleKey): bool
     {
         $user = Auth::user();
@@ -84,6 +139,7 @@ class ModuleService
             ['name' => 'Hospital Departments', 'key' => 'hospital-departments', 'description' => 'Hospital department setup and assignment workflows', 'sort_order' => 24, 'is_active' => true],
             ['name' => 'Hospital Wards & Beds', 'key' => 'hospital-wards-beds', 'description' => 'Ward, room, and bed capacity management', 'sort_order' => 25, 'is_active' => true],
             ['name' => 'Hospital Care Plans', 'key' => 'hospital-care-plans', 'description' => 'Structured inpatient problems, goals, interventions, and nursing progress', 'sort_order' => 26, 'is_active' => true],
+            ['name' => 'Hospital Clinical Notes', 'key' => 'hospital-clinical-notes', 'description' => 'Admission-linked clinical notes and audit history', 'sort_order' => 27, 'is_active' => true],
             ['name' => 'General Store', 'key' => 'general_store', 'description' => 'Core modules for general-store workflows', 'sort_order' => 23, 'is_active' => true],
             ['name' => 'Pharmacy', 'key' => 'pharmacy', 'description' => 'Core modules for pharmacy workflows', 'sort_order' => 24, 'is_active' => true],
             ['name' => 'Allergies', 'key' => 'allergies', 'description' => 'Customer allergy tracking and warnings', 'sort_order' => 25, 'is_active' => true],
@@ -112,6 +168,9 @@ class ModuleService
             ['name' => 'Hospital Operating Theatre', 'key' => 'hospital-operating-theatre', 'description' => 'Operating rooms and inpatient surgery scheduling', 'sort_order' => 45, 'is_active' => true],
             ['name' => 'Hospital Billing', 'key' => 'hospital-billing', 'description' => 'Inpatient charge capture and payment workflow', 'sort_order' => 46, 'is_active' => true],
             ['name' => 'Hospital Medication Administration', 'key' => 'hospital-medication', 'description' => 'Admission-linked inpatient medication orders and administration records', 'sort_order' => 47, 'is_active' => true],
+            ['name' => 'Hospital Emergency Department', 'key' => 'hospital-emergency', 'description' => 'Planned emergency department workflow (not enabled)', 'sort_order' => 90, 'is_active' => false],
+            ['name' => 'Hospital Blood Bank', 'key' => 'hospital-blood-bank', 'description' => 'Planned blood bank workflow (not enabled)', 'sort_order' => 91, 'is_active' => false],
+            ['name' => 'Hospital Dialysis', 'key' => 'hospital-dialysis', 'description' => 'Planned dialysis workflow (not enabled)', 'sort_order' => 92, 'is_active' => false],
             ['name' => 'Memberships', 'key' => 'memberships', 'description' => 'Membership plans, renewals, and customer status', 'sort_order' => 42, 'is_active' => true],
             ['name' => 'Service Tickets', 'key' => 'service-tickets', 'description' => 'Service jobs, estimates, assignments, and collection status', 'sort_order' => 43, 'is_active' => true],
             ['name' => 'Recipes', 'key' => 'recipes', 'description' => 'Recipe definitions and ingredient consumption', 'sort_order' => 44, 'is_active' => true],
@@ -173,7 +232,7 @@ class ModuleService
             'salon / beauty' => ['pos', 'customers', 'appointments', 'memberships', 'service-packages', 'staff', 'attendance', 'salary', 'commissions', 'cashbook', 'expenses', 'reports', 'loyalty'],
             'clinic / doctor' => ['pos', 'customers', 'appointments', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders'],
             'hospital' => ['pos', 'customers', 'appointments', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders'],
-            'professional hospital' => ['pos', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders', 'hospital-admissions', 'hospital-departments', 'hospital-wards-beds', 'hospital-nursing', 'hospital-staff-rosters', 'hospital-vital-signs', 'hospital-clinical-notes', 'hospital-care-plans', 'hospital-laboratory', 'hospital-radiology', 'hospital-operating-theatre', 'hospital-billing', 'hospital-medication'],
+            'professional hospital' => static::professionalHospitalModuleKeys(),
             'gym / fitness' => ['pos', 'customers', 'memberships', 'trainer-management', 'attendance', 'staff', 'salary', 'cashbook', 'expenses', 'reports', 'notifications'],
             'services / repair business' => ['pos', 'customers', 'service-tickets', 'inventory', 'stock', 'suppliers', 'purchasing', 'cashbook', 'expenses', 'reports', 'notifications'],
             'electronics store' => ['pos', 'inventory', 'categories', 'variants', 'stock', 'customers', 'suppliers', 'purchasing', 'sales-returns', 'warranty', 'repairs', 'trade-ins', 'device-tracking', 'installments', 'brands', 'barcode-labels', 'profit-margins'],
@@ -272,7 +331,7 @@ class ModuleService
             [
                 'name' => 'Professional Hospital',
                 'description' => 'Inpatient hospital operations with separately gated admissions and departments',
-                'modules' => ['pos', 'patient-records', 'medical-records', 'prescriptions', 'medical', 'allergies', 'pharmacy', 'inventory', 'stock', 'item-sales', 'cashbook', 'expenses', 'reports', 'notifications', 'follow-up-reminders', 'hospital-admissions', 'hospital-departments', 'hospital-wards-beds', 'hospital-nursing', 'hospital-staff-rosters', 'hospital-vital-signs', 'hospital-clinical-notes', 'hospital-care-plans', 'hospital-laboratory', 'hospital-radiology', 'hospital-operating-theatre', 'hospital-billing', 'hospital-medication'],
+                'modules' => static::professionalHospitalModuleKeys(),
             ],
             [
                 'name' => 'Gym / Fitness',

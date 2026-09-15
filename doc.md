@@ -14,6 +14,27 @@ The immediate goal is not to expand the product. The immediate goal is to make
 the current admin, manager, authentication, tenancy, and core business flows
 reliable enough that future changes can be made safely.
 
+### Professional Hospital module access and demo tenant
+
+- Professional Hospital has one centralized implemented-module bundle in
+  `ModuleService::professionalHospitalModuleKeys()`. Super Admin business
+  management displays the bundle and the locked roadmap modules
+  (`hospital-emergency`, `hospital-blood-bank`, and `hospital-dialysis`) without
+  enabling them.
+- Manager hospital navigation is grouped under Pharmacy, Laboratory &
+  Diagnostics, Inpatient Care, Operating Theatre, Billing & Insurance, and
+  Reports. Existing route names and `module:<key>` middleware remain the
+  authorization source of truth.
+- The explicit tenant-safe demo command is
+  `php artisan hospital:seed-demo --restaurant=18 --dry-run` followed by
+  `php artisan hospital:seed-demo --restaurant=18`. It refuses non-Professional
+  Hospital tenants, tenants without a dedicated database, and implicit tenant
+  selection. The seeder uses stable business keys and can be run repeatedly.
+- Demo coverage includes departments, wards/locations/beds, patients,
+  admissions, doctors, nursing assignments/rosters, vitals, laboratory,
+  radiology, surgery, medication, clinical notes, care plans, billing,
+  payments, insurance, and report-compatible records.
+
 ### Clinical result audit history
 
 Laboratory and Radiology result creation, verification, and correction now
