@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Doctor;
+use App\Models\Department;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -32,7 +33,7 @@ class DoctorController extends Controller
 
     public function create()
     {
-        return view('manager.doctors.create');
+        return view('manager.doctors.create', $this->formOptions());
     }
 
     public function store(Request $request)
@@ -48,12 +49,12 @@ class DoctorController extends Controller
 
     public function edit(Doctor $doctor)
     {
-        return view('manager.doctors.edit', compact('doctor'));
+        return view('manager.doctors.edit', ['doctor' => $doctor] + $this->formOptions());
     }
 
     public function update(Request $request, Doctor $doctor)
     {
-        $data = $request->validate($this->rules());
+        $data = $request->validate($this->rules($doctor));
         $doctor->update($data);
 
         return redirect()->route('manager.doctors.index')->with('success', 'Doctor updated.');
@@ -66,8 +67,18 @@ class DoctorController extends Controller
         return redirect()->route('manager.doctors.index')->with('success', 'Doctor deleted.');
     }
 
-    private function rules(): array
+    private function formOptions(): array
     {
+        $restaurantId = $this->restaurantId();
+        return [
+            'users' => User::where('restaurant_id', $restaurantId)->where('staff_type', 'doctor')->orderBy('name')->get(),
+            'departments' => Department::where('restaurant_id', $restaurantId)->where('is_active', true)->orderBy('name')->get(),
+        ];
+    }
+
+    private function rules(?Doctor $doctor = null): array
+    {
+        $restaurantId = $this->restaurantId();
         return [
             'name' => ['required', 'string', 'max:255'],
             'specialty' => ['required', 'string', 'max:255'],
@@ -75,6 +86,8 @@ class DoctorController extends Controller
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:500'],
             'status' => ['required', Rule::in(self::STATUSES)],
+            'user_id' => ['nullable', 'integer', Rule::exists('users', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('staff_type', 'doctor'))],
+            'department_id' => ['nullable', 'integer', Rule::exists('departments', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->where('is_active', true))],
         ];
     }
 }

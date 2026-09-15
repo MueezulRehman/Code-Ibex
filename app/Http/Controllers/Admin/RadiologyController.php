@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\HospitalAdmission;
+use App\Models\Doctor;
 use App\Models\RadiologyOrder;
 use App\Models\RadiologyResult;
 use App\Models\RadiologyResultEvent;
@@ -26,19 +27,25 @@ class RadiologyController extends Controller
 
     private function canViewAdmission(User $user, HospitalAdmission $admission): bool
     {
-        return $user->isRestaurantManager()
-            || $user->staff_type === 'doctor'
-            || ($user->staff_type === 'nurse' && $user->nursingAssignments()
+        if ($user->isRestaurantManager()) {
+            return true;
+        }
+        if ($user->staff_type === 'doctor') {
+            $doctor = Doctor::where('user_id', $user->id)->where('restaurant_id', $user->effectiveRestaurantId())->first();
+            return $doctor !== null
+                && ((int) $admission->doctor_id === (int) $doctor->id
+                    || ($doctor->department_id !== null && (int) $admission->department_id === (int) $doctor->department_id));
+        }
+        return
+            $user->staff_type === 'nurse' && $user->nursingAssignments()
                 ->where('hospital_admission_id', $admission->id)
-                ->where('status', 'active')->exists());
+                ->where('status', 'active')->exists();
     }
 
     public function index()
     {
         $user = $this->user();
-        $admissionIds = $user->staff_type === 'nurse' && ! $user->isRestaurantManager()
-            ? $user->nursingAssignments()->where('status', 'active')->pluck('hospital_admission_id')
-            : null;
+        $admissionIds = $this->visibleAdmissionIds($user);
 
         $orders = RadiologyOrder::with(['patient', 'admission', 'orderedBy', 'result.events.changedBy'])
             ->latest('ordered_at')
@@ -64,6 +71,7 @@ class RadiologyController extends Controller
         $admission = HospitalAdmission::where('restaurant_id', $restaurantId)
             ->whereIn('status', ['admitted', 'transferred'])
             ->findOrFail((int) $request->input('hospital_admission_id'));
+        abort_unless($this->canViewAdmission($user, $admission), 403, 'You are not assigned to this admission.');
         $data = $request->validate([
             'hospital_admission_id' => ['required', 'integer', Rule::exists('hospital_admissions', 'id')->where(fn ($q) => $q->where('restaurant_id', $restaurantId)->whereIn('status', ['admitted', 'transferred']))],
             'study_name' => ['required', 'string', 'max:255'],
@@ -80,6 +88,30 @@ class RadiologyController extends Controller
         ]);
 
         return back()->with('success', 'Radiology order created.');
+    }
+
+    private function visibleAdmissionIds(User $user)
+    {
+        if ($user->isRestaurantManager()) {
+            return null;
+        }
+        if ($user->staff_type === 'nurse') {
+            return $user->nursingAssignments()->where('status', 'active')->pluck('hospital_admission_id');
+        }
+        if ($user->staff_type !== 'doctor') {
+            return collect();
+        }
+        $doctor = Doctor::where('user_id', $user->id)->where('restaurant_id', $user->effectiveRestaurantId())->first();
+        if (! $doctor) {
+            return collect();
+        }
+        return HospitalAdmission::where('restaurant_id', $user->effectiveRestaurantId())
+            ->where(function ($query) use ($doctor): void {
+                $query->where('doctor_id', $doctor->id);
+                if ($doctor->department_id !== null) {
+                    $query->orWhere('department_id', $doctor->department_id);
+                }
+            })->pluck('id');
     }
 
     public function storeResult(Request $request, RadiologyOrder $order)

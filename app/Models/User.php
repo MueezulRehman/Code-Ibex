@@ -88,6 +88,11 @@ class User extends Authenticatable
         return $this->hasMany(NursingAssignment::class, 'nurse_id');
     }
 
+    public function doctorProfile()
+    {
+        return $this->hasOne(Doctor::class);
+    }
+
     /**
      * Legacy per-user module selections. Business-level module enablement is
      * the source of truth for Manager access.

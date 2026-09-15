@@ -11,6 +11,8 @@ class Doctor extends Model
 
     protected $fillable = [
         'restaurant_id',
+        'user_id',
+        'department_id',
         'name',
         'specialty',
         'phone',
@@ -18,4 +20,7 @@ class Doctor extends Model
         'address',
         'status',
     ];
+
+    public function user() { return $this->belongsTo(User::class); }
+    public function department() { return $this->belongsTo(Department::class); }
 }

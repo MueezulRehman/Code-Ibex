@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\HospitalAdmission;
+use App\Models\Doctor;
+use App\Models\Department;
 use App\Models\Patient;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -12,6 +14,23 @@ use Tests\TestCase;
 class RadiologyTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_doctor_cannot_order_radiology_for_an_unassigned_admission(): void
+    {
+        $restaurant = Restaurant::create(['name' => 'Scoped Hospital', 'slug' => 'rad-doctor-scope', 'status' => 'active', 'enabled_modules' => ['hospital-radiology']]);
+        $department = Department::create(['restaurant_id' => $restaurant->id, 'name' => 'Imaging', 'code' => 'IMG', 'is_active' => true]);
+        $doctorUser = User::create(['name' => 'Assigned Radiologist', 'email' => 'rad-scoped@example.com', 'phone' => '03000000102', 'role' => 'staff', 'staff_type' => 'doctor', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $doctor = Doctor::create(['restaurant_id' => $restaurant->id, 'user_id' => $doctorUser->id, 'name' => 'Assigned Radiologist', 'specialty' => 'Radiology', 'status' => 'active', 'department_id' => $department->id]);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'PAT-RAD-SCOPE', 'name' => 'Scoped Patient']);
+        $admission = HospitalAdmission::create(['restaurant_id' => $restaurant->id, 'admission_number' => 'ADM-RAD-DENIED', 'patient_id' => $patient->id, 'doctor_id' => null, 'department_id' => null, 'status' => 'admitted', 'admitted_at' => now()]);
+
+        $this->actingAs($doctorUser)->post(route('manager.radiology.orders.store'), [
+            'hospital_admission_id' => $admission->id,
+            'study_name' => 'Chest X-ray',
+            'priority' => 'routine',
+            'ordered_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertForbidden();
+    }
 
     public function test_radiology_routes_require_the_module(): void
     {

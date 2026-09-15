@@ -3,6 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\HospitalAdmission;
+use App\Models\Doctor;
+use App\Models\Department;
 use App\Models\Patient;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -12,6 +14,21 @@ use Tests\TestCase;
 class LaboratoryTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_doctor_can_order_only_for_direct_or_department_assignments(): void
+    {
+        $restaurant = Restaurant::create(['name' => 'Scoped Hospital', 'slug' => 'lab-doctor-scope', 'status' => 'active', 'enabled_modules' => ['hospital-laboratory']]);
+        $department = Department::create(['restaurant_id' => $restaurant->id, 'name' => 'Cardiology', 'code' => 'CARD', 'is_active' => true]);
+        $doctorUser = User::create(['name' => 'Assigned Doctor', 'email' => 'lab-scoped@example.com', 'phone' => '03000000101', 'role' => 'staff', 'staff_type' => 'doctor', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $doctor = Doctor::create(['restaurant_id' => $restaurant->id, 'user_id' => $doctorUser->id, 'name' => 'Assigned Doctor', 'specialty' => 'Cardiology', 'status' => 'active', 'department_id' => $department->id]);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'PAT-LAB-SCOPE', 'name' => 'Scoped Patient']);
+        $allowed = HospitalAdmission::create(['restaurant_id' => $restaurant->id, 'admission_number' => 'ADM-LAB-ALLOWED', 'patient_id' => $patient->id, 'doctor_id' => $doctor->id, 'department_id' => $department->id, 'status' => 'admitted', 'admitted_at' => now()]);
+        $denied = HospitalAdmission::create(['restaurant_id' => $restaurant->id, 'admission_number' => 'ADM-LAB-DENIED', 'patient_id' => $patient->id, 'status' => 'admitted', 'admitted_at' => now()]);
+
+        $payload = fn (int $admissionId) => ['hospital_admission_id' => $admissionId, 'test_name' => 'CBC', 'priority' => 'routine', 'ordered_at' => now()->format('Y-m-d H:i:s')];
+        $this->actingAs($doctorUser)->post(route('manager.laboratory.orders.store'), $payload($allowed->id))->assertRedirect();
+        $this->actingAs($doctorUser)->post(route('manager.laboratory.orders.store'), $payload($denied->id))->assertForbidden();
+    }
 
     public function test_laboratory_routes_require_the_module(): void
     {
