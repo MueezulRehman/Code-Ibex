@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Models\Restaurant;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalBilling;
+use App\Models\DischargeSummary;
+use App\Models\DischargeSummaryEvent;
 use App\Models\Patient;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -109,6 +111,66 @@ class HospitalAdmissionManagementTest extends TestCase
         ])->assertRedirect()->assertSessionHasNoErrors();
 
         $this->assertDatabaseHas('hospital_admissions', ['id' => $admission->id, 'status' => 'discharged']);
+    }
+
+    public function test_discharge_records_initial_audit_event(): void
+    {
+        [$user, $admission] = $this->admissionWithManager();
+        $this->actingAs($user)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable',
+            'discharged_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertSessionHasNoErrors();
+
+        $summary = DischargeSummary::firstOrFail();
+        $this->assertDatabaseHas('discharge_summary_events', [
+            'discharge_summary_id' => $summary->id,
+            'action' => 'recorded',
+            'changed_by' => $user->id,
+        ]);
+        $this->assertSame('Stable', DischargeSummaryEvent::firstOrFail()->new_snapshot['discharge_diagnosis']);
+    }
+
+    public function test_manager_can_correct_summary_with_reason_without_changing_timestamps(): void
+    {
+        [$user, $admission] = $this->admissionWithManager();
+        $dischargedAt = now()->subHour()->format('Y-m-d H:i:s');
+        $this->actingAs($user)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable', 'discharged_at' => $dischargedAt,
+        ]);
+        $summary = DischargeSummary::firstOrFail();
+        $admissionTimestamp = $admission->fresh()->discharged_at;
+
+        $this->actingAs($user)->patch(route('manager.admissions.discharge-summary.update', $summary), [
+            'discharge_diagnosis' => 'Improved',
+            'correction_notes' => 'Corrected diagnosis after physician review.',
+        ])->assertSessionHasNoErrors();
+
+        $this->assertSame('Improved', $summary->fresh()->discharge_diagnosis);
+        $this->assertEquals($admissionTimestamp, $admission->fresh()->discharged_at);
+        $this->assertDatabaseHas('discharge_summary_events', ['action' => 'edited', 'correction_reason' => 'Corrected diagnosis after physician review.']);
+    }
+
+    public function test_correction_rejects_unauthorized_cross_tenant_and_noop_requests(): void
+    {
+        [$user, $admission] = $this->admissionWithManager();
+        $this->actingAs($user)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable', 'discharged_at' => now()->format('Y-m-d H:i:s'),
+        ]);
+        $summary = DischargeSummary::firstOrFail();
+        $this->actingAs($user)->patch(route('manager.admissions.discharge-summary.update', $summary), [
+            'discharge_diagnosis' => 'Stable', 'correction_notes' => 'No actual change.',
+        ])->assertSessionHasErrors('correction_notes');
+
+        $staff = User::create(['name' => 'Staff', 'email' => uniqid('staff-').'@example.com', 'phone' => '03000'.random_int(100000, 999999), 'role' => 'staff', 'restaurant_id' => $user->restaurant_id, 'password' => bcrypt('password')]);
+        $this->actingAs($staff)->patch(route('manager.admissions.discharge-summary.update', $summary), [
+            'discharge_diagnosis' => 'Changed', 'correction_notes' => 'Attempt.',
+        ])->assertForbidden();
+
+        $other = Restaurant::create(['name' => 'Other', 'slug' => 'other-'.uniqid(), 'status' => 'active', 'enabled_modules' => ['hospital-admissions']]);
+        $owner = User::create(['name' => 'Other Manager', 'email' => uniqid('other-').'@example.com', 'phone' => '03000'.random_int(100000, 999999), 'role' => 'manager', 'restaurant_id' => $other->id, 'password' => bcrypt('password')]);
+        $this->actingAs($owner)->patch(route('manager.admissions.discharge-summary.update', $summary), [
+            'discharge_diagnosis' => 'Changed', 'correction_notes' => 'Attempt.',
+        ])->assertNotFound();
     }
 
 }

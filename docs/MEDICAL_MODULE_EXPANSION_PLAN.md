@@ -18,6 +18,12 @@ admission, nursing, vital-signs, laboratory, radiology, operating-theatre, and
 hospital-billing slices below have now been individually implemented and
 verified; the remaining hospital domains remain planning-only.
 
+Discharge summaries now have an append-only tenant audit trail. Initial
+discharge recording creates a `recorded` event; manager/owner corrections
+require a reason and create an `edited` event containing previous and new
+clinical snapshots. Corrections cannot alter admission/discharge timestamps,
+cross tenant boundaries, or create a second summary for an admission.
+
 The plan follows the existing repository conventions documented in
 `docs/MEDICAL_MODULE_AUDIT.md`:
 

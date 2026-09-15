@@ -28,4 +28,5 @@ class DischargeSummary extends Model
     public function admission() { return $this->belongsTo(HospitalAdmission::class, 'hospital_admission_id'); }
     public function patient() { return $this->belongsTo(Patient::class); }
     public function dischargedBy() { return $this->belongsTo(User::class, 'discharged_by'); }
+    public function events() { return $this->hasMany(DischargeSummaryEvent::class)->latest('changed_at'); }
 }

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Department;
 use App\Models\Bed;
 use App\Models\DischargeSummary;
+use App\Models\DischargeSummaryEvent;
 use App\Models\Doctor;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalTransfer;
@@ -150,6 +151,21 @@ class HospitalAdmissionController extends Controller
                 'discharged_by' => $user->id,
                 'discharged_at' => $data['discharged_at'],
             ]);
+            DischargeSummaryEvent::create([
+                'restaurant_id' => $restaurantId,
+                'discharge_summary_id' => DischargeSummary::where('hospital_admission_id', $admission->id)->value('id'),
+                'action' => 'recorded',
+                'previous_snapshot' => null,
+                'new_snapshot' => [
+                    'discharge_diagnosis' => $data['discharge_diagnosis'],
+                    'discharge_medications' => $data['discharge_medications'] ?? null,
+                    'follow_up_instructions' => $data['follow_up_instructions'] ?? null,
+                    'notes' => $data['notes'] ?? null,
+                ],
+                'changed_by' => $user->id,
+                'changed_at' => now(),
+                'correction_reason' => null,
+            ]);
             $admission->update([
                 'status' => 'discharged',
                 'bed_id' => null,
@@ -158,6 +174,45 @@ class HospitalAdmissionController extends Controller
         });
 
         return back()->with('success', 'Discharge summary recorded.');
+    }
+
+    public function updateDischargeSummary(Request $request, DischargeSummary $summary)
+    {
+        $user = Auth::user();
+        $restaurantId = $this->restaurantId();
+        abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
+        abort_unless($summary->restaurant_id === $restaurantId, 404);
+
+        $data = $request->validate([
+            'discharge_diagnosis' => ['required', 'string', 'max:10000'],
+            'discharge_medications' => ['nullable', 'string', 'max:10000'],
+            'follow_up_instructions' => ['nullable', 'string', 'max:10000'],
+            'notes' => ['nullable', 'string', 'max:10000'],
+            'correction_notes' => ['required', 'string', 'max:2000'],
+        ]);
+        $fields = ['discharge_diagnosis', 'discharge_medications', 'follow_up_instructions', 'notes'];
+        $previous = collect($fields)->mapWithKeys(fn ($field) => [$field => $summary->{$field}])->all();
+        $new = collect($fields)->mapWithKeys(fn ($field) => [$field => $data[$field] ?? null])->all();
+        if ($previous === $new) {
+            return back()->withErrors(['correction_notes' => 'The correction does not change the discharge summary.'])->withInput();
+        }
+
+        DB::transaction(function () use ($summary, $restaurantId, $user, $previous, $new, $data): void {
+            $locked = DischargeSummary::where('restaurant_id', $restaurantId)->lockForUpdate()->findOrFail($summary->id);
+            $locked->update($new);
+            DischargeSummaryEvent::create([
+                'restaurant_id' => $restaurantId,
+                'discharge_summary_id' => $locked->id,
+                'action' => 'edited',
+                'previous_snapshot' => $previous,
+                'new_snapshot' => $new,
+                'changed_by' => $user->id,
+                'changed_at' => now(),
+                'correction_reason' => $data['correction_notes'],
+            ]);
+        });
+
+        return back()->with('success', 'Discharge summary corrected.');
     }
 
     public function transfer(Request $request, HospitalAdmission $admission)
