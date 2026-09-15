@@ -35,6 +35,18 @@ reliable enough that future changes can be made safely.
   radiology, surgery, medication, clinical notes, care plans, billing,
   payments, insurance, and report-compatible records.
 
+### Hospital operational reporting and exports validation
+
+- The manager operational reports surface admission census, ward/location/bed
+  occupancy, bed turnover and length of stay, nursing coverage, medication
+  administration status, pending laboratory/radiology work, surgery schedule,
+  billing/payments/refunds/outstanding balances, and discharges/readmissions.
+- Reports remain manager-only and tenant-scoped, with ward/location filters and
+  section-specific or complete CSV export.
+- Focused regression coverage now verifies both report aggregation/isolation and
+  the billing CSV export response. Authenticated browser verification confirmed
+  all report sections and styled filters render for Professional Hospital Demo.
+
 ### Clinical result audit history
 
 Laboratory and Radiology result creation, verification, and correction now

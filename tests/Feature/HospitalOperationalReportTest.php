@@ -76,6 +76,13 @@ class HospitalOperationalReportTest extends TestCase
             ->assertSee('Ward A')
             ->assertSee('125.00')
             ->assertDontSee('Other Patient');
+
+        $export = $this->actingAs($manager)
+            ->get(route('manager.hospital-reports.export', ['section' => 'billing']))
+            ->assertOk()
+            ->assertHeader('content-type', 'text/csv; charset=UTF-8');
+        $this->assertStringContainsString('Billing, payments, refunds and outstanding', $export->streamedContent());
+        $this->assertStringContainsString('125', $export->streamedContent());
     }
 
     public function test_only_restaurant_managers_can_open_operational_reports(): void
