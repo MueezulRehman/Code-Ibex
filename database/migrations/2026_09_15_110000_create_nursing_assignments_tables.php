@@ -33,7 +33,7 @@ return new class extends Migration
             $table->dateTime('changed_at');
             $table->text('notes')->nullable();
             $table->timestamps();
-            $table->index(['restaurant_id', 'nursing_assignment_id', 'changed_at']);
+            $table->index(['restaurant_id', 'nursing_assignment_id', 'changed_at'], 'nae_scope_changed_idx');
         });
     }
 

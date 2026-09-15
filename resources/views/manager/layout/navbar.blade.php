@@ -287,6 +287,14 @@
                                 </a>
                             </div>
                         @endif
+                        @if($moduleEnabled('hospital-clinical-notes'))
+                            <div class="nav-dropdown {{ request()->routeIs('manager.hospital-clinical-notes.*') ? 'has-active' : '' }}">
+                                <a href="{{ route('manager.hospital-clinical-notes.index') }}" title="Clinical notes"
+                                    class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.hospital-clinical-notes.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                                    <i class="fas fa-notes-medical text-lg"></i><span class="flex-1 truncate">Clinical Notes</span>
+                                </a>
+                            </div>
+                        @endif
                         @if($moduleEnabled('hospital-laboratory'))
                             <div class="nav-dropdown {{ request()->routeIs('manager.laboratory.*') ? 'has-active' : '' }}">
                                 <a href="{{ route('manager.laboratory.index') }}" title="Laboratory"

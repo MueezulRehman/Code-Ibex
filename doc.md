@@ -866,8 +866,33 @@ information in the audit record.
 #### Next Professional Hospital slice
 
 Nursing assignments are now implemented as the first separately gated,
-tenant-scoped inpatient staffing slice. The next implementation slice is
-Vital Signs, followed by Laboratory and Radiology.
+tenant-scoped inpatient staffing slice. Vital Signs, Laboratory, Radiology,
+and the admission clinical-notes/EMR foundation are now implemented as
+separately gated slices.
+
+### Professional Hospital admission clinical notes / EMR foundation
+
+- Added the separately gated `hospital-clinical-notes` module to the
+  Professional Hospital bundle and Manager navigation.
+- Added tenant-scoped `HospitalClinicalNote` records linked to the specific
+  inpatient admission, author, note type (`clinical`, `progress`, or
+  `nursing`), content, and recorded timestamp. These records intentionally do
+  not duplicate outpatient `MedicalRecord` or `Visit` rows.
+- Owners/managers can record all note types and correct or void notes.
+  Assigned doctors can create clinical/progress notes only for their assigned
+  admissions. Active assigned nurses can create nursing notes and view notes
+  for their assigned admissions; unauthorized staff are denied.
+- Admission-window timestamp validation applies on create and manager
+  correction. Corrections and voids require a reason and write
+  tenant-scoped append-only `HospitalClinicalNoteEvent` audit records with
+  actor, timestamp, and before/after snapshots.
+- Added matching central and tenant migrations with explicit short MySQL
+  foreign-key/index names, focused authorization/tenant/type/timestamp/audit
+  coverage, and the admission notes Manager screen at
+  `/manager/hospital-clinical-notes`.
+- Tenant 18 (`Professional Hospital Demo`) was migrated and its
+  `hospital-clinical-notes` module enabled; authenticated verification returned
+  HTTP 200 and rendered the Admission Clinical Notes screen.
 
 ### Professional Hospital nursing assignments
 

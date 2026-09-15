@@ -37,6 +37,7 @@ class HospitalAdmission extends Model
     public function medicationOrders() { return $this->hasMany(HospitalMedicationOrder::class, 'hospital_admission_id'); }
     public function medicationAdministrations() { return $this->hasMany(HospitalMedicationAdministration::class, 'hospital_admission_id'); }
     public function billings() { return $this->hasMany(HospitalBilling::class, 'hospital_admission_id'); }
+    public function clinicalNotes() { return $this->hasMany(HospitalClinicalNote::class, 'hospital_admission_id')->latest('recorded_at'); }
 
     public function billingSummary(): array
     {

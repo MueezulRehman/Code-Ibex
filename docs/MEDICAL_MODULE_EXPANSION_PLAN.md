@@ -14,9 +14,10 @@ two-track hospital roadmap. The two business types have different scopes:
 
 Full-hospital models remain design-only until their individual scope,
 permissions, tenancy boundaries, and acceptance tests are approved. The
-admission, nursing, vital-signs, laboratory, radiology, operating-theatre, and
-hospital-billing slices below have now been individually implemented and
-verified; the remaining hospital domains remain planning-only.
+admission, nursing, vital-signs, admission clinical notes, laboratory,
+radiology, operating-theatre, and hospital-billing slices below have now been
+individually implemented and verified; the remaining hospital domains remain
+planning-only.
 
 The inpatient medication administration slice is also implemented behind the
 dedicated `hospital-medication` module.
@@ -173,6 +174,27 @@ create orders and manage results, doctors can create and view orders/results,
 and nurses can view records for active assigned admissions. Receptionists,
 pharmacists, guards, and other staff receive a server-side 403.
 
+### Admission clinical notes / EMR foundation (implemented)
+
+Professional Hospital now has a separately gated `hospital-clinical-notes`
+module for the first admission-level EMR slice. `HospitalClinicalNote` rows
+link a note to the tenant, the specific `HospitalAdmission`, and its author;
+the note type is explicitly `clinical`, `progress`, or `nursing`. This is
+deliberately separate from outpatient `MedicalRecord` and `Visit` data, so
+readmission and inpatient documentation retain their encounter boundary.
+
+Owners/managers can record all note types and correct or void notes. An
+assigned doctor can create and view only clinical/progress notes for that
+doctor's admissions. An active assigned nurse can create nursing notes and
+view notes for the assigned active admission. Other staff receive a server-
+side denial, and all list, admission, author, assignment, and write queries
+remain tenant-scoped.
+
+Recorded timestamps must fall within the admission window, including the
+discharge boundary when present. Manager corrections require a reason and
+preserve before/after content and timestamp snapshots in the append-only
+`HospitalClinicalNoteEvent` audit trail; voids likewise require a reason.
+
 The Manager dashboard now includes a tenant-scoped Professional Hospital
 operations panel. In addition to admissions, beds, nursing, vitals,
 discharges, and department occupancy, it shows outstanding posted billing,
@@ -223,6 +245,8 @@ where applicable; duplicate patient or outpatient models must not be created.
 | `NursingAssignmentEvent` | Professional Hospital | Admin, nursing lead, audit readers |
 | `VitalSign` | Professional Hospital | Nurses and treating doctors |
 | `VitalSignEvent` | Professional Hospital | Admin, authorized clinical audit readers |
+| `HospitalClinicalNote` | Professional Hospital | Admin, assigned doctors, assigned nurses |
+| `HospitalClinicalNoteEvent` | Professional Hospital | Admin, authorized clinical audit readers |
 | `HospitalDashboard` | Professional Hospital | Admin, manager, authorized clinical staff |
 | `HospitalTransfer` | Professional Hospital | Admin, manager, authorized admissions staff |
 | `LabOrder`, `LabResult` | Professional Hospital | Doctors, lab technicians, authorized records staff |

@@ -495,6 +495,12 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::post('/vitals', [App\Http\Controllers\Admin\VitalSignController::class, 'store'])->name('vitals.store');
             Route::patch('/vitals/{vital}', [App\Http\Controllers\Admin\VitalSignController::class, 'update'])->name('vitals.update');
         });
+        Route::middleware('module:hospital-clinical-notes')->group(function () {
+            Route::get('/hospital-clinical-notes', [App\Http\Controllers\Admin\HospitalClinicalNoteController::class, 'index'])->name('hospital-clinical-notes.index');
+            Route::post('/hospital-clinical-notes', [App\Http\Controllers\Admin\HospitalClinicalNoteController::class, 'store'])->name('hospital-clinical-notes.store');
+            Route::patch('/hospital-clinical-notes/{note}', [App\Http\Controllers\Admin\HospitalClinicalNoteController::class, 'update'])->name('hospital-clinical-notes.update');
+            Route::patch('/hospital-clinical-notes/{note}/void', [App\Http\Controllers\Admin\HospitalClinicalNoteController::class, 'void'])->name('hospital-clinical-notes.void');
+        });
         Route::middleware('module:hospital-laboratory')->group(function () {
             Route::get('/laboratory', [App\Http\Controllers\Admin\LaboratoryController::class, 'index'])->name('laboratory.index');
             Route::post('/laboratory/orders', [App\Http\Controllers\Admin\LaboratoryController::class, 'storeOrder'])->name('laboratory.orders.store');
