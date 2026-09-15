@@ -3,8 +3,14 @@
 
 @section('page-content')
 
-@include('manager.partials.hospital-dashboard')
+@php
+    $isHospitalBusiness = strcasecmp((string) ($restaurant->businessType?->name ?? ''), 'Professional Hospital') === 0
+        || in_array('hospital-admissions', (array) ($restaurant->enabled_modules ?? []), true);
+@endphp
 
+@if($isHospitalBusiness)
+    @include('manager.partials.hospital-dashboard')
+@else
 <div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-6">
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -200,5 +206,6 @@
         </tbody>
     </table>
 </div>
+@endif
 
 @endsection

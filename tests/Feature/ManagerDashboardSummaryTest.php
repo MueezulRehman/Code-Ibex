@@ -101,6 +101,7 @@ class ManagerDashboardSummaryTest extends TestCase
             ->assertSee('Unpaid room charge')
             ->assertSee('Pending lab orders')
             ->assertSee('Pending radiology')
+            ->assertDontSee('Business Performance')
             ->assertDontSee('Other tenant charge')
             ->assertDontSee('Rs. 999.00');
     }
