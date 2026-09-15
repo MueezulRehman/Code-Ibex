@@ -42,6 +42,7 @@ class WardController extends Controller
     public function storeBed(Request $request, Ward $ward)
     {
         $restaurantId = $this->restaurantId();
+        abort_unless((int) $ward->restaurant_id === $restaurantId, 404);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:30', 'alpha_dash', Rule::unique('beds', 'code')->where(fn ($q) => $q->where('restaurant_id', $restaurantId))],
