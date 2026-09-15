@@ -298,12 +298,18 @@ A task is complete only when:
 
 ## Next Action
 
-Next, complete the operational rollout of the Professional Hospital slices:
-apply the tenant migrations to every target tenant and perform authenticated
-browser verification of `/manager/operating-theatre` for manager, doctor,
-nurse, and denied staff accounts. After that, the recommended product slice is
-hospital billing/discharge integration, beginning with a reviewed charge model
-that links admission, theatre, laboratory, radiology, and pharmacy services.
+Next, complete the Professional Hospital UI and rollout verification pass:
+apply the tenant migrations to every target tenant, verify the shared manager
+form treatment on Admissions, Wards/Beds, Nursing, Laboratory, Radiology,
+Operating Theatre, Medication, Care Plans, Billing, Staff Rosters, and Reports,
+and perform authenticated browser checks for manager, doctor, assigned nurse,
+and denied staff accounts. Confirm required-field indicators, dropdown
+alignment, responsive submit actions, tenant isolation, and the expected 403
+responses. After this validation, continue with the next approved product
+slice: hospital operational reporting and exports, followed by deeper
+pharmacy stock and insurance workflows. Keep Blood Bank, Ambulance Dispatch,
+Biomedical Equipment, Mortuary, Complaints, and Statutory Compliance deferred
+until the hospital explicitly approves them.
 
 ## Progress Log
 
