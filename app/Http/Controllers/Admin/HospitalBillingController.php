@@ -251,21 +251,22 @@ class HospitalBillingController extends Controller
         if ($request->query('format') === 'csv') {
             return response()->streamDownload(function () use ($billings): void {
                 $output = fopen('php://output', 'w');
-                fputcsv($output, ['Invoice', 'Status', 'Charged date', 'Admission', 'Patient', 'Charge type', 'Payment method', 'Insurance claim', 'Amount', 'Settled', 'Outstanding']);
+                fputcsv($output, ['Invoice', 'Status', 'Charged date', 'Admission', 'Department', 'Patient', 'Charge type', 'Payment method', 'Insurance claim', 'Amount', 'Settled', 'Outstanding']);
                 foreach ($billings as $billing) {
                     fputcsv($output, [
                         $billing->invoice_number,
                         $billing->status,
                         $billing->charged_at?->format('Y-m-d H:i:s'),
                         $billing->admission?->admission_number,
-                        $billing->patient?->name,
-                        $billing->charge_type,
-                        $billing->payment_method ?: 'unrecorded',
-                        $billing->insuranceClaim?->claim_number ?: ($billing->insurance_claim_id ? '#' . $billing->insurance_claim_id : ''),
-                        number_format((float) $billing->total_amount, 2, '.', ''),
-                        number_format($billing->settledAmount(), 2, '.', ''),
-                        number_format($billing->outstandingAmount(), 2, '.', ''),
-                    ]);
+                                        $billing->admission?->department?->name ?: 'Unassigned department',
+                                        $billing->patient?->name,
+                                        $billing->charge_type,
+                                        $billing->payment_method ?: 'unrecorded',
+                                        $billing->insuranceClaim?->claim_number ?: ($billing->insurance_claim_id ? '#' . $billing->insurance_claim_id : ''),
+                                        number_format((float) $billing->total_amount, 2, '.', ''),
+                                        number_format($billing->settledAmount(), 2, '.', ''),
+                                        number_format($billing->outstandingAmount(), 2, '.', ''),
+                                    ]);
                 }
                 fclose($output);
             }, 'hospital-billing-report.csv', ['Content-Type' => 'text/csv; charset=UTF-8']);
