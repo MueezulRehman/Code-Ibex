@@ -6,6 +6,7 @@ use App\Models\Restaurant;
 use App\Models\User;
 use App\Models\Bed;
 use App\Models\HospitalAdmission;
+use App\Models\HospitalBilling;
 use App\Models\Patient;
 use App\Models\Ward;
 use App\Models\WardLocation;
@@ -77,6 +78,33 @@ class WardBedManagementTest extends TestCase
 
         $this->assertDatabaseHas('hospital_admissions', ['id' => $admission->id, 'bed_id' => $bed->id]);
         $this->assertDatabaseHas('beds', ['id' => $bed->id, 'ward_id' => $ward->id, 'location_id' => $location->id, 'status' => 'occupied']);
+    }
+
+    public function test_admission_snapshots_ward_rate_and_creates_initial_bed_charge(): void
+    {
+        $restaurant = Restaurant::create(['name' => 'Pricing Hospital', 'slug' => 'pricing-hospital-' . uniqid(), 'status' => 'active', 'enabled_modules' => ['hospital-wards-beds', 'hospital-admissions', 'hospital-billing']]);
+        $manager = User::create(['name' => 'Manager', 'email' => uniqid('pricing-') . '@example.com', 'phone' => '03000' . random_int(100000, 999999), 'role' => 'manager', 'restaurant_id' => $restaurant->id, 'password' => bcrypt('password')]);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'PAT-' . strtoupper(substr(uniqid(), -8)), 'name' => 'Pricing Patient']);
+        $ward = Ward::create(['restaurant_id' => $restaurant->id, 'name' => 'Private Ward', 'code' => 'PRIVATE', 'room_category' => 'Private', 'daily_rate' => 250]);
+        $bed = Bed::create(['restaurant_id' => $restaurant->id, 'ward_id' => $ward->id, 'name' => 'Bed 01', 'code' => 'PRIVATE-01', 'status' => 'available']);
+
+        $admittedAt = now()->subHour()->format('Y-m-d H:i:s');
+        $this->actingAs($manager)->post(route('manager.admissions.store'), [
+            'patient_id' => $patient->id,
+            'bed_id' => $bed->id,
+            'admitted_at' => $admittedAt,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $admission = HospitalAdmission::firstOrFail();
+        $this->assertSame(250.0, (float) $admission->bed_daily_rate);
+        $this->assertDatabaseHas('hospital_billings', [
+            'hospital_admission_id' => $admission->id,
+            'charge_type' => 'bed',
+            'quantity' => 1,
+            'unit_amount' => 250,
+            'status' => 'draft',
+        ]);
+        $this->assertSame(1, HospitalBilling::where('hospital_admission_id', $admission->id)->count());
     }
 
     public function test_location_creation_rejects_a_ward_from_another_tenant(): void

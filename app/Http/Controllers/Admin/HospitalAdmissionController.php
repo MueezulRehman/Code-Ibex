@@ -10,6 +10,7 @@ use App\Models\DischargeSummary;
 use App\Models\DischargeSummaryEvent;
 use App\Models\Doctor;
 use App\Models\HospitalAdmission;
+use App\Models\HospitalBilling;
 use App\Models\HospitalPatientInsurance;
 use App\Models\HospitalTransfer;
 use App\Models\Patient;
@@ -100,8 +101,23 @@ class HospitalAdmissionController extends Controller
         DB::transaction(function () use ($data): void {
             $admission = HospitalAdmission::create($data);
             if ($admission->bed_id) {
-                Bed::whereKey($admission->bed_id)->where('status', 'available')->lockForUpdate()->firstOrFail()
-                    ->update(['status' => 'occupied']);
+                $bed = Bed::with('ward')->whereKey($admission->bed_id)->where('status', 'available')->lockForUpdate()->firstOrFail();
+                $admission->update(['bed_daily_rate' => $bed->ward?->daily_rate]);
+                $bed->update(['status' => 'occupied']);
+                if ((float) ($bed->ward?->daily_rate ?? 0) > 0) {
+                    HospitalBilling::create([
+                        'restaurant_id' => $admission->restaurant_id,
+                        'patient_id' => $admission->patient_id,
+                        'hospital_admission_id' => $admission->id,
+                        'charge_type' => 'bed',
+                        'description' => 'Bed accommodation - '.($bed->ward?->room_category ?: $bed->ward?->name),
+                        'quantity' => 1,
+                        'unit_amount' => $bed->ward->daily_rate,
+                        'status' => 'draft',
+                        'charged_at' => $admission->admitted_at,
+                        'notes' => 'Initial daily bed charge; subsequent stay-day charging remains manager-controlled.',
+                    ]);
+                }
             }
         });
         return redirect()->route('manager.admissions.index')->with('success', 'Patient admitted.');
@@ -135,6 +151,25 @@ class HospitalAdmissionController extends Controller
 
             $admission->update(['bed_id' => $bed->id, 'department_id' => $newDepartmentId]);
             $bed->update(['status' => 'occupied']);
+
+            if (! $previousBedId) {
+                $admission->update(['bed_daily_rate' => $bed->ward?->daily_rate]);
+                if ((float) ($bed->ward?->daily_rate ?? 0) > 0) {
+                    HospitalBilling::create([
+                        'restaurant_id' => $admission->restaurant_id,
+                        'patient_id' => $admission->patient_id,
+                        'hospital_admission_id' => $admission->id,
+                        'charge_type' => 'bed',
+                        'description' => 'Bed accommodation - '.($bed->ward?->room_category ?: $bed->ward?->name),
+                        'quantity' => 1,
+                        'unit_amount' => $bed->ward->daily_rate,
+                        'status' => 'draft',
+                        'charged_at' => now(),
+                        'posted_by' => $user->id,
+                        'notes' => 'Initial daily bed charge; subsequent stay-day charging remains manager-controlled.',
+                    ]);
+                }
+            }
 
             BedTransfer::create([
                 'restaurant_id' => $restaurantId,

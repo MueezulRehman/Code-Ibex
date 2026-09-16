@@ -38,6 +38,8 @@ class WardController extends Controller
             'name' => ['required', 'string', 'max:255'],
             'code' => ['required', 'string', 'max:30', 'alpha_dash', Rule::unique('wards', 'code')->where(fn ($q) => $q->where('restaurant_id', $restaurantId))],
             'description' => ['nullable', 'string', 'max:500'],
+            'room_category' => ['nullable', 'string', 'max:100'],
+            'daily_rate' => ['nullable', 'numeric', 'min:0'],
         ]);
         Ward::create([...$data, 'restaurant_id' => $restaurantId]);
         return back()->with('success', 'Ward created.');

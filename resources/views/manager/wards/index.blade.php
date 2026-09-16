@@ -7,11 +7,13 @@
     <p class="text-xs text-gray-500">Manage inpatient capacity for this hospital. Locations are optional; existing ward beds remain supported.</p>
     @if(session('success'))<div class="mt-4 rounded-lg bg-green-50 px-4 py-3 text-sm text-green-700">{{ session('success') }}</div>@endif
     @if($errors->any())<div class="mt-4 rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">@foreach($errors->all() as $error)<div>{{ $error }}</div>@endforeach</div>@endif
-    <form method="POST" action="{{ route('manager.wards.store') }}" class="mt-5 grid gap-3 md:grid-cols-4">
+    <form method="POST" action="{{ route('manager.wards.store') }}" class="mt-5 grid gap-3 md:grid-cols-6">
         @csrf
         <input name="name" required placeholder="Ward name" class="rounded-lg border-gray-200">
         <input name="code" required placeholder="WARD-A" class="rounded-lg border-gray-200">
         <input name="description" placeholder="Description" class="rounded-lg border-gray-200">
+        <input name="room_category" placeholder="Room category (Private)" class="rounded-lg border-gray-200">
+        <input name="daily_rate" type="number" min="0" step="0.01" placeholder="Daily rate" class="rounded-lg border-gray-200">
         <button class="rounded-lg bg-hut-dark px-3 py-2 text-sm font-semibold text-white">Add Ward</button>
     </form>
 </div>
@@ -22,6 +24,7 @@
         <div>
             <h2 class="font-semibold text-hut-dark">{{ $ward->name }} <span class="text-xs text-gray-500">({{ $ward->code }})</span></h2>
             <p class="text-xs text-gray-500">{{ $ward->beds_count }} beds</p>
+            <p class="text-xs text-slate-600">{{ $ward->room_category ?: 'Standard ward' }} · {{ number_format((float) $ward->daily_rate, 2) }} per day</p>
         </div>
     </div>
 

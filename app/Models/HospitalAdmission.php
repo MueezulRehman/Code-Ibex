@@ -12,12 +12,13 @@ class HospitalAdmission extends Model
     protected $fillable = [
         'restaurant_id', 'admission_number', 'patient_id', 'hospital_patient_insurance_id', 'doctor_id',
         'department_id', 'status', 'admitted_at', 'discharged_at', 'notes',
-        'bed_id',
+        'bed_id', 'bed_daily_rate',
     ];
 
     protected $casts = [
         'admitted_at' => 'datetime',
         'discharged_at' => 'datetime',
+        'bed_daily_rate' => 'decimal:2',
     ];
 
     public function patient() { return $this->belongsTo(Patient::class); }

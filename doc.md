@@ -338,6 +338,13 @@ documentation workflow. Keep Blood Bank, Ambulance Dispatch, Biomedical
 Equipment, Mortuary, Complaints, and Statutory Compliance deferred until the
 hospital explicitly approves them.
 
+The next major slice after pharmacy hardening is **bed pricing and
+room-category billing**. Its first increment now lets managers configure a
+ward room category and daily rate, snapshots that rate on admission, and
+creates a draft initial bed charge when a priced bed is assigned. Recurring
+stay-day charges remain manager-controlled for the next increment so existing
+billing and discharge workflows are not changed implicitly.
+
 ## Progress Log
 
 ### Hospital pharmacy fulfillment foundation (implemented)
