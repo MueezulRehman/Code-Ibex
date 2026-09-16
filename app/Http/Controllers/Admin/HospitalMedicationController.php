@@ -193,6 +193,7 @@ class HospitalMedicationController extends Controller
         $administration->update([
             'dose' => $data['dose'],
             'route' => $data['route'],
+            'administered_quantity' => $data['administered_quantity'],
             'status' => $data['status'],
             'administered_at' => $data['administered_at'] ?? null,
             'administered_by' => $data['status'] === 'administered' ? $user->id : null,
@@ -216,6 +217,7 @@ class HospitalMedicationController extends Controller
         $data = $request->validate([
             'dose' => ['required', 'string', 'max:100'],
             'route' => ['required', 'string', 'max:50'],
+            'administered_quantity' => ['nullable', 'numeric', 'gt:0'],
             'scheduled_at' => ['required', 'date'],
             'administered_at' => ['nullable', 'date'],
             'status' => ['required', Rule::in(['scheduled', 'administered', 'omitted', 'refused', 'cancelled'])],
@@ -248,6 +250,19 @@ class HospitalMedicationController extends Controller
             abort_unless($scheduledAt->equalTo($existing->scheduled_at), 422, 'The scheduled time cannot be changed after recording.');
         }
 
+        $data['administered_quantity'] = (float) ($data['administered_quantity'] ?? 1);
+        if ($data['status'] === 'administered') {
+            $fulfillment = $order->fulfillment()->lockForUpdate()->first();
+            if ($fulfillment) {
+                $alreadyAdministered = HospitalMedicationAdministration::where('hospital_medication_order_id', $order->id)
+                    ->where('status', 'administered')
+                    ->when($existing, fn ($query) => $query->where('id', '<>', $existing->id))
+                    ->sum('administered_quantity');
+                $available = max((float) $fulfillment->quantity_dispensed - (float) $alreadyAdministered, 0);
+                abort_unless($data['administered_quantity'] <= $available, 422, 'Administration quantity exceeds the dispensed medication remaining.');
+            }
+        }
+
         return $data;
     }
 
@@ -260,6 +275,7 @@ class HospitalMedicationController extends Controller
             'hospital_medication_order_id' => $order->id,
             'recorded_by' => $user->id,
             'administered_by' => $data['status'] === 'administered' ? $user->id : null,
+            'administered_quantity' => $data['administered_quantity'],
             'recorded_at' => now(),
         ]);
     }

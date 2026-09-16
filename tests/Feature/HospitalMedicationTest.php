@@ -112,6 +112,28 @@ class HospitalMedicationTest extends TestCase
         $this->assertDatabaseHas('hospital_medication_administrations', ['recorded_by' => $nurse->id, 'idempotency_key' => 'dose-1']);
     }
 
+    public function test_administration_cannot_exceed_dispensed_quantity(): void
+    {
+        [, $manager, , $admission, $medicine] = $this->context();
+        $this->actingAs($manager)->post(route('manager.hospital-medication.orders.store'), $this->orderPayload($admission, $medicine));
+        $order = HospitalMedicationOrder::firstOrFail();
+        $batch = MedicineBatch::create([
+            'restaurant_id' => $manager->restaurant_id, 'medicine_id' => $medicine->id,
+            'batch_number' => 'ADMIN', 'expiry_date' => now()->addDay(), 'quantity' => 2, 'selling_price' => 10,
+        ]);
+        $this->actingAs($manager)->post(route('manager.hospital-medication.fulfill', $order), ['quantity' => 2]);
+
+        $payload = [
+            'dose' => '500 mg', 'route' => 'oral',
+            'scheduled_at' => $order->scheduled_start_at->format('Y-m-d H:i:s'),
+            'status' => 'administered', 'administered_at' => now()->format('Y-m-d H:i:s'),
+            'administered_quantity' => 3,
+        ];
+        $this->actingAs($manager)->post(route('manager.hospital-medication.administrations.store', $order), $payload)
+            ->assertStatus(422);
+        $this->assertDatabaseCount('hospital_medication_administrations', 0);
+    }
+
     public function test_authorized_doctor_can_order_but_unassigned_staff_cannot_record(): void
     {
         [, $manager, , $admission, $medicine] = $this->context();

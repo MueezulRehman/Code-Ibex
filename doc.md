@@ -373,6 +373,19 @@ hospital explicitly approves them.
 - The focused medication suite passes **9 tests** and the clinical-notes suite
   passes **5 tests**.
 
+### Medication administration linkage (implemented)
+
+- Added a tenant-scoped administered quantity to each nursing administration,
+  defaulting legacy submissions to one dose unit.
+- Prevented administered quantities from exceeding the order's dispensed
+  quantity, while preserving omitted, refused, cancelled, and unfulfilled
+  order workflows.
+- Added the quantity to the manager medication page so pharmacy fulfillment and
+  nursing administration are visible together.
+- Applied the central and tenant migrations for tenant 18 and added regression
+  coverage for over-administration rejection.
+- The focused medication suite now passes **10 tests**.
+
 The medication and clinical-notes pages now use the official
 `flowbite-datepicker` stylesheet alongside the datepicker JavaScript. Calendar
 controls are scoped to the picker, render as a seven-column light calendar,

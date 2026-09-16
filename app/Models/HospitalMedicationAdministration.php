@@ -13,13 +13,14 @@ class HospitalMedicationAdministration extends Model
         'restaurant_id', 'patient_id', 'hospital_admission_id',
         'hospital_medication_order_id', 'recorded_by', 'administered_by',
         'dose', 'route', 'scheduled_at', 'administered_at', 'status',
-        'idempotency_key', 'reason', 'notes', 'recorded_at',
+        'administered_quantity', 'idempotency_key', 'reason', 'notes', 'recorded_at',
     ];
 
     protected $casts = [
         'scheduled_at' => 'datetime',
         'administered_at' => 'datetime',
         'recorded_at' => 'datetime',
+        'administered_quantity' => 'decimal:3',
     ];
 
     public function patient() { return $this->belongsTo(Patient::class); }
