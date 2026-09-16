@@ -387,9 +387,14 @@ module gating, tests, and browser verification.
   their occupancy states.
 - The Admissions page renders seeded inpatient records and billing totals,
   including total, paid, and outstanding amounts.
-- This confirms the seeded priced-bed data and billing display are available
-  for the remaining manual transfer/discharge scenario; no application code
-  change was required.
+- The full transfer/discharge scenario is not yet complete: Executive Ward
+  currently has zero beds, and submitting its rendered Add Bed form to
+  `/manager/wards/{ward}/beds` returned a 404 in the authenticated browser
+  session. The route is registered and existing feature tests cover bed
+  creation, so the next implementation step is to reproduce and fix this
+  tenant route/model-binding issue before repeating the transfer and discharge
+  verification. Do not treat the priced-bed end-to-end workflow as complete
+  until that scenario passes in the browser.
 
 ### Inpatient billing verification and payment retry safety
 
