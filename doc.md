@@ -380,6 +380,28 @@ isolation, and existing audit behavior while adding focused authorization
 regression tests and browser verification for a doctor assigned to one
 admission and denied access to another.
 
+### Clinical access refinement (implemented)
+
+- Added a shared tenant-safe admission access policy for managers, assigned
+  nurses, and attending or department-matched doctors.
+- Applied the policy to care plans, clinical notes, medication ordering,
+  laboratory ordering, and radiology ordering.
+- Added regression coverage proving a doctor cannot create a clinical note for
+  another doctor's admission outside the doctor's department.
+- Corrected clinical-notes integration to use the shared policy method.
+- Focused clinical-notes authorization tests pass; browser verification of the
+  manager and clinical workflow pages remains part of the next end-to-end
+  verification pass.
+
+### Next recommended slice: inpatient billing reconciliation
+
+Before adding another clinical module, verify the complete browser workflow:
+admit, transfer between priced wards, add pharmacy/laboratory/theatre charges,
+record partial and full payments, and discharge. Confirm bed-period breakdowns,
+invoice/receipt totals, immutable posted or paid charges, and no duplicate
+charges on retry. Then add one cross-module reconciliation regression test
+covering the same scenario.
+
 ## Progress Log
 
 ### Hospital pharmacy fulfillment foundation (implemented)

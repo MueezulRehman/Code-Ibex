@@ -60,7 +60,7 @@ class HospitalClinicalNoteController extends Controller
         ]);
 
         $admission = HospitalAdmission::where('restaurant_id', $restaurantId)->findOrFail($data['hospital_admission_id']);
-        abort_unless($this->canAccessAdmission($user, $admission), 403);
+        abort_unless($this->canViewAdmission($user, $admission), 403);
         abort_unless(
             $user->isRestaurantManager()
                 || ($user->staff_type === 'doctor' && in_array($data['note_type'], ['clinical', 'progress'], true))
