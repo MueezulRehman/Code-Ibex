@@ -235,6 +235,7 @@ class HospitalBillingController extends Controller
         $chargeTypeTotals = $groupBy($billings, fn ($billing) => $billing->charge_type);
         $dateTotals = $groupBy($billings, fn ($billing) => $billing->charged_at?->format('Y-m-d') ?: 'unknown');
         $admissionTotals = $groupBy($billings, fn ($billing) => $billing->admission?->admission_number ?: (string) $billing->hospital_admission_id);
+        $departmentTotals = $groupBy($billings, fn ($billing) => $billing->admission?->department?->name ?: 'Unassigned department');
         $paymentMethodTotals = $groupBy($billings, fn ($billing) => $billing->payment_method ?: 'unrecorded');
         $totals = [
             'gross' => (float) $billings->sum('total_amount'),
@@ -272,7 +273,7 @@ class HospitalBillingController extends Controller
 
         return view('manager.hospital-billing.report', compact(
             'billings', 'statusTotals', 'chargeTypeTotals', 'dateTotals',
-            'admissionTotals', 'paymentMethodTotals', 'totals', 'filters'
+            'admissionTotals', 'departmentTotals', 'paymentMethodTotals', 'totals', 'filters'
         ) + [
             'admissions' => HospitalAdmission::where('restaurant_id', $restaurantId)
                 ->with('patient')->orderByDesc('admitted_at')->get(),

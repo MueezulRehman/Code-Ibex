@@ -153,4 +153,28 @@ class HospitalBillingInsuranceReportTest extends TestCase
             ->assertRedirect()->assertSessionHasNoErrors();
         $this->assertSame('discharged', $admission->fresh()->status);
     }
+
+    public function test_report_includes_department_grouping(): void
+    {
+        [, $manager, $admission] = $this->setupHospital('dept');
+
+        // create a department and attach to the admission
+        $dept = \App\Models\Department::create([
+            'restaurant_id' => $admission->restaurant_id,
+            'name' => 'Cardiology',
+            'code' => 'CARD',
+            'is_active' => true,
+        ]);
+        $admission->department_id = $dept->id;
+        $admission->save();
+
+        $this->charge($admission, 'paid', 200, null, 'bed');
+        $this->charge($admission, 'posted', 150, null, 'laboratory');
+
+        $this->actingAs($manager)
+            ->get(route('manager.hospital-billing.report'))
+            ->assertOk()
+            ->assertSee('Totals by department/service')
+            ->assertSee('Cardiology');
+    }
 }

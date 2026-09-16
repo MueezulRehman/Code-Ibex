@@ -35,6 +35,7 @@
     @foreach([
         'Totals by status' => $statusTotals,
         'Totals by charge type' => $chargeTypeTotals,
+        'Totals by department/service' => $departmentTotals,
         'Totals by payment method' => $paymentMethodTotals,
         'Totals by admission' => $admissionTotals,
         'Totals by charged date' => $dateTotals,

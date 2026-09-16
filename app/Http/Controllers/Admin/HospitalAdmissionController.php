@@ -36,18 +36,39 @@ class HospitalAdmissionController extends Controller
 
     private function tenantUserId(User $user, int $restaurantId): ?int
     {
-        if (! Schema::connection('tenant')->hasTable('users')) {
+        $useTenant = false;
+        try {
+            if (config('database.connections.tenant') && Schema::connection('tenant')->hasTable('users')) {
+                $useTenant = true;
+            }
+        } catch (\Throwable $e) {
+            // ignore and fall back to default connection below
+            $useTenant = false;
+        }
+
+        if ($useTenant) {
+            $query = DB::connection('tenant')->table('users')
+                ->where(function ($query) use ($user): void {
+                    $query->where('id', $user->id)
+                        ->orWhere('email', $user->email);
+                });
+
+            return $query->value('id')
+                ?? DB::connection('tenant')->table('users')->orderBy('id')->value('id');
+        }
+
+        // Fall back to default connection users table for test or single-db environments
+        if (! Schema::hasTable('users')) {
             return null;
         }
 
-        $query = DB::connection('tenant')->table('users')
+        $query = DB::table('users')
             ->where(function ($query) use ($user): void {
                 $query->where('id', $user->id)
                     ->orWhere('email', $user->email);
             });
 
-        return $query->value('id')
-            ?? DB::connection('tenant')->table('users')->orderBy('id')->value('id');
+        return $query->value('id') ?? DB::table('users')->orderBy('id')->value('id');
     }
 
     public function index()
