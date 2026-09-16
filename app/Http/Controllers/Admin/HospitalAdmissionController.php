@@ -11,6 +11,7 @@ use App\Models\DischargeSummaryEvent;
 use App\Models\Doctor;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalBilling;
+use App\Models\HospitalBedStayPeriod;
 use App\Models\HospitalPatientInsurance;
 use App\Models\HospitalTransfer;
 use App\Models\Patient;
@@ -105,7 +106,7 @@ class HospitalAdmissionController extends Controller
                 $admission->update(['bed_daily_rate' => $bed->ward?->daily_rate]);
                 $bed->update(['status' => 'occupied']);
                 if ((float) ($bed->ward?->daily_rate ?? 0) > 0) {
-                    HospitalBilling::create([
+                    $billing = HospitalBilling::create([
                         'restaurant_id' => $admission->restaurant_id,
                         'patient_id' => $admission->patient_id,
                         'hospital_admission_id' => $admission->id,
@@ -116,6 +117,11 @@ class HospitalAdmissionController extends Controller
                         'status' => 'draft',
                         'charged_at' => $admission->admitted_at,
                         'notes' => 'Initial daily bed charge; subsequent stay-day charging remains manager-controlled.',
+                    ]);
+                    HospitalBedStayPeriod::create([
+                        'restaurant_id' => $admission->restaurant_id, 'hospital_admission_id' => $admission->id,
+                        'bed_id' => $bed->id, 'ward_id' => $bed->ward_id, 'started_at' => $admission->admitted_at,
+                        'daily_rate' => $bed->ward->daily_rate, 'hospital_billing_id' => $billing->id,
                     ]);
                 }
             }
@@ -155,7 +161,7 @@ class HospitalAdmissionController extends Controller
             if (! $previousBedId) {
                 $admission->update(['bed_daily_rate' => $bed->ward?->daily_rate]);
                 if ((float) ($bed->ward?->daily_rate ?? 0) > 0) {
-                    HospitalBilling::create([
+                    $billing = HospitalBilling::create([
                         'restaurant_id' => $admission->restaurant_id,
                         'patient_id' => $admission->patient_id,
                         'hospital_admission_id' => $admission->id,
@@ -167,6 +173,11 @@ class HospitalAdmissionController extends Controller
                         'charged_at' => now(),
                         'posted_by' => $user->id,
                         'notes' => 'Initial daily bed charge; subsequent stay-day charging remains manager-controlled.',
+                    ]);
+                    HospitalBedStayPeriod::create([
+                        'restaurant_id' => $admission->restaurant_id, 'hospital_admission_id' => $admission->id,
+                        'bed_id' => $bed->id, 'ward_id' => $bed->ward_id, 'started_at' => now(),
+                        'daily_rate' => $bed->ward->daily_rate, 'hospital_billing_id' => $billing->id,
                     ]);
                 }
             }
@@ -233,33 +244,24 @@ class HospitalAdmissionController extends Controller
                 'This patient cannot be discharged while posted hospital billing charges remain unpaid.'
             );
             $dischargedAt = \Carbon\Carbon::parse($data['discharged_at']);
-            if ($admission->bed_daily_rate !== null && (float) $admission->bed_daily_rate > 0) {
-                $minutes = max($admission->admitted_at->diffInMinutes($dischargedAt), 0);
-                $billableDays = max(1, (int) ceil($minutes / 1440));
-                $bedCharge = $admission->billings()
-                    ->where('charge_type', 'bed')
-                    ->where('status', 'draft')
-                    ->where('description', 'like', 'Bed accommodation -%')
-                    ->lockForUpdate()->first();
-                if ($bedCharge) {
-                    $bedCharge->update([
-                        'quantity' => $billableDays,
-                        'description' => $bedCharge->description.' ('.$billableDays.' day'.($billableDays === 1 ? '' : 's').')',
-                    ]);
-                } else {
-                    HospitalBilling::create([
-                        'restaurant_id' => $admission->restaurant_id,
-                        'patient_id' => $admission->patient_id,
-                        'hospital_admission_id' => $admission->id,
-                        'charge_type' => 'bed',
-                        'description' => 'Bed accommodation ('.$billableDays.' day'.($billableDays === 1 ? '' : 's').')',
-                        'quantity' => $billableDays,
-                        'unit_amount' => $admission->bed_daily_rate,
-                        'status' => 'draft',
-                        'charged_at' => $dischargedAt,
-                        'posted_by' => $user->id,
-                        'notes' => 'Final bed-stay reconciliation.',
-                    ]);
+            $periods = $admission->bedStayPeriods()->lockForUpdate()->get();
+            if ($periods->isEmpty() && (float) ($admission->bed_daily_rate ?? 0) > 0) {
+                $legacyCharge = $admission->billings()->where('charge_type', 'bed')->where('status', 'draft')
+                    ->where('description', 'like', 'Bed accommodation -%')->lockForUpdate()->first();
+                if ($legacyCharge) {
+                    $days = max(1, (int) ceil(max($admission->admitted_at->diffInMinutes($dischargedAt), 0) / 1440));
+                    $legacyCharge->update(['quantity' => $days, 'description' => 'Bed accommodation ('.$days.' day'.($days === 1 ? '' : 's').')']);
+                }
+            }
+            foreach ($periods as $period) {
+                $periodEnd = $period->ended_at ?: $dischargedAt;
+                $days = max(1, (int) ceil(max($period->started_at->diffInMinutes($periodEnd), 0) / 1440));
+                $billing = $period->billing()->lockForUpdate()->first();
+                if ($billing && $billing->status === 'draft') {
+                    $billing->update(['quantity' => $days, 'description' => 'Bed accommodation ('.$days.' day'.($days === 1 ? '' : 's').')']);
+                }
+                if (! $period->ended_at) {
+                    $period->update(['ended_at' => $dischargedAt]);
                 }
             }
             if ($admission->bed_id) {
@@ -367,7 +369,7 @@ class HospitalAdmissionController extends Controller
         DB::transaction(function () use ($data, $admission, $restaurantId, $user): void {
             $newBed = null;
             if (! empty($data['bed_id'])) {
-                $newBed = Bed::where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
+                $newBed = Bed::with('ward')->where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
                     ->where('status', 'available')->lockForUpdate()->firstOrFail();
             }
 
@@ -376,12 +378,42 @@ class HospitalAdmissionController extends Controller
             $previousWardId = $oldBedId ? Bed::whereKey($oldBedId)->value('ward_id') : null;
             $newWardId = $newBed?->ward_id;
             $newDepartmentId = $data['department_id'] ?? $oldDepartmentId;
+            $transferredAt = \Carbon\Carbon::parse($data['transferred_at']);
 
             if ($oldBedId && (! $newBed || $newBed->id !== $oldBedId)) {
                 Bed::whereKey($oldBedId)->update(['status' => 'available']);
             }
             if ($newBed) {
                 $newBed->update(['status' => 'occupied']);
+            }
+            $activePeriod = HospitalBedStayPeriod::where('hospital_admission_id', $admission->id)
+                ->whereNull('ended_at')->lockForUpdate()->first();
+            if (! $activePeriod && (float) ($admission->bed_daily_rate ?? 0) > 0) {
+                $initialBilling = $admission->billings()->where('charge_type', 'bed')->where('status', 'draft')
+                    ->where('description', 'like', 'Bed accommodation -%')->oldest()->first();
+                $activePeriod = HospitalBedStayPeriod::create([
+                    'restaurant_id' => $restaurantId, 'hospital_admission_id' => $admission->id,
+                    'bed_id' => $oldBedId, 'ward_id' => $previousWardId, 'started_at' => $admission->admitted_at,
+                    'daily_rate' => $admission->bed_daily_rate, 'hospital_billing_id' => $initialBilling?->id,
+                ]);
+            }
+            if ($activePeriod) {
+                $activePeriod->update(['ended_at' => $transferredAt]);
+            }
+            if ($newBed && (float) ($newBed->ward?->daily_rate ?? 0) > 0) {
+                $billing = HospitalBilling::create([
+                    'restaurant_id' => $restaurantId, 'patient_id' => $admission->patient_id,
+                    'hospital_admission_id' => $admission->id, 'charge_type' => 'bed',
+                    'description' => 'Bed accommodation - '.($newBed->ward?->room_category ?: $newBed->ward?->name),
+                    'quantity' => 1, 'unit_amount' => $newBed->ward->daily_rate, 'status' => 'draft',
+                    'charged_at' => $transferredAt, 'posted_by' => $user->id,
+                    'notes' => 'New bed-stay pricing period.',
+                ]);
+                HospitalBedStayPeriod::create([
+                    'restaurant_id' => $restaurantId, 'hospital_admission_id' => $admission->id,
+                    'bed_id' => $newBed->id, 'ward_id' => $newBed->ward_id, 'started_at' => $transferredAt,
+                    'daily_rate' => $newBed->ward->daily_rate, 'hospital_billing_id' => $billing->id,
+                ]);
             }
 
             $bedTransferCreated = false;

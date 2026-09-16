@@ -1261,3 +1261,22 @@ separately gated slices.
 ## Professional Hospital bed transfer history
 
 Manager bed assignments and transfers are now persisted as explicit tenant-scoped `BedTransfer` records that link to the active admission, patient, previous/new bed and ward, department, actor, timestamp, reason, and notes. This history supplements the existing `HospitalTransfer` event log while preserving bed availability checks, duplicate rejection, manager-only approval, and cross-tenant isolation.
+
+### Bed-transfer pricing periods
+
+- Added tenant-scoped `HospitalBedStayPeriod` records with the admission,
+  bed/ward, start/end timestamps, daily rate snapshot, and linked billing line.
+- Initial priced-bed assignment starts a period. A transfer closes the active
+  period at the transfer timestamp and starts a new period using the
+  destination ward's current rate.
+- Discharge reconciles every period independently, rounding partial days up
+  and updating draft charges idempotently without rewriting posted or paid
+  charges. Legacy admissions without period rows retain the prior
+  single-charge reconciliation behavior.
+- Central and tenant migrations were applied successfully to Professional
+  Hospital Demo (tenant 18). The focused admission and ward suites pass
+  18/18 tests.
+- Browser verification remains recommended for the next pass: transfer an
+  admission from a standard ward to a priced private ward, confirm both
+  pricing periods in the billing summary, then discharge and verify the
+  separate quantities.
