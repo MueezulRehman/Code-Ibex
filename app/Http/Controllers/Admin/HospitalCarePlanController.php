@@ -26,57 +26,8 @@ class HospitalCarePlanController extends Controller
         return $user;
     }
 
-    private function canViewAdmission(User $user, HospitalAdmission $admission): bool
-    {
-        if ((int) $admission->restaurant_id !== (int) $user->effectiveRestaurantId()) {
-            return false;
-        }
+    use AdmissionAccess;
 
-        if ($user->isRestaurantManager()) {
-            return true;
-        }
-
-        if ($user->staff_type === 'nurse') {
-            return $admission->status !== 'discharged'
-                && $user->nursingAssignments()
-                    ->where('hospital_admission_id', $admission->id)
-                    ->where('status', 'active')
-                    ->exists();
-        }
-
-        $doctor = Doctor::where('restaurant_id', $user->effectiveRestaurantId())
-            ->where('user_id', $user->id)->first();
-
-        return $doctor !== null
-            && ((int) $admission->doctor_id === (int) $doctor->id
-                || ($doctor->department_id !== null && (int) $admission->department_id === (int) $doctor->department_id));
-    }
-
-    private function admissionQuery(User $user)
-    {
-        $query = HospitalAdmission::with('patient')
-            ->where('restaurant_id', $user->effectiveRestaurantId());
-
-        if ($user->isRestaurantManager()) {
-            return $query;
-        }
-
-        if ($user->staff_type === 'nurse') {
-            return $query->where('status', '!=', 'discharged')
-                ->whereHas('nursingAssignments', fn ($assignment) => $assignment
-                    ->where('nurse_id', $user->id)->where('status', 'active'));
-        }
-
-        $doctor = Doctor::where('restaurant_id', $user->effectiveRestaurantId())
-            ->where('user_id', $user->id)->first();
-
-        return $query->where(function ($scope) use ($doctor): void {
-            $scope->where('doctor_id', $doctor?->id ?: 0);
-            if ($doctor?->department_id) {
-                $scope->orWhere('department_id', $doctor->department_id);
-            }
-        });
-    }
 
     public function index()
     {

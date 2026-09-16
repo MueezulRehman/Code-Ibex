@@ -25,22 +25,8 @@ class RadiologyController extends Controller
         return $user;
     }
 
-    private function canViewAdmission(User $user, HospitalAdmission $admission): bool
-    {
-        if ($user->isRestaurantManager()) {
-            return true;
-        }
-        if ($user->staff_type === 'doctor') {
-            $doctor = Doctor::where('user_id', $user->id)->where('restaurant_id', $user->effectiveRestaurantId())->first();
-            return $doctor !== null
-                && ((int) $admission->doctor_id === (int) $doctor->id
-                    || ($doctor->department_id !== null && (int) $admission->department_id === (int) $doctor->department_id));
-        }
-        return
-            $user->staff_type === 'nurse' && $user->nursingAssignments()
-                ->where('hospital_admission_id', $admission->id)
-                ->where('status', 'active')->exists();
-    }
+    use AdmissionAccess;
+
 
     public function index()
     {

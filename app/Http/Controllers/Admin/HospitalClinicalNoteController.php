@@ -23,45 +23,8 @@ class HospitalClinicalNoteController extends Controller
         return $user;
     }
 
-    private function canAccessAdmission(User $user, HospitalAdmission $admission): bool
-    {
-        if ((int) $admission->restaurant_id !== (int) $user->effectiveRestaurantId()) {
-            return false;
-        }
+    use AdmissionAccess;
 
-        if ($user->isRestaurantManager()) {
-            return true;
-        }
-
-        if ($user->staff_type === 'doctor') {
-            return $admission->doctor?->user_id === $user->id;
-        }
-
-        return $user->staff_type === 'nurse'
-            && $admission->status !== 'discharged'
-            && $admission->nursingAssignments()
-                ->where('nurse_id', $user->id)
-                ->where('status', 'active')
-                ->exists();
-    }
-
-    private function admissionQuery(User $user)
-    {
-        $query = HospitalAdmission::with('patient')->where('restaurant_id', $user->effectiveRestaurantId());
-
-        if ($user->isRestaurantManager()) {
-            return $query;
-        }
-
-        if ($user->staff_type === 'doctor') {
-            return $query->whereHas('doctor', fn ($doctor) => $doctor->where('user_id', $user->id));
-        }
-
-        return $query->where('status', '!=', 'discharged')
-            ->whereHas('nursingAssignments', fn ($assignment) => $assignment
-                ->where('nurse_id', $user->id)
-                ->where('status', 'active'));
-    }
 
     public function index()
     {

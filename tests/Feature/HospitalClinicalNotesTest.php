@@ -7,6 +7,7 @@ use App\Models\HospitalAdmission;
 use App\Models\HospitalClinicalNote;
 use App\Models\NursingAssignment;
 use App\Models\Patient;
+use App\Models\Department;
 use App\Models\Restaurant;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -113,6 +114,30 @@ class HospitalClinicalNotesTest extends TestCase
         $this->actingAs($otherManager)->patch(route('manager.hospital-clinical-notes.update', $note), [
             'content' => 'Cross tenant', 'recorded_at' => '2026-09-15 10:00:00', 'correction_notes' => 'No',
         ])->assertNotFound();
+    }
+
+    public function test_doctor_cannot_create_for_other_doctors_admission_when_not_same_department(): void
+    {
+        $restaurant = $this->restaurant(['hospital-clinical-notes']);
+        $patient = Patient::create(['restaurant_id' => $restaurant->id, 'patient_number' => 'P-D1', 'name' => 'Patient D1']);
+        $deptA = Department::create(['restaurant_id' => $restaurant->id, 'name' => 'Dept A', 'code' => 'DA-' . uniqid(), 'is_active' => true]);
+        $deptB = Department::create(['restaurant_id' => $restaurant->id, 'name' => 'Dept B', 'code' => 'DB-' . uniqid(), 'is_active' => true]);
+
+        $doctorUserA = $this->user($restaurant, ['role' => 'staff', 'staff_type' => 'doctor']);
+        $doctorA = Doctor::create(['restaurant_id' => $restaurant->id, 'user_id' => $doctorUserA->id, 'name' => 'Doctor A', 'department_id' => $deptA->id, 'status' => 'active']);
+
+        $doctorUserB = $this->user($restaurant, ['role' => 'staff', 'staff_type' => 'doctor']);
+        $doctorB = Doctor::create(['restaurant_id' => $restaurant->id, 'user_id' => $doctorUserB->id, 'name' => 'Doctor B', 'department_id' => $deptB->id, 'status' => 'active']);
+
+        $admission = $this->admission($restaurant, $patient, $doctorB->id);
+        $admission->update(['department_id' => $deptB->id]);
+
+        $this->actingAs($doctorUserA)->post(route('manager.hospital-clinical-notes.store'), [
+            'hospital_admission_id' => $admission->id,
+            'note_type' => 'clinical',
+            'content' => 'Unauthorized attempt',
+            'recorded_at' => '2026-09-15 10:00:00',
+        ])->assertForbidden();
     }
 
     private function restaurant(array $modules): Restaurant
