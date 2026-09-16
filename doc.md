@@ -1423,3 +1423,14 @@ Recent change (2026-09-16T17:32:27+05:00):
 - Hardened HospitalAdmissionController::tenantUserId to fall back to the default users table when a separate tenant DB connection is not configured; this makes the discharge flow and tests robust in single-db test environments.
 
 All related focused tests pass locally.
+
+- Billing report CSV output now includes the same Department value used by the
+  HTML department/service grouping, with an `Unassigned department` fallback.
+- Regression coverage verifies department grouping in both HTML and streamed
+  CSV responses, alongside the existing payment-ledger coverage for partial
+  payments, refunds, duplicate references, tenant isolation, and discharge
+  blocking.
+- Payment/refund/insurance allocation remains the next design slice. The
+  current ledger intentionally keeps allocation at the charge level until
+  insurer-versus-patient split precedence is approved; no incomplete test
+  placeholders remain in the suite.
