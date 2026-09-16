@@ -449,9 +449,15 @@ module gating, tests, and browser verification.
 
 ### Current next step: inpatient billing reconciliation and reporting hardening
 
-The core billing behavior is implemented and verified. The next improvement
-should consolidate the operational presentation and reconciliation surfaces
-before adding a deferred clinical module:
+The first item in this slice is now implemented: a tenant-scoped unified
+admission invoice view is available from the Hospital Billing page and
+consolidates every inpatient charge for one admission. It shows invoice
+numbers, service type, quantities, gross amounts, settled amounts, status,
+insurance linkage, and gross/settled/outstanding/draft totals. Manager,
+doctor, and assigned-nurse visibility follows the existing billing access
+rules, and cross-tenant admission lookup is rejected.
+
+The remaining improvements in this slice are:
 
 - provide one admission invoice view combining bed, pharmacy, laboratory,
   radiology, and theatre charges;

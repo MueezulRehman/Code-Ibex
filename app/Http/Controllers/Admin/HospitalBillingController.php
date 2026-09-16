@@ -164,6 +164,38 @@ class HospitalBillingController extends Controller
         ]);
     }
 
+    public function admissionInvoice(int $admission)
+    {
+        $user = $this->user();
+        $restaurantId = (int) $user->effectiveRestaurantId();
+        $admission = HospitalAdmission::with('patient')
+            ->where('restaurant_id', $restaurantId)
+            ->findOrFail($admission);
+
+        if ($user->staff_type === 'nurse' && ! $user->isRestaurantManager()) {
+            abort_unless($user->nursingAssignments()
+                ->where('hospital_admission_id', $admission->id)
+                ->where('status', 'active')->exists(), 403);
+        }
+
+        $billings = HospitalBilling::with(['payments', 'insuranceClaim', 'insurancePolicy'])
+            ->where('restaurant_id', $restaurantId)
+            ->where('hospital_admission_id', $admission->id)
+            ->orderBy('charged_at')->orderBy('id')->get();
+
+        return view('manager.hospital-billing.admission-invoice', [
+            'admission' => $admission,
+            'billings' => $billings,
+            'summary' => [
+                'gross' => (float) $billings->whereIn('status', ['draft', 'posted', 'paid'])->sum('total_amount'),
+                'settled' => (float) $billings->sum(fn (HospitalBilling $billing): float => $billing->settledAmount()),
+                'outstanding' => (float) $billings->where('status', 'posted')
+                    ->sum(fn (HospitalBilling $billing): float => $billing->outstandingAmount()),
+                'draft' => (float) $billings->where('status', 'draft')->sum('total_amount'),
+            ],
+        ]);
+    }
+
     public function report(Request $request)
     {
         $user = $this->manage();

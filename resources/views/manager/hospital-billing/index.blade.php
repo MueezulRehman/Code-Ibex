@@ -93,7 +93,11 @@
                     <tr>
                         <td class="px-4 py-3">
                             <div class="font-semibold">{{ $billing->invoice_number }}</div>
-                            {{ $billing->admission?->admission_number }}
+                            @if($billing->hospital_admission_id)
+                                <a href="{{ route('manager.hospital-billing.admission-invoice', $billing->hospital_admission_id) }}" class="font-semibold text-blue-700 hover:underline">{{ $billing->admission?->admission_number }}</a>
+                            @else
+                                {{ $billing->admission?->admission_number }}
+                            @endif
                             <div class="text-xs text-gray-500">{{ $billing->patient?->name }}</div>
                         </td>
                         <td class="px-3 py-3">

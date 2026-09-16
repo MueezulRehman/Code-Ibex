@@ -134,4 +134,41 @@ class HospitalBillingInvoiceReceiptTest extends TestCase
             ->get(route('manager.hospital-billing.receipt', $billing))
             ->assertNotFound();
     }
+
+    public function test_manager_can_view_unified_admission_invoice(): void
+    {
+        [, $manager, $admission] = $this->setupHospital();
+        $bed = $this->charge($admission, 'posted');
+        $lab = HospitalBilling::create([
+            'restaurant_id' => $admission->restaurant_id,
+            'patient_id' => $admission->patient_id,
+            'hospital_admission_id' => $admission->id,
+            'charge_type' => 'laboratory',
+            'description' => 'Complete blood count',
+            'quantity' => 2,
+            'unit_amount' => 75,
+            'status' => 'draft',
+            'charged_at' => now(),
+        ]);
+
+        $this->actingAs($manager)
+            ->get(route('manager.hospital-billing.admission-invoice', $admission))
+            ->assertOk()
+            ->assertSee($admission->admission_number)
+            ->assertSee($bed->invoice_number)
+            ->assertSee($lab->invoice_number)
+            ->assertSee('Complete blood count')
+            ->assertSee('Gross')
+            ->assertSee('Outstanding');
+    }
+
+    public function test_admission_invoice_cannot_cross_tenant_boundary(): void
+    {
+        [, $manager, $admission] = $this->setupHospital('one');
+        [, $otherManager] = $this->setupHospital('two');
+
+        $this->actingAs($otherManager)
+            ->get(route('manager.hospital-billing.admission-invoice', $admission))
+            ->assertNotFound();
+    }
 }

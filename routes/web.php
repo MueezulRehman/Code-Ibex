@@ -546,6 +546,7 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/hospital-billing/admissions/{admission}/insurance', [App\Http\Controllers\Admin\HospitalPatientInsuranceController::class, 'linkAdmission'])->name('hospital-billing.insurance.admission');
             Route::get('/hospital-billing/report', [App\Http\Controllers\Admin\HospitalBillingController::class, 'report'])->name('hospital-billing.report');
             Route::get('/hospital-billing/report/export', [App\Http\Controllers\Admin\HospitalBillingController::class, 'exportReport'])->name('hospital-billing.report.export');
+            Route::get('/hospital-billing/admissions/{admission}/invoice', [App\Http\Controllers\Admin\HospitalBillingController::class, 'admissionInvoice'])->name('hospital-billing.admission-invoice');
             Route::post('/hospital-billing', [App\Http\Controllers\Admin\HospitalBillingController::class, 'store'])->name('hospital-billing.store');
             Route::patch('/hospital-billing/{billing}', [App\Http\Controllers\Admin\HospitalBillingController::class, 'update'])->name('hospital-billing.update');
             Route::patch('/hospital-billing/{billing}/insurance-claim', [App\Http\Controllers\Admin\HospitalBillingController::class, 'linkInsuranceClaim'])->name('hospital-billing.insurance-claim');
