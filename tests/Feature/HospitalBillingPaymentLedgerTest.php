@@ -4,6 +4,7 @@ namespace Tests\Feature;
 
 use App\Models\HospitalAdmission;
 use App\Models\HospitalBilling;
+use App\Models\HospitalPatientInsurance;
 use App\Models\Patient;
 use App\Models\Restaurant;
 use App\Models\User;
@@ -151,6 +152,127 @@ class HospitalBillingPaymentLedgerTest extends TestCase
         ])->assertNotFound();
         $this->assertDatabaseHas('hospital_billings', ['id' => $billing->id, 'restaurant_id' => $restaurant->id]);
         $this->assertDatabaseCount('hospital_billing_payments', 0);
+    }
+
+    public function test_insurance_payments_require_an_explicit_policy_link(): void
+    {
+        [, $manager, $admission, $billing] = $this->fixture('insurance-policy');
+        $policy = HospitalPatientInsurance::create([
+            'restaurant_id' => $admission->restaurant_id,
+            'patient_id' => $admission->patient_id,
+            'payer' => 'Blue Cross',
+            'policy_number' => 'POL-INS-1001',
+            'member_number' => 'MEM-1001',
+            'coverage_starts' => now()->subMonth(),
+            'coverage_ends' => now()->addMonth(),
+            'status' => 'active',
+        ]);
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 20,
+            'method' => 'insurance',
+            'reference' => 'INS-UNLINKED',
+        ])->assertStatus(422);
+
+        $billing->update(['hospital_patient_insurance_id' => $policy->id]);
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 20,
+            'method' => 'insurance',
+            'reference' => 'INS-LINKED',
+        ])->assertRedirect();
+
+        $billing = $billing->fresh();
+        $this->assertSame(20.0, $billing->settledAmount());
+        $this->assertSame('posted', $billing->status);
+        $this->assertSame(80.0, $billing->outstandingAmount());
+    }
+
+    public function test_insurance_refunds_are_rejected_until_the_residual_patient_ledger_is_used(): void
+    {
+        [, $manager, , $billing] = $this->fixture('insurance-refund');
+        $policy = HospitalPatientInsurance::create([
+            'restaurant_id' => $billing->restaurant_id,
+            'patient_id' => $billing->patient_id,
+            'payer' => 'Apex Care',
+            'policy_number' => 'POL-INS-2001',
+            'member_number' => 'MEM-2001',
+            'coverage_starts' => now()->subMonth(),
+            'coverage_ends' => now()->addMonth(),
+            'status' => 'active',
+        ]);
+        $billing->update(['hospital_patient_insurance_id' => $policy->id]);
+
+        $this->actingAs($manager)->patch(route('manager.hospital-billing.pay', $billing), [
+            'payment_reference' => 'INS-REFUND-PAID',
+            'payment_method' => 'insurance',
+        ])->assertRedirect();
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.refunds.store', $billing), [
+            'amount' => 10,
+            'reference' => 'INS-REFUND-DIRECT',
+            'payment_method' => 'insurance',
+        ])->assertStatus(422);
+    }
+
+    public function test_insurance_payment_follows_insurer_first_then_patient_residual_policy(): void
+    {
+        [, $manager, $admission, $billing] = $this->fixture('insurer-first');
+        $policy = HospitalPatientInsurance::create([
+            'restaurant_id' => $admission->restaurant_id,
+            'patient_id' => $admission->patient_id,
+            'payer' => 'Blue Shield',
+            'policy_number' => 'POL-INS-2002',
+            'member_number' => 'MEM-2002',
+            'coverage_starts' => now()->subMonth(),
+            'coverage_ends' => now()->addMonth(),
+            'status' => 'active',
+        ]);
+        $claim = \App\Models\InsuranceClaim::create([
+            'restaurant_id' => $admission->restaurant_id,
+            'provider_id' => null,
+            'hospital_patient_insurance_id' => $policy->id,
+            'claim_number' => 'CLM-INS-2002',
+            'claimed_amount' => 100,
+            'approved_amount' => 80,
+            'status' => 'approved',
+        ]);
+        $billing->update([
+            'hospital_patient_insurance_id' => $policy->id,
+            'insurance_claim_id' => $claim->id,
+        ]);
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 90,
+            'method' => 'insurance',
+            'reference' => 'INS-OVER',
+        ])->assertStatus(422);
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 80,
+            'method' => 'insurance',
+            'reference' => 'INS-PRIMARY',
+        ])->assertRedirect();
+
+        $this->assertSame(80.0, $billing->fresh()->settledAmount());
+        $this->assertSame(20.0, $billing->fresh()->remainingPatientBalance());
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 21,
+            'method' => 'card',
+            'reference' => 'PATIENT-RESIDUAL',
+        ])->assertStatus(422);
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), [
+            'amount' => 20,
+            'method' => 'card',
+            'reference' => 'PATIENT-RESIDUAL-OK',
+        ])->assertRedirect();
+
+        $billing = $billing->fresh();
+        $this->assertSame(100.0, $billing->settledAmount());
+        $this->assertSame('paid', $billing->status);
+        $this->assertSame('insurance_first_then_patient', $billing->settlementPrecedence()['precedence']);
     }
 
     public function test_partial_settlement_still_blocks_discharge(): void

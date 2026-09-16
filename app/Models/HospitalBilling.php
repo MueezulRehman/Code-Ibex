@@ -71,6 +71,67 @@ class HospitalBilling extends Model
     public function insuranceClaim() { return $this->belongsTo(InsuranceClaim::class, 'insurance_claim_id'); }
     public function insurancePolicy() { return $this->belongsTo(HospitalPatientInsurance::class, 'hospital_patient_insurance_id'); }
 
+    public function canAcceptInsurancePayment(): bool
+    {
+        return ! empty($this->hospital_patient_insurance_id) || ! empty($this->insurance_claim_id);
+    }
+
+    public function insurerApprovedAmount(): float
+    {
+        if (! $this->canAcceptInsurancePayment()) {
+            return 0.0;
+        }
+
+        $approved = $this->insuranceClaim?->approved_amount ?? null;
+        if (is_numeric($approved) && (float) $approved > 0) {
+            return min(round((float) $approved, 2), round((float) $this->total_amount, 2));
+        }
+
+        return round((float) $this->total_amount, 2);
+    }
+
+    public function insurerSettledAmount(): float
+    {
+        $payments = $this->payments()->where('status', 'posted');
+        $insurancePayments = (float) (clone $payments)->where('type', 'payment')->where('method', 'insurance')->sum('amount');
+        $insuranceRefunds = (float) (clone $payments)->where('type', 'refund')->where('method', 'insurance')->sum('amount');
+
+        return round($insurancePayments - $insuranceRefunds, 2);
+    }
+
+    public function patientResidualAmount(): float
+    {
+        return max(round((float) $this->total_amount - $this->insurerApprovedAmount(), 2), 0.0);
+    }
+
+    public function patientSettledAmount(): float
+    {
+        return max(round($this->settledAmount() - $this->insurerSettledAmount(), 2), 0.0);
+    }
+
+    public function remainingInsuranceCoverage(): float
+    {
+        return max(round($this->insurerApprovedAmount() - $this->insurerSettledAmount(), 2), 0.0);
+    }
+
+    public function remainingPatientBalance(): float
+    {
+        return max(round($this->patientResidualAmount() - $this->patientSettledAmount(), 2), 0.0);
+    }
+
+    public function settlementPrecedence(): array
+    {
+        return [
+            'precedence' => 'insurance_first_then_patient',
+            'requires_linked_policy_for_insurance' => true,
+            'has_linked_policy' => $this->canAcceptInsurancePayment(),
+            'insurer_approved_amount' => $this->insurerApprovedAmount(),
+            'patient_residual_amount' => $this->patientResidualAmount(),
+            'remaining_insurance_coverage' => $this->remainingInsuranceCoverage(),
+            'remaining_patient_balance' => $this->remainingPatientBalance(),
+        ];
+    }
+
     public function settledAmount(): float
     {
         if ($this->relationLoaded('payments')) {

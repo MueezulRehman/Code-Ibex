@@ -82,6 +82,7 @@ class HospitalBillingInsuranceReportTest extends TestCase
             ->assertOk()
             ->assertSee('Insurance linked')
             ->assertSee('Insurance outstanding')
+            ->assertSee('Settlement precedence: insurer-covered amounts are settled first')
             ->assertSee('300.00')
             ->assertSee('Totals by charge type')
             ->assertSee('laboratory');

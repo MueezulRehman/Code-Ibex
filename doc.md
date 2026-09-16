@@ -14,6 +14,26 @@ The immediate goal is not to expand the product. The immediate goal is to make
 the current admin, manager, authentication, tenancy, and core business flows
 reliable enough that future changes can be made safely.
 
+### Current hardening focus
+
+- Keep the billing and discharge flow as the active slice while we tighten the
+  remaining integrity rules.
+- Resolve audit actors through a tenant-safe fallback path so discharge and bed-
+  transfer records never depend on a central manager account existing in the
+  tenant database.
+- Maintain the conservative billing policy: posted balances remain unpaid until
+  settled, refunds and duplicate references are rejected, and the current logic
+  remains tenant-scoped and manager-only.
+- Formalize insurer-first settlement precedence: insurer-linked payments are only
+  accepted when a charge has a valid hospital insurance policy or claim; the
+  billing ledger resolves any settlement in this order: insurer-covered amount up
+  to the approved claim/policy limit first, then patient residual balance for any
+  remaining portion, with insurer refunds rejected and patient residual payment
+  tracked separately.
+- Keep Blood Bank and other optional medical modules explicitly deferred until
+  hospital operations confirm the inventory, donor, compatibility, and audit
+  rules required for those modules.
+
 ### Professional Hospital module access and demo tenant
 
 - Professional Hospital has one centralized implemented-module bundle in

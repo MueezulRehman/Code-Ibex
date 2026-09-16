@@ -71,6 +71,11 @@ class HospitalAdmissionController extends Controller
         return $query->value('id') ?? DB::table('users')->orderBy('id')->value('id');
     }
 
+    private function tenantAuditActorId(User $user, int $restaurantId): int
+    {
+        return (int) ($this->tenantUserId($user, $restaurantId) ?? $user->id);
+    }
+
     public function index()
     {
         $admissions = HospitalAdmission::with([
@@ -174,7 +179,7 @@ class HospitalAdmissionController extends Controller
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
         $admission = HospitalAdmission::query()->findOrFail($admission);
-        $postedBy = $this->tenantUserId($user, $restaurantId);
+        $auditActorId = $this->tenantAuditActorId($user, $restaurantId);
         abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
@@ -184,7 +189,7 @@ class HospitalAdmissionController extends Controller
             return back()->withErrors(['bed_id' => 'Admission is already assigned to this bed.']);
         }
 
-        DB::transaction(function () use ($admission, $data, $restaurantId, $user, $postedBy): void {
+        DB::transaction(function () use ($admission, $data, $restaurantId, $auditActorId): void {
             $bed = Bed::where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
                 ->where('status', 'available')->lockForUpdate()->firstOrFail();
             $previousBedId = $admission->bed_id;
@@ -213,7 +218,7 @@ class HospitalAdmissionController extends Controller
                         'unit_amount' => $bed->ward->daily_rate,
                         'status' => 'draft',
                         'charged_at' => now(),
-                        'posted_by' => $postedBy,
+                        'posted_by' => $auditActorId,
                         'notes' => 'Initial daily bed charge; subsequent stay-day charging remains manager-controlled.',
                     ]);
                     HospitalBedStayPeriod::create([
@@ -234,8 +239,8 @@ class HospitalAdmissionController extends Controller
                 'new_ward_id' => $newWardId,
                 'previous_department_id' => $previousDepartmentId,
                 'new_department_id' => $newDepartmentId,
-                'requested_by' => $postedBy,
-                'approved_by' => $postedBy,
+                'requested_by' => $auditActorId,
+                'approved_by' => $auditActorId,
                 'transferred_at' => now(),
                 'reason' => 'Bed assignment update',
                 'notes' => 'Bed assigned by manager.',
@@ -248,7 +253,7 @@ class HospitalAdmissionController extends Controller
                 'to_department_id' => $newDepartmentId,
                 'from_bed_id' => $previousBedId,
                 'to_bed_id' => $bed->id,
-                'requested_by' => $postedBy,
+                'requested_by' => $auditActorId,
                 'transferred_at' => now(),
                 'reason' => 'Bed assignment update',
                 'notes' => 'Bed assigned by manager.',
@@ -262,7 +267,7 @@ class HospitalAdmissionController extends Controller
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
         $admission = HospitalAdmission::query()->findOrFail($admission);
-        $postedBy = $this->tenantUserId($user, $restaurantId);
+        $auditActorId = $this->tenantAuditActorId($user, $restaurantId);
         abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
@@ -279,7 +284,7 @@ class HospitalAdmissionController extends Controller
             ])->withInput();
         }
 
-        DB::transaction(function () use ($admission, $data, $restaurantId, $user, $postedBy): void {
+        DB::transaction(function () use ($admission, $data, $restaurantId, $auditActorId): void {
             $postedBillings = $admission->billings()->where('status', 'posted')
                 ->with('payments')->lockForUpdate()->get();
             abort_if(
@@ -320,7 +325,7 @@ class HospitalAdmissionController extends Controller
                 'discharge_medications' => $data['discharge_medications'] ?? null,
                 'follow_up_instructions' => $data['follow_up_instructions'] ?? null,
                 'notes' => $data['notes'] ?? null,
-                'discharged_by' => $postedBy,
+                'discharged_by' => $auditActorId,
                 'discharged_at' => $data['discharged_at'],
             ]);
             DischargeSummaryEvent::create([
@@ -334,7 +339,7 @@ class HospitalAdmissionController extends Controller
                     'follow_up_instructions' => $data['follow_up_instructions'] ?? null,
                     'notes' => $data['notes'] ?? null,
                 ],
-                'changed_by' => $postedBy,
+                'changed_by' => $auditActorId,
                 'changed_at' => now(),
                 'correction_reason' => null,
             ]);
@@ -369,7 +374,9 @@ class HospitalAdmissionController extends Controller
             return back()->withErrors(['correction_notes' => 'The correction does not change the discharge summary.'])->withInput();
         }
 
-        DB::transaction(function () use ($summary, $restaurantId, $user, $previous, $new, $data): void {
+        $auditActorId = $this->tenantAuditActorId($user, $restaurantId);
+
+        DB::transaction(function () use ($summary, $restaurantId, $auditActorId, $previous, $new, $data): void {
             $locked = DischargeSummary::where('restaurant_id', $restaurantId)->lockForUpdate()->findOrFail($summary->id);
             $locked->update($new);
             DischargeSummaryEvent::create([
@@ -378,7 +385,7 @@ class HospitalAdmissionController extends Controller
                 'action' => 'edited',
                 'previous_snapshot' => $previous,
                 'new_snapshot' => $new,
-                'changed_by' => $user->id,
+                'changed_by' => $auditActorId,
                 'changed_at' => now(),
                 'correction_reason' => $data['correction_notes'],
             ]);
@@ -392,7 +399,7 @@ class HospitalAdmissionController extends Controller
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
         $admission = HospitalAdmission::query()->findOrFail($admission);
-        $postedBy = $this->tenantUserId($user, $restaurantId);
+        $auditActorId = $this->tenantAuditActorId($user, $restaurantId);
         abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
@@ -412,7 +419,7 @@ class HospitalAdmissionController extends Controller
             return back()->withErrors(['bed_id' => 'Select a bed or release the current bed before recording an empty transfer.']);
         }
 
-        DB::transaction(function () use ($data, $admission, $restaurantId, $user, $postedBy): void {
+        DB::transaction(function () use ($data, $admission, $restaurantId, $auditActorId): void {
             $newBed = null;
             if (! empty($data['bed_id'])) {
                 $newBed = Bed::with('ward')->where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
@@ -452,7 +459,7 @@ class HospitalAdmissionController extends Controller
                     'hospital_admission_id' => $admission->id, 'charge_type' => 'bed',
                     'description' => 'Bed accommodation - '.($newBed->ward?->room_category ?: $newBed->ward?->name),
                     'quantity' => 1, 'unit_amount' => $newBed->ward->daily_rate, 'status' => 'draft',
-                    'charged_at' => $transferredAt, 'posted_by' => $postedBy,
+                    'charged_at' => $transferredAt, 'posted_by' => $auditActorId,
                     'notes' => 'New bed-stay pricing period.',
                 ]);
                 HospitalBedStayPeriod::create([
@@ -475,8 +482,8 @@ class HospitalAdmissionController extends Controller
                     'new_ward_id' => $newWardId,
                     'previous_department_id' => $oldDepartmentId,
                     'new_department_id' => $newDepartmentId,
-                    'requested_by' => $postedBy,
-                    'approved_by' => $postedBy,
+                    'requested_by' => $auditActorId,
+                    'approved_by' => $auditActorId,
                     'transferred_at' => $data['transferred_at'],
                     'reason' => $data['reason'],
                     'notes' => $data['notes'] ?? null,
@@ -490,7 +497,7 @@ class HospitalAdmissionController extends Controller
                 'to_department_id' => $newDepartmentId,
                 'from_bed_id' => $oldBedId,
                 'to_bed_id' => $newBed?->id,
-                'requested_by' => $postedBy,
+                'requested_by' => $auditActorId,
                 'transferred_at' => $data['transferred_at'],
                 'reason' => $data['reason'],
                 'notes' => $data['notes'] ?? null,

@@ -244,6 +244,7 @@ class HospitalBillingController extends Controller
             'outstanding' => (float) $billings->where('status', 'posted')->sum(fn ($billing) => $billing->outstandingAmount()),
             'insurance_linked' => (float) $billings->whereNotNull('insurance_claim_id')->sum('total_amount'),
             'insurance_outstanding' => (float) $billings->whereNotNull('insurance_claim_id')->where('status', 'posted')->sum(fn ($billing) => $billing->outstandingAmount()),
+            'settlement_precedence' => 'insurance_first_then_patient',
         ];
         $totals['insurance_linked_amount'] = $totals['insurance_linked'];
         $totals['insurance_linked_outstanding'] = $totals['insurance_outstanding'];
@@ -393,6 +394,18 @@ class HospitalBillingController extends Controller
         $reference = trim($data['payment_reference'] ?? $data['reference'] ?? '');
         abort_unless($reference !== '', 422, 'A payment reference is required.');
 
+        $method = strtolower((string) ($data['payment_method'] ?? $data['method'] ?? 'other'));
+        if ($method === 'insurance' && ! $billing->canAcceptInsurancePayment()) {
+            abort(422, 'Insurance settlement requires a linked hospital insurance policy or claim before payment can be recorded.');
+        }
+
+        $amount = round((float) ($data['amount'] ?? $billing->outstandingAmount()), 2);
+        if ($method === 'insurance') {
+            abort_if($amount > $billing->remainingInsuranceCoverage(), 422, 'Insurance payment cannot exceed the remaining insurer-covered amount.');
+        } else {
+            abort_if($amount > $billing->remainingPatientBalance(), 422, 'Patient payment cannot exceed the remaining patient residual balance.');
+        }
+
         $duplicate = false;
         DB::transaction(function () use ($billing, $data, $reference, $user, &$duplicate): void {
             $billing = HospitalBilling::where('restaurant_id', $user->effectiveRestaurantId())
@@ -409,6 +422,12 @@ class HospitalBillingController extends Controller
             }
             $amount = round((float) ($data['amount'] ?? $billing->outstandingAmount()), 2);
             abort_if($amount <= 0, 422, 'This charge has no outstanding balance.');
+            $method = strtolower((string) ($data['payment_method'] ?? $data['method'] ?? 'other'));
+            if ($method === 'insurance') {
+                abort_if($amount > $billing->remainingInsuranceCoverage(), 422, 'Insurance payment cannot exceed the remaining insurer-covered amount.');
+            } else {
+                abort_if($amount > $billing->remainingPatientBalance(), 422, 'Patient payment cannot exceed the remaining patient residual balance.');
+            }
             abort_if($amount > $billing->outstandingAmount(), 422, 'Payment cannot exceed the outstanding balance.');
 
             HospitalBillingPayment::create([
@@ -455,6 +474,11 @@ class HospitalBillingController extends Controller
         ]);
 
         $duplicate = false;
+        $refundMethod = strtolower((string) ($data['payment_method'] ?? $data['method'] ?? 'other'));
+        if ($refundMethod === 'insurance') {
+            abort(422, 'Insurance refunds are not allowed directly; settle any insurer-linked balance through the patient residual ledger.');
+        }
+
         DB::transaction(function () use ($billing, $data, $user, &$duplicate): void {
             $billing = HospitalBilling::with('payments')->where('restaurant_id', $user->effectiveRestaurantId())
                 ->whereKey($billing->id)->lockForUpdate()->firstOrFail();

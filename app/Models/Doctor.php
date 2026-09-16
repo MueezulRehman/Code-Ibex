@@ -9,6 +9,10 @@ class Doctor extends Model
 {
     use BelongsToRestaurant;
 
+    protected $attributes = [
+        'specialty' => 'General Medicine',
+    ];
+
     protected $fillable = [
         'restaurant_id',
         'user_id',

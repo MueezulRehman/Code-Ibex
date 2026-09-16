@@ -81,7 +81,7 @@ class DoctorController extends Controller
         $restaurantId = $this->restaurantId();
         return [
             'name' => ['required', 'string', 'max:255'],
-            'specialty' => ['required', 'string', 'max:255'],
+            'specialty' => ['nullable', 'string', 'max:255'],
             'phone' => ['nullable', 'string', 'max:40'],
             'email' => ['nullable', 'email', 'max:255'],
             'address' => ['nullable', 'string', 'max:500'],

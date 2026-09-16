@@ -12,7 +12,7 @@ return new class extends Migration
             $table->id();
             $table->foreignId('restaurant_id')->constrained()->cascadeOnDelete();
             $table->string('name');
-            $table->string('specialty');
+            $table->string('specialty')->nullable()->default('General Medicine');
             $table->string('phone', 40)->nullable();
             $table->string('email')->nullable();
             $table->string('address', 500)->nullable();

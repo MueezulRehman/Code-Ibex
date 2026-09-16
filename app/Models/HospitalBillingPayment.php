@@ -62,6 +62,7 @@ class HospitalBillingPayment extends Model
     {
         static::creating(function (self $payment): void {
             $amount = round((float) $payment->amount, 2);
+            $method = strtolower((string) ($payment->method ?? ''));
             if ($amount <= 0) {
                 throw ValidationException::withMessages(['amount' => 'Payment amount must be positive.']);
             }
@@ -77,10 +78,29 @@ class HospitalBillingPayment extends Model
             if (! in_array($billing->status, ['posted', 'paid'], true)) {
                 throw ValidationException::withMessages(['status' => 'Only posted or paid charges can have ledger entries.']);
             }
+            if ($method === 'insurance' && ! $billing->canAcceptInsurancePayment()) {
+                throw ValidationException::withMessages(['method' => 'Insurance settlement requires a linked hospital insurance policy or claim.']);
+            }
+            if ($payment->type === 'refund' && $method === 'insurance') {
+                throw ValidationException::withMessages(['method' => 'Insurance refunds must be settled against the patient residual ledger.']);
+            }
 
             $settled = $billing->settledAmount();
-            if ($payment->type === 'payment' && $amount > $billing->outstandingAmount()) {
-                throw ValidationException::withMessages(['amount' => 'Payment cannot exceed the outstanding balance.']);
+            if ($payment->type === 'payment') {
+                $remainingInsurance = $billing->remainingInsuranceCoverage();
+                $remainingPatient = $billing->remainingPatientBalance();
+
+                if ($method === 'insurance' && $amount > $remainingInsurance) {
+                    throw ValidationException::withMessages(['amount' => 'Insurance payment cannot exceed the remaining insurer-covered amount.']);
+                }
+
+                if ($method !== 'insurance' && $amount > $remainingPatient) {
+                    throw ValidationException::withMessages(['amount' => 'Patient payment cannot exceed the remaining patient residual balance.']);
+                }
+
+                if ($amount > $billing->outstandingAmount()) {
+                    throw ValidationException::withMessages(['amount' => 'Payment cannot exceed the outstanding balance.']);
+                }
             }
             if ($payment->type === 'refund' && $amount > $settled) {
                 throw ValidationException::withMessages(['amount' => 'Refund cannot exceed the settled payment balance.']);

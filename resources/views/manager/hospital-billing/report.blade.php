@@ -26,6 +26,10 @@
         </form>
     </div>
 
+    <div class="rounded-xl border border-blue-100 bg-blue-50 px-4 py-3 text-sm text-blue-900">
+        Settlement precedence: insurer-covered amounts are settled first, then any remaining patient balance is settled separately; insurance refunds are rejected and patient residuals remain distinct in the ledger.
+    </div>
+
     <div class="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         @foreach([['Gross', $totals['gross']], ['Settled', $totals['settled']], ['Refunded', $totals['refunded']], ['Outstanding', $totals['outstanding']], ['Insurance linked', $totals['insurance_linked']], ['Insurance outstanding', $totals['insurance_outstanding']]] as $metric)
             <div class="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"><div class="text-[10px] font-semibold uppercase tracking-wide text-gray-500">{{ $metric[0] }}</div><div class="mt-1 text-xl font-bold text-hut-dark">{{ number_format((float) $metric[1], 2) }}</div></div>
