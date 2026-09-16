@@ -351,6 +351,31 @@ existing draft bed charge idempotently, and creates a final draft charge only
 when an initial charge does not exist. Posted or paid charges are not silently
 rewritten.
 
+### Professional Hospital roadmap audit
+
+The current Professional Hospital implementation status is:
+
+- **Implemented and enabled:** admissions, departments, wards/locations/beds,
+  nursing, staff rosters, vital signs, clinical notes, care plans, medication
+  ordering/administration and fulfillment, laboratory, radiology, operating
+  theatre/surgery, billing, insurance, payments, discharge, reports, and
+  exports.
+- **Deferred with locked module keys:** Emergency Department
+  (`hospital-emergency`), Blood Bank (`hospital-blood-bank`), and Dialysis
+  (`hospital-dialysis`). These keys are shown as unavailable in the module
+  configuration, but they have no implemented routes, models, migrations, or
+  tenant enablement.
+- **Deferred roadmap-only domains:** Ambulance Dispatch, Biomedical Equipment,
+  Mortuary, hospital Complaints, and Statutory/Compliance Reporting. These are
+  documented concepts, not implemented modules. Generic feedback and generic
+  reports must not be counted as those hospital domains.
+
+Blood Bank is therefore already present in the roadmap as an explicitly
+deferred domain, not as a completed or partially implemented feature. Adding
+it requires separate hospital approval, scope decisions, donor and inventory
+rules, compatibility/cross-match workflows, authorization, tenant migrations,
+module gating, tests, and browser verification.
+
 ### Inpatient billing verification and payment retry safety
 
 - Focused inpatient billing, invoice/receipt, insurance, and admission

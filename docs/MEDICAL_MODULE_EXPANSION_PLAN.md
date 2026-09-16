@@ -15,9 +15,9 @@ two-track hospital roadmap. The two business types have different scopes:
 Full-hospital models remain design-only until their individual scope,
 permissions, tenancy boundaries, and acceptance tests are approved. The
 admission, nursing, vital-signs, admission clinical notes, laboratory,
-radiology, operating-theatre, and hospital-billing slices below have now been
-individually implemented and verified; the remaining hospital domains remain
-planning-only.
+radiology, operating-theatre, medication, and hospital-billing slices below
+have now been individually implemented and verified; the remaining optional
+hospital domains remain planning-only.
 
 The inpatient medication administration slice is also implemented behind the
 dedicated `hospital-medication` module.
@@ -130,6 +130,29 @@ models, routes, and permissions for:
 Professional Hospital should be represented by a distinct persisted
 `BusinessType` and a separate module bundle. Existing Clinic / Doctor and
 Clinic Hospital tenants must not receive these modules automatically.
+
+#### Professional Hospital module status matrix
+
+| Domain | Current status | Implementation boundary |
+|---|---|---|
+| Admissions, departments, wards/beds, nursing, vital signs | Implemented | Enabled Professional Hospital modules with tenant migrations and tests |
+| Clinical notes, care plans, medication administration | Implemented | Enabled, admission-scoped clinical workflows with role checks |
+| Laboratory and radiology | Implemented | Enabled, admission-linked orders/results with audit history |
+| Operating theatre / surgery | Implemented | Enabled, room scheduling, conflict checks, readiness, and lifecycle |
+| Billing, insurance, payments, discharge | Implemented | Enabled, admission charges, settlement, reconciliation, and reports |
+| Blood Bank | Deferred | Locked `hospital-blood-bank` key only; no models, routes, migrations, or tenant enablement |
+| Emergency Department | Deferred | Locked `hospital-emergency` key only; no implemented workflow |
+| Dialysis | Deferred | Locked `hospital-dialysis` key only; no implemented workflow |
+| Ambulance dispatch | Deferred | Roadmap prose only; no module key or implementation |
+| Biomedical equipment | Deferred | Roadmap prose only; no module key or implementation |
+| Mortuary | Deferred | Roadmap prose only; no module key or implementation |
+| Complaints management | Deferred | Existing generic feedback is not a hospital complaints module |
+| Statutory/compliance reporting | Deferred | No hospital-specific implementation or jurisdiction approval |
+
+Deferred domains require explicit hospital approval, a scoped access model,
+tenant migrations, module gating, focused tests, and browser verification
+before implementation. They must not be inferred from the locked module keys
+or from the generic feedback/reporting features.
 
 #### Inpatient medication administration slice (implemented)
 
@@ -260,7 +283,7 @@ new values, actor, timestamp, and notes. Silent no-op edits and cross-tenant
 updates are rejected. Result audit history is visible to authorized managers
 from the respective module pages.
 
-### Proposed full-hospital model ownership
+### Implemented full-hospital model ownership
 
 All records below are tenant-owned and must use the existing tenancy pattern.
 They must link to the shared `Patient`, `Doctor`, `Visit`, and `User` records
@@ -287,21 +310,21 @@ where applicable; duplicate patient or outpatient models must not be created.
 | `DischargeSummary` | Professional Hospital | Treating doctor, nursing lead, admin |
 
 Conditional models such as BloodBank, AmbulanceTrip, Equipment, Complaint, and
-MortuaryRecord require a separate yes/no decision before being added.
+MortuaryRecord remain unimplemented and require a separate yes/no decision
+before being added.
 
-### Delivery order
+### Delivery order and current position
 
-1. Finish Track A browser verification with a newly registered Clinic Hospital.
-2. Add reusable staff profile and department foundations only after the fields
-   and assignment rules are approved.
-3. Add Professional Hospital as a separate business type with no enabled
-   inpatient modules until its first module slice is implemented.
-4. Implement admissions and departments before wards, beds, nursing, or
-   laboratory workflows.
-5. Implement each clinical department as an independently gated, tenant-safe
-   slice with focused tests and browser verification.
-6. Add consolidated billing and discharge only after departmental records are
-   stable.
+1. Track A browser verification and Professional Hospital rollout foundations
+   are complete for the current demo tenant.
+2. Admissions, departments, wards/beds, nursing, laboratory, radiology,
+   operating theatre, medication, billing, and discharge slices are implemented
+   and require ongoing tenant rollout/browser verification as new tenants are
+   provisioned.
+3. The current product focus is cross-module inpatient billing verification and
+   reconciliation hardening.
+4. Only after that verification is complete should a deferred domain be
+   proposed for approval; Blood Bank is not implicitly the next module.
 
 ### Track A verification result
 
@@ -1067,12 +1090,13 @@ transitions, discharge reconciliation, and the existing billing report
 semantics are unchanged. Central and tenant migrations use explicit short
 MySQL-safe identifiers.
 
-### HR and staff scheduling
+### HR and staff scheduling (partially implemented)
 
-This would provide duty rosters, shifts, availability, and attendance planning
-for doctors, nurses, and other hospital staff. It is separate from the existing
-generic Staff/Attendance module: the existing records may be referenced, but
-hospital scheduling rules are new functionality.
+The Professional Hospital staff-roster slice provides tenant-scoped duty
+rosters, shifts, and active-window conflict checks for doctors and nurses. It
+is separate from the existing generic Staff/Attendance module. Availability,
+leave planning, broader staff specialties, and richer workforce planning
+remain future extensions.
 
 ### Biomedical equipment and inventory
 
@@ -1081,17 +1105,17 @@ and lifecycle separately from retail and pharmacy stock. It is genuinely new
 inventory functionality and must not be folded into medicine or retail stock
 tables without a separate design.
 
-### Discharge workflow
+### Discharge workflow (implemented foundation)
 
-This would coordinate discharge authorization, discharge-summary generation,
-follow-up scheduling, medication instructions, and final billing
-reconciliation. It is genuinely new functionality that would link admission,
-clinical records, billing, and pharmacy.
+The implemented discharge foundation coordinates discharge authorization,
+discharge-summary generation, medication/follow-up instructions, and final
+billing reconciliation. It links admission, clinical records, and billing.
+Follow-up scheduling and deeper pharmacy reconciliation remain future
+extensions.
 
-The implemented discharge slice records a discharge summary and performs the
-first billing reconciliation gate. The server rechecks posted unpaid charges
-inside the discharge transaction, preserving the tenant boundary and preventing
-discharge until those charges are settled or voided.
+The server rechecks posted unpaid charges inside the discharge transaction,
+preserving the tenant boundary and preventing discharge until those charges are
+settled or voided.
 
 ### Medical records and EMR
 
