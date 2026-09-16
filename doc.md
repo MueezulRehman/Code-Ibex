@@ -365,6 +365,20 @@ rewritten.
 - A transient MySQL cleanup deadlock occurred during the first parallel
   environment run; the serial rerun passed completely. No application failure
   was reproduced.
+- Refund retries now use the same reference-based idempotency guard as
+  payments, preventing duplicate refund ledger rows and repeated settlement
+  changes.
+
+### Next approved slice: clinical access refinement
+
+Billing is now hardened for payment and refund retries. The next slice is to
+standardize doctor-to-admission access across clinical workflows, beginning
+with an explicit comparison of exact attending-doctor access versus
+department-level coverage in care plans, laboratory, radiology, notes, and
+medication ordering. Preserve manager access, nurse assignment access, tenant
+isolation, and existing audit behavior while adding focused authorization
+regression tests and browser verification for a doctor assigned to one
+admission and denied access to another.
 
 ## Progress Log
 

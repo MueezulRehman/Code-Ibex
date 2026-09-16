@@ -420,13 +420,24 @@ class HospitalBillingController extends Controller
             'payment_notes' => ['nullable', 'string', 'max:5000'],
         ]);
 
-        DB::transaction(function () use ($billing, $data, $user): void {
+        $duplicate = false;
+        DB::transaction(function () use ($billing, $data, $user, &$duplicate): void {
             $billing = HospitalBilling::with('payments')->where('restaurant_id', $user->effectiveRestaurantId())
                 ->whereKey($billing->id)->lockForUpdate()->firstOrFail();
             $settled = $billing->settledAmount();
             $amount = round((float) $data['amount'], 2);
             abort_if($settled <= 0, 422, 'This charge has no settled payment to refund.');
             abort_if($amount > $settled, 422, 'Refund cannot exceed the settled payment balance.');
+            $reference = trim((string) ($data['reference'] ?? $data['payment_reference'] ?? ''));
+            if ($reference !== '' && HospitalBillingPayment::where('restaurant_id', $billing->restaurant_id)
+                ->where('hospital_billing_id', $billing->id)
+                ->where('type', 'refund')
+                ->where('reference', $reference)
+                ->where('status', 'posted')
+                ->exists()) {
+                $duplicate = true;
+                return;
+            }
 
             HospitalBillingPayment::create([
                 'restaurant_id' => $billing->restaurant_id,
@@ -435,7 +446,7 @@ class HospitalBillingController extends Controller
                 'type' => 'refund',
                 'amount' => $amount,
                 'method' => $data['payment_method'] ?? $data['method'] ?? $billing->payment_method ?? 'other',
-                'reference' => $data['reference'] ?? $data['payment_reference'] ?? null,
+                'reference' => $reference !== '' ? $reference : null,
                 'notes' => $data['payment_notes'] ?? $data['notes'] ?? null,
                 'recorded_by' => $user->id,
                 'recorded_at' => now(),
@@ -445,7 +456,9 @@ class HospitalBillingController extends Controller
             $this->syncSettlement($billing, $user);
         });
 
-        return back()->with('success', 'Hospital billing refund recorded.');
+        return back()->with('success', $duplicate
+            ? 'This refund reference was already recorded; no duplicate refund was created.'
+            : 'Hospital billing refund recorded.');
     }
 
     public function voidPayment(Request $request, HospitalBilling $billing, HospitalBillingPayment $payment)
