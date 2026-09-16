@@ -351,6 +351,21 @@ existing draft bed charge idempotently, and creates a final draft charge only
 when an initial charge does not exist. Posted or paid charges are not silently
 rewritten.
 
+### Inpatient billing verification and payment retry safety
+
+- Focused inpatient billing, invoice/receipt, insurance, and admission
+  reconciliation tests pass **23/23** in the verification run.
+- The Hospital Billing page renders for Professional Hospital Demo with tenant
+  reconciliation totals, status/charge/payment/insurance filters, draft-charge
+  entry, and the billing report link.
+- Repeated payment submissions using the same posted payment reference are now
+  idempotent: the existing ledger row is retained and no duplicate payment or
+  settlement is created. The billing row lock protects this check during
+  concurrent retries.
+- A transient MySQL cleanup deadlock occurred during the first parallel
+  environment run; the serial rerun passed completely. No application failure
+  was reproduced.
+
 ## Progress Log
 
 ### Hospital pharmacy fulfillment foundation (implemented)

@@ -359,10 +359,20 @@ class HospitalBillingController extends Controller
         $reference = trim($data['payment_reference'] ?? $data['reference'] ?? '');
         abort_unless($reference !== '', 422, 'A payment reference is required.');
 
-        DB::transaction(function () use ($billing, $data, $reference, $user): void {
+        $duplicate = false;
+        DB::transaction(function () use ($billing, $data, $reference, $user, &$duplicate): void {
             $billing = HospitalBilling::where('restaurant_id', $user->effectiveRestaurantId())
                 ->whereKey($billing->id)->lockForUpdate()->firstOrFail();
             abort_unless($billing->status === 'posted', 422, 'Only posted charges can be paid.');
+            if (HospitalBillingPayment::where('restaurant_id', $billing->restaurant_id)
+                ->where('hospital_billing_id', $billing->id)
+                ->where('type', 'payment')
+                ->where('reference', $reference)
+                ->where('status', 'posted')
+                ->exists()) {
+                $duplicate = true;
+                return;
+            }
             $amount = round((float) ($data['amount'] ?? $billing->outstandingAmount()), 2);
             abort_if($amount <= 0, 422, 'This charge has no outstanding balance.');
             abort_if($amount > $billing->outstandingAmount(), 422, 'Payment cannot exceed the outstanding balance.');
@@ -390,7 +400,9 @@ class HospitalBillingController extends Controller
             $this->syncSettlement($billing, $user);
         });
 
-        return back()->with('success', 'Hospital billing payment recorded.');
+        return back()->with('success', $duplicate
+            ? 'This payment reference was already recorded; no duplicate payment was created.'
+            : 'Hospital billing payment recorded.');
     }
 
     public function refund(Request $request, HospitalBilling $billing)

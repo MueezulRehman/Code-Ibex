@@ -98,6 +98,20 @@ class HospitalBillingPaymentLedgerTest extends TestCase
         ])->assertStatus(422);
     }
 
+    public function test_retried_payment_reference_is_idempotent(): void
+    {
+        [, $manager, , $billing] = $this->fixture();
+        $payload = ['amount' => 40, 'method' => 'cash', 'reference' => 'RETRY-1'];
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), $payload)
+            ->assertRedirect();
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $billing), $payload)
+            ->assertRedirect()->assertSessionHas('success', 'This payment reference was already recorded; no duplicate payment was created.');
+
+        $this->assertDatabaseCount('hospital_billing_payments', 1);
+        $this->assertSame(40.0, $billing->fresh()->settledAmount());
+    }
+
     public function test_payment_overage_staff_action_and_tenant_boundary_are_rejected(): void
     {
         [$restaurant, $manager, , $billing] = $this->fixture('one');
