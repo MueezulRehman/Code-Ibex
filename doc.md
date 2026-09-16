@@ -421,17 +421,6 @@ module gating, tests, and browser verification.
   payments, preventing duplicate refund ledger rows and repeated settlement
   changes.
 
-### Next approved slice: clinical access refinement
-
-Billing is now hardened for payment and refund retries. The next slice is to
-standardize doctor-to-admission access across clinical workflows, beginning
-with an explicit comparison of exact attending-doctor access versus
-department-level coverage in care plans, laboratory, radiology, notes, and
-medication ordering. Preserve manager access, nurse assignment access, tenant
-isolation, and existing audit behavior while adding focused authorization
-regression tests and browser verification for a doctor assigned to one
-admission and denied access to another.
-
 ### Clinical access refinement (implemented)
 
 - Added a shared tenant-safe admission access policy for managers, assigned
@@ -441,18 +430,8 @@ admission and denied access to another.
 - Added regression coverage proving a doctor cannot create a clinical note for
   another doctor's admission outside the doctor's department.
 - Corrected clinical-notes integration to use the shared policy method.
-- Focused clinical-notes authorization tests pass; browser verification of the
-  manager and clinical workflow pages remains part of the next end-to-end
-  verification pass.
-
-### Next recommended slice: inpatient billing reconciliation
-
-Before adding another clinical module, verify the complete browser workflow:
-admit, transfer between priced wards, add pharmacy/laboratory/theatre charges,
-record partial and full payments, and discharge. Confirm bed-period breakdowns,
-invoice/receipt totals, immutable posted or paid charges, and no duplicate
-charges on retry. Then add one cross-module reconciliation regression test
-covering the same scenario.
+- Focused clinical-notes authorization tests pass. Manager and clinical
+  workflow pages were included in the authenticated hospital verification pass.
 
 ### Inpatient billing reconciliation verification (implemented)
 
@@ -464,8 +443,34 @@ covering the same scenario.
   duplicate billing rows.
 - The focused HospitalBillingPaymentLedgerTest suite passes with the new
   scenario.
-- Browser billing-page smoke verification remains recommended for a seeded
-  priced-bed scenario before starting the next product module.
+- The seeded priced-bed browser workflow also passed: transfer, draft bed
+  charge creation, bed-period display, discharge reconciliation, and release
+  completed without duplicate billing.
+
+### Current next step: inpatient billing reconciliation and reporting hardening
+
+The core billing behavior is implemented and verified. The next improvement
+should consolidate the operational presentation and reconciliation surfaces
+before adding a deferred clinical module:
+
+- provide one admission invoice view combining bed, pharmacy, laboratory,
+  radiology, and theatre charges;
+- reconcile payment, refund, discount, and insurance allocations against the
+  same outstanding balance;
+- expose department/service billing summaries and export consistency;
+- preserve idempotent invoice generation and immutable posted/paid charges;
+- add manager, billing/cashier, doctor, and nurse browser checks around the
+  appropriate read-only or settlement permissions.
+
+### Audit identity follow-up
+
+The local seeded browser tenant uses central manager accounts while several
+tenant audit tables reference tenant `users` foreign keys. The current
+workflow resolves a matching tenant identity where available and keeps the
+transaction valid, but production rollout should establish an explicit
+central-to-tenant staff identity mapping rather than relying on a fallback
+tenant actor. This is a compliance hardening task and should be completed
+before statutory reporting or Blood Bank audit workflows are enabled.
 
 ## Progress Log
 
