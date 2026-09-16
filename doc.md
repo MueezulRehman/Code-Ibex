@@ -385,6 +385,12 @@ hospital explicitly approves them.
 - Applied the central and tenant migrations for tenant 18 and added regression
   coverage for over-administration rejection.
 - The focused medication suite now passes **10 tests**.
+- Browser verification at desktop and mobile widths confirmed the manager
+  sidebar/content layout, responsive medication table, seconds-enabled time
+  fields, custom admission dropdown, and in-viewport datepicker. Fixed the
+  remaining Flowbite datepicker close behavior so selecting a day now removes
+  the active picker instead of leaving an invisible `hidden` picker rendered
+  above the page.
 
 The medication and clinical-notes pages now use the official
 `flowbite-datepicker` stylesheet alongside the datepicker JavaScript. Calendar

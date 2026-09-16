@@ -119,6 +119,13 @@ document.querySelectorAll('[data-date-time-picker]').forEach(function (picker) {
 document.addEventListener('focusin', function (event) {
     if (event.target.matches('[data-date-input]')) window.setTimeout(function () { event.target.datepicker?.show(); }, 0);
 });
+document.addEventListener('click', function (event) {
+    if (!event.target.closest('.datepicker-dropdown .day')) return;
+    window.setTimeout(function () {
+        document.querySelectorAll('[data-date-input]').forEach(function (input) { input.datepicker?.hide(); });
+        document.querySelectorAll('.datepicker-dropdown').forEach(function (dropdown) { dropdown.classList.remove('active'); });
+    }, 0);
+});
 function toggleHospitalDropdown(trigger) {
     var dropdown = trigger.closest('[data-hospital-dropdown]');
     var menu = dropdown.querySelector('.hospital-dropdown__menu');
