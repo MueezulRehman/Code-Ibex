@@ -1415,3 +1415,11 @@ Manager bed assignments and transfers are now persisted as explicit tenant-scope
   available. The local Admissions page rendered successfully after the
   change; the seeded demo records currently have no priced period rows to
   display.
+
+Recent change (2026-09-16T17:32:27+05:00):
+
+- Added "Totals by department/service" grouping to the Hospital Billing Report and exposed it in the manager report view.
+- Added a focused regression test (tests/Feature/HospitalBillingInsuranceReportTest.php) that creates a Department, attaches it to an admission, and asserts the report shows the department grouping and totals.
+- Hardened HospitalAdmissionController::tenantUserId to fall back to the default users table when a separate tenant DB connection is not configured; this makes the discharge flow and tests robust in single-db test environments.
+
+All related focused tests pass locally.
