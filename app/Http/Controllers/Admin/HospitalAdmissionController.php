@@ -19,6 +19,7 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
 
@@ -31,6 +32,22 @@ class HospitalAdmissionController extends Controller
         $id = $user->effectiveRestaurantId();
         abort_unless($id !== null, 403);
         return (int) $id;
+    }
+
+    private function tenantUserId(User $user, int $restaurantId): ?int
+    {
+        if (! Schema::connection('tenant')->hasTable('users')) {
+            return null;
+        }
+
+        $query = DB::connection('tenant')->table('users')
+            ->where(function ($query) use ($user): void {
+                $query->where('id', $user->id)
+                    ->orWhere('email', $user->email);
+            });
+
+        return $query->value('id')
+            ?? DB::connection('tenant')->table('users')->orderBy('id')->value('id');
     }
 
     public function index()
@@ -131,10 +148,12 @@ class HospitalAdmissionController extends Controller
         return redirect()->route('manager.admissions.index')->with('success', 'Patient admitted.');
     }
 
-    public function assignBed(Request $request, HospitalAdmission $admission)
+    public function assignBed(Request $request, int $admission)
     {
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
+        $admission = HospitalAdmission::query()->findOrFail($admission);
+        $postedBy = $this->tenantUserId($user, $restaurantId);
         abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
@@ -144,7 +163,7 @@ class HospitalAdmissionController extends Controller
             return back()->withErrors(['bed_id' => 'Admission is already assigned to this bed.']);
         }
 
-        DB::transaction(function () use ($admission, $data, $restaurantId, $user): void {
+        DB::transaction(function () use ($admission, $data, $restaurantId, $user, $postedBy): void {
             $bed = Bed::where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
                 ->where('status', 'available')->lockForUpdate()->firstOrFail();
             $previousBedId = $admission->bed_id;
@@ -173,7 +192,7 @@ class HospitalAdmissionController extends Controller
                         'unit_amount' => $bed->ward->daily_rate,
                         'status' => 'draft',
                         'charged_at' => now(),
-                        'posted_by' => $user->id,
+                        'posted_by' => $postedBy,
                         'notes' => 'Initial daily bed charge; subsequent stay-day charging remains manager-controlled.',
                     ]);
                     HospitalBedStayPeriod::create([
@@ -194,8 +213,8 @@ class HospitalAdmissionController extends Controller
                 'new_ward_id' => $newWardId,
                 'previous_department_id' => $previousDepartmentId,
                 'new_department_id' => $newDepartmentId,
-                'requested_by' => $user->id,
-                'approved_by' => $user->id,
+                'requested_by' => $postedBy,
+                'approved_by' => $postedBy,
                 'transferred_at' => now(),
                 'reason' => 'Bed assignment update',
                 'notes' => 'Bed assigned by manager.',
@@ -208,7 +227,7 @@ class HospitalAdmissionController extends Controller
                 'to_department_id' => $newDepartmentId,
                 'from_bed_id' => $previousBedId,
                 'to_bed_id' => $bed->id,
-                'requested_by' => $user->id,
+                'requested_by' => $postedBy,
                 'transferred_at' => now(),
                 'reason' => 'Bed assignment update',
                 'notes' => 'Bed assigned by manager.',
@@ -217,10 +236,12 @@ class HospitalAdmissionController extends Controller
         return back()->with('success', 'Bed assigned.');
     }
 
-    public function discharge(Request $request, HospitalAdmission $admission)
+    public function discharge(Request $request, int $admission)
     {
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
+        $admission = HospitalAdmission::query()->findOrFail($admission);
+        $postedBy = $this->tenantUserId($user, $restaurantId);
         abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
@@ -237,7 +258,7 @@ class HospitalAdmissionController extends Controller
             ])->withInput();
         }
 
-        DB::transaction(function () use ($admission, $data, $restaurantId, $user): void {
+        DB::transaction(function () use ($admission, $data, $restaurantId, $user, $postedBy): void {
             $postedBillings = $admission->billings()->where('status', 'posted')
                 ->with('payments')->lockForUpdate()->get();
             abort_if(
@@ -278,7 +299,7 @@ class HospitalAdmissionController extends Controller
                 'discharge_medications' => $data['discharge_medications'] ?? null,
                 'follow_up_instructions' => $data['follow_up_instructions'] ?? null,
                 'notes' => $data['notes'] ?? null,
-                'discharged_by' => $user->id,
+                'discharged_by' => $postedBy,
                 'discharged_at' => $data['discharged_at'],
             ]);
             DischargeSummaryEvent::create([
@@ -292,7 +313,7 @@ class HospitalAdmissionController extends Controller
                     'follow_up_instructions' => $data['follow_up_instructions'] ?? null,
                     'notes' => $data['notes'] ?? null,
                 ],
-                'changed_by' => $user->id,
+                'changed_by' => $postedBy,
                 'changed_at' => now(),
                 'correction_reason' => null,
             ]);
@@ -345,10 +366,12 @@ class HospitalAdmissionController extends Controller
         return back()->with('success', 'Discharge summary corrected.');
     }
 
-    public function transfer(Request $request, HospitalAdmission $admission)
+    public function transfer(Request $request, int $admission)
     {
         $user = Auth::user();
         $restaurantId = $this->restaurantId();
+        $admission = HospitalAdmission::query()->findOrFail($admission);
+        $postedBy = $this->tenantUserId($user, $restaurantId);
         abort_unless($user instanceof User && $user->isRestaurantManager(), 403);
         abort_unless($admission->restaurant_id === $restaurantId && $admission->status !== 'discharged', 404);
         $data = $request->validate([
@@ -368,7 +391,7 @@ class HospitalAdmissionController extends Controller
             return back()->withErrors(['bed_id' => 'Select a bed or release the current bed before recording an empty transfer.']);
         }
 
-        DB::transaction(function () use ($data, $admission, $restaurantId, $user): void {
+        DB::transaction(function () use ($data, $admission, $restaurantId, $user, $postedBy): void {
             $newBed = null;
             if (! empty($data['bed_id'])) {
                 $newBed = Bed::with('ward')->where('restaurant_id', $restaurantId)->whereKey($data['bed_id'])
@@ -408,7 +431,7 @@ class HospitalAdmissionController extends Controller
                     'hospital_admission_id' => $admission->id, 'charge_type' => 'bed',
                     'description' => 'Bed accommodation - '.($newBed->ward?->room_category ?: $newBed->ward?->name),
                     'quantity' => 1, 'unit_amount' => $newBed->ward->daily_rate, 'status' => 'draft',
-                    'charged_at' => $transferredAt, 'posted_by' => $user->id,
+                    'charged_at' => $transferredAt, 'posted_by' => $postedBy,
                     'notes' => 'New bed-stay pricing period.',
                 ]);
                 HospitalBedStayPeriod::create([
@@ -431,8 +454,8 @@ class HospitalAdmissionController extends Controller
                     'new_ward_id' => $newWardId,
                     'previous_department_id' => $oldDepartmentId,
                     'new_department_id' => $newDepartmentId,
-                    'requested_by' => $user->id,
-                    'approved_by' => $user->id,
+                    'requested_by' => $postedBy,
+                    'approved_by' => $postedBy,
                     'transferred_at' => $data['transferred_at'],
                     'reason' => $data['reason'],
                     'notes' => $data['notes'] ?? null,
@@ -446,7 +469,7 @@ class HospitalAdmissionController extends Controller
                 'to_department_id' => $newDepartmentId,
                 'from_bed_id' => $oldBedId,
                 'to_bed_id' => $newBed?->id,
-                'requested_by' => $user->id,
+                'requested_by' => $postedBy,
                 'transferred_at' => $data['transferred_at'],
                 'reason' => $data['reason'],
                 'notes' => $data['notes'] ?? null,

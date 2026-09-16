@@ -387,14 +387,21 @@ module gating, tests, and browser verification.
   their occupancy states.
 - The Admissions page renders seeded inpatient records and billing totals,
   including total, paid, and outstanding amounts.
-- The full transfer/discharge scenario is not yet complete: Executive Ward
-  currently has zero beds, and submitting its rendered Add Bed form to
-  `/manager/wards/{ward}/beds` returned a 404 in the authenticated browser
-  session. The route is registered and existing feature tests cover bed
-  creation, so the next implementation step is to reproduce and fix this
-  tenant route/model-binding issue before repeating the transfer and discharge
-  verification. Do not treat the priced-bed end-to-end workflow as complete
-  until that scenario passes in the browser.
+- The tenant-safe bed creation fix is now verified in the browser. The
+  Executive Ward Add Bed form successfully created browser-only verification
+  capacity after the original implicit-binding 404 was removed.
+- The seeded transfer workflow was then exercised for `ADM-DEMO-0002`: the
+  transfer created a `Private Suite` bed-stay period at `450.00/day`, created
+  the corresponding draft bed charge, and displayed the bed-stay breakdown.
+- Discharge was completed through the browser. The draft period was reconciled
+  to the discharge timestamp, the discharge summary was recorded, and the
+  admission was released without a duplicate charge. The browser also exposed
+  a tenant-user foreign-key mismatch for central manager identities; admission
+  audit references now resolve to a matching tenant user where available.
+- The route/model-binding and audit-identity fixes are covered by the focused
+  ward and bed-transfer regression tests. The local demo tenant now contains
+  additional `EXEC-BROWSER-*` verification beds; these are intentionally
+  browser-test data and should not be copied to production tenants.
 
 ### Inpatient billing verification and payment retry safety
 

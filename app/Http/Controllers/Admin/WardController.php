@@ -108,9 +108,10 @@ class WardController extends Controller
         return back()->with('success', 'Ward location deleted.');
     }
 
-    public function storeBed(Request $request, Ward $ward)
+    public function storeBed(Request $request, int $ward)
     {
         $restaurantId = $this->restaurantId();
+        $ward = Ward::query()->findOrFail($ward);
         abort_unless((int) $ward->restaurant_id === $restaurantId, 404);
         $data = $request->validate([
             'name' => ['required', 'string', 'max:255'],

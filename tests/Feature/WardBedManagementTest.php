@@ -62,6 +62,43 @@ class WardBedManagementTest extends TestCase
         $this->assertSame($ward->id, $bed->location->ward_id);
     }
 
+    public function test_manager_can_create_a_bed_through_the_tenant_resolved_route(): void
+    {
+        $restaurant = Restaurant::create([
+            'name' => 'Priced Bed Hospital',
+            'slug' => 'priced-bed-hospital-' . uniqid(),
+            'status' => 'active',
+            'enabled_modules' => ['hospital-wards-beds'],
+        ]);
+        $manager = User::create([
+            'name' => 'Manager',
+            'email' => uniqid('priced-bed-') . '@example.com',
+            'phone' => '03000' . random_int(100000, 999999),
+            'role' => 'manager',
+            'restaurant_id' => $restaurant->id,
+            'password' => bcrypt('password'),
+        ]);
+        $ward = Ward::create([
+            'restaurant_id' => $restaurant->id,
+            'name' => 'Executive Ward',
+            'code' => 'EXEC-' . strtoupper(substr(uniqid(), -5)),
+            'room_category' => 'Private Suite',
+            'daily_rate' => 450,
+        ]);
+
+        $this->actingAs($manager)->post(route('manager.wards.beds.store', $ward), [
+            'name' => 'Executive Bed 01',
+            'code' => 'EXEC-01-' . strtoupper(substr(uniqid(), -5)),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertDatabaseHas('beds', [
+            'restaurant_id' => $restaurant->id,
+            'ward_id' => $ward->id,
+            'name' => 'Executive Bed 01',
+            'status' => 'available',
+        ]);
+    }
+
     public function test_admission_bed_assignment_accepts_a_location_bed_and_keeps_bed_id_contract(): void
     {
         $restaurant = Restaurant::create(['name' => 'Assignment Hospital', 'slug' => 'assignment-hospital-' . uniqid(), 'status' => 'active', 'enabled_modules' => ['hospital-wards-beds', 'hospital-admissions']]);
