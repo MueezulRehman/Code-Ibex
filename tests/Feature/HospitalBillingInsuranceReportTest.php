@@ -176,5 +176,12 @@ class HospitalBillingInsuranceReportTest extends TestCase
             ->assertOk()
             ->assertSee('Totals by department/service')
             ->assertSee('Cardiology');
+
+        $csv = $this->actingAs($manager)
+            ->get(route('manager.hospital-billing.report.export', ['format' => 'csv']));
+
+        $csv->assertOk();
+        $this->assertStringContainsString('Department', $csv->streamedContent());
+        $this->assertStringContainsString('Cardiology', $csv->streamedContent());
     }
 }
