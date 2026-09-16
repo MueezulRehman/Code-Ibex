@@ -113,6 +113,36 @@ class HospitalAdmissionManagementTest extends TestCase
         $this->assertDatabaseHas('hospital_admissions', ['id' => $admission->id, 'status' => 'discharged']);
     }
 
+    public function test_discharge_reconciles_draft_bed_charge_to_billable_stay_days(): void
+    {
+        [$user, $admission] = $this->admissionWithManager();
+        $admission->update([
+            'admitted_at' => now()->subDays(3)->subHours(2),
+            'bed_daily_rate' => 175,
+        ]);
+        $charge = HospitalBilling::create([
+            'restaurant_id' => $admission->restaurant_id,
+            'patient_id' => $admission->patient_id,
+            'hospital_admission_id' => $admission->id,
+            'charge_type' => 'bed',
+            'description' => 'Bed accommodation - Private',
+            'quantity' => 1,
+            'unit_amount' => 175,
+            'status' => 'draft',
+            'charged_at' => $admission->admitted_at,
+        ]);
+
+        $this->actingAs($user)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable',
+            'discharged_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $charge->refresh();
+        $this->assertSame(4.0, (float) $charge->quantity);
+        $this->assertSame(700.0, (float) $charge->total_amount);
+        $this->assertSame(1, HospitalBilling::where('hospital_admission_id', $admission->id)->where('charge_type', 'bed')->count());
+    }
+
     public function test_discharge_records_initial_audit_event(): void
     {
         [$user, $admission] = $this->admissionWithManager();

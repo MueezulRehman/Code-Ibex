@@ -345,6 +345,12 @@ creates a draft initial bed charge when a priced bed is assigned. Recurring
 stay-day charges remain manager-controlled for the next increment so existing
 billing and discharge workflows are not changed implicitly.
 
+The stay-day increment is now implemented: discharge reconciliation calculates
+at least one billable day, rounds partial days up to the next day, updates the
+existing draft bed charge idempotently, and creates a final draft charge only
+when an initial charge does not exist. Posted or paid charges are not silently
+rewritten.
+
 ## Progress Log
 
 ### Hospital pharmacy fulfillment foundation (implemented)

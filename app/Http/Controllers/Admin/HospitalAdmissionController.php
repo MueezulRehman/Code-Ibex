@@ -232,6 +232,36 @@ class HospitalAdmissionController extends Controller
                 422,
                 'This patient cannot be discharged while posted hospital billing charges remain unpaid.'
             );
+            $dischargedAt = \Carbon\Carbon::parse($data['discharged_at']);
+            if ($admission->bed_daily_rate !== null && (float) $admission->bed_daily_rate > 0) {
+                $minutes = max($admission->admitted_at->diffInMinutes($dischargedAt), 0);
+                $billableDays = max(1, (int) ceil($minutes / 1440));
+                $bedCharge = $admission->billings()
+                    ->where('charge_type', 'bed')
+                    ->where('status', 'draft')
+                    ->where('description', 'like', 'Bed accommodation -%')
+                    ->lockForUpdate()->first();
+                if ($bedCharge) {
+                    $bedCharge->update([
+                        'quantity' => $billableDays,
+                        'description' => $bedCharge->description.' ('.$billableDays.' day'.($billableDays === 1 ? '' : 's').')',
+                    ]);
+                } else {
+                    HospitalBilling::create([
+                        'restaurant_id' => $admission->restaurant_id,
+                        'patient_id' => $admission->patient_id,
+                        'hospital_admission_id' => $admission->id,
+                        'charge_type' => 'bed',
+                        'description' => 'Bed accommodation ('.$billableDays.' day'.($billableDays === 1 ? '' : 's').')',
+                        'quantity' => $billableDays,
+                        'unit_amount' => $admission->bed_daily_rate,
+                        'status' => 'draft',
+                        'charged_at' => $dischargedAt,
+                        'posted_by' => $user->id,
+                        'notes' => 'Final bed-stay reconciliation.',
+                    ]);
+                }
+            }
             if ($admission->bed_id) {
                 Bed::where('restaurant_id', $restaurantId)->whereKey($admission->bed_id)
                     ->lockForUpdate()->firstOrFail()->update(['status' => 'available']);
