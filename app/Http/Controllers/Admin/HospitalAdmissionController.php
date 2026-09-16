@@ -46,6 +46,8 @@ class HospitalAdmissionController extends Controller
             'bedTransfers.newBed',
             'dischargeSummary',
             'billings:id,restaurant_id,hospital_admission_id,status,total_amount',
+            'bedStayPeriods.ward',
+            'bedStayPeriods.billing',
             'insurancePolicy',
         ])->latest('admitted_at')->paginate(20);
         return view('manager.admissions.index', [

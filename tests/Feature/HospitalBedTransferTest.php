@@ -6,6 +6,8 @@ use App\Models\Bed;
 use App\Models\BedTransfer;
 use App\Models\Department;
 use App\Models\HospitalAdmission;
+use App\Models\HospitalBilling;
+use App\Models\HospitalBedStayPeriod;
 use App\Models\HospitalTransfer;
 use App\Models\Patient;
 use App\Models\Restaurant;
@@ -114,6 +116,46 @@ class HospitalBedTransferTest extends TestCase
         ]);
         $this->assertSame('available', $fromBed->fresh()->status);
         $this->assertNull($admission->fresh()->bed_id);
+    }
+
+    public function test_transfer_closes_previous_rate_period_and_discharge_reconciles_both_periods(): void
+    {
+        [$manager, $admission, $fromBed, $toBed, , $fromWard, $toWard] = $this->setUpManagerWithAdmission();
+        $fromWard->update(['room_category' => 'Standard', 'daily_rate' => 100]);
+        $toWard->update(['room_category' => 'Private', 'daily_rate' => 300]);
+        $admittedAt = now()->subDays(3);
+        $admission->update(['admitted_at' => $admittedAt, 'bed_daily_rate' => 100]);
+        $initialCharge = HospitalBilling::create([
+            'restaurant_id' => $admission->restaurant_id, 'patient_id' => $admission->patient_id,
+            'hospital_admission_id' => $admission->id, 'charge_type' => 'bed',
+            'description' => 'Bed accommodation - Standard', 'quantity' => 1, 'unit_amount' => 100,
+            'status' => 'draft', 'charged_at' => $admittedAt,
+        ]);
+        HospitalBedStayPeriod::create([
+            'restaurant_id' => $admission->restaurant_id, 'hospital_admission_id' => $admission->id,
+            'bed_id' => $fromBed->id, 'ward_id' => $fromWard->id, 'started_at' => $admittedAt,
+            'daily_rate' => 100, 'hospital_billing_id' => $initialCharge->id,
+        ]);
+        $transferredAt = now()->subDay();
+        $this->actingAs($manager)->patch(route('manager.admissions.transfer', $admission), [
+            'department_id' => $admission->department_id, 'bed_id' => $toBed->id,
+            'transferred_at' => $transferredAt->format('Y-m-d H:i:s'), 'reason' => 'Private room requested',
+        ])->assertRedirect();
+
+        $this->assertDatabaseHas('hospital_bed_stay_periods', [
+            'hospital_admission_id' => $admission->id, 'bed_id' => $fromBed->id,
+            'ended_at' => $transferredAt->format('Y-m-d H:i:s'),
+        ]);
+        $this->assertSame(2, HospitalBedStayPeriod::where('hospital_admission_id', $admission->id)->count());
+
+        $dischargedAt = now();
+        $this->actingAs($manager)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable', 'discharged_at' => $dischargedAt->format('Y-m-d H:i:s'),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame([100.0, 300.0], HospitalBilling::where('hospital_admission_id', $admission->id)
+            ->where('charge_type', 'bed')->orderBy('unit_amount')->pluck('unit_amount')->map(fn ($value) => (float) $value)->all());
+        $this->assertSame(2, HospitalBilling::where('hospital_admission_id', $admission->id)->where('charge_type', 'bed')->count());
     }
 
     public function test_transfer_rules_reject_duplicate_cross_tenant_and_timestamp_requests(): void

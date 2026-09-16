@@ -1280,3 +1280,11 @@ Manager bed assignments and transfers are now persisted as explicit tenant-scope
   admission from a standard ward to a priced private ward, confirm both
   pricing periods in the billing summary, then discharge and verify the
   separate quantities.
+- Added focused transfer regression coverage for standard-to-private pricing
+  periods, period closure, destination-rate billing, authorization, tenant
+  isolation, release transfers, and timestamp/duplicate-transfer rules.
+- Admissions now include an expandable Bed stay breakdown showing each ward,
+  rate, period timestamps, reconciled days, and line total when period data is
+  available. The local Admissions page rendered successfully after the
+  change; the seeded demo records currently have no priced period rows to
+  display.
