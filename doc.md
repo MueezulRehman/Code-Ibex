@@ -310,20 +310,83 @@ A task is complete only when:
 
 ## Next Action
 
-Next, complete the Professional Hospital UI and rollout verification pass:
-apply the tenant migrations to every target tenant, verify the shared manager
-form treatment on Admissions, Wards/Beds, Nursing, Laboratory, Radiology,
-Operating Theatre, Medication, Care Plans, Billing, Staff Rosters, and Reports,
-and perform authenticated browser checks for manager, doctor, assigned nurse,
-and denied staff accounts. Confirm required-field indicators, dropdown
-alignment, responsive submit actions, tenant isolation, and the expected 403
-responses. After this validation, continue with the next approved product
-slice: hospital operational reporting and exports, followed by deeper
-pharmacy stock and insurance workflows. Keep Blood Bank, Ambulance Dispatch,
-Biomedical Equipment, Mortuary, Complaints, and Statutory Compliance deferred
-until the hospital explicitly approves them.
+The Professional Hospital rollout verification pass is complete for the current
+tenant inventory. Tenant 18 (`Professional Hospital Demo`) was migrated with
+`php artisan tenants:migrate 18`; the command completed with one tenant
+migrated and zero failures. Its 32 enabled modules include all 29 required
+Professional Hospital modules, with no required module missing.
+
+The focused hospital regression suite now passes **106 tests** across
+admissions, beds and transfers, billing and insurance, staff rosters, care
+plans, medication, clinical notes, operational reports, authorization, and
+tenant isolation. Authenticated browser checks have confirmed the dashboard,
+Vital Signs, Clinical Notes, and Reports pages, including styled fields,
+dependent Ward/Location filtering, report sections, and CSV export actions.
+The remaining browser matrix should be repeated when additional hospital
+tenants or role accounts are provisioned.
+
+The next verification action is to complete the remaining UI consistency pass,
+authenticated hospital browser verification, tenant rollout confirmation, and
+reporting/export validation. The next approved product slice is **pharmacy
+stock and medication fulfillment**. Its first two increments now support
+manager-only dispensing, earliest-expiring valid batch selection, expired-stock
+exclusion, transactional stock deduction across multiple batches, partial
+fulfillment, repeat fulfillment, allocation history, and draft pharmacy
+charges linked to each dispensing operation. Follow the existing tenant,
+module-gate, authorization, migration, test, browser-verification, and
+documentation workflow. Keep Blood Bank, Ambulance Dispatch, Biomedical
+Equipment, Mortuary, Complaints, and Statutory Compliance deferred until the
+hospital explicitly approves them.
 
 ## Progress Log
+
+### Hospital pharmacy fulfillment foundation (implemented)
+
+- Added tenant-scoped medication fulfillment records linked to the inpatient
+  medication order, medicine batch, fulfilling manager, and hospital billing
+  charge.
+- Added transactional fulfillment that selects the earliest-expiring
+  non-expired batch, prevents negative stock, rejects out-of-stock requests,
+  records fulfillment status, and creates a draft pharmacy charge.
+- Added a manager-only dispense action to the inpatient medication page while
+  keeping doctors and nurses on their existing ordering and administration
+  workflows.
+- Added central and tenant migrations, route/controller wiring, and regression
+  coverage for valid batch selection, expired stock, stock deduction, billing,
+  tenant authorization, and out-of-stock behavior.
+- The focused medication suite passes **16 tests**.
+
+### Multi-batch pharmacy fulfillment (implemented)
+
+- Added tenant-scoped fulfillment allocation rows so one medication order can
+  consume multiple valid medicine batches in earliest-expiry order.
+- Added partial fulfillment when available non-expired stock is below the
+  requested total, with repeat fulfillment allowed for the remaining quantity.
+- Updated the medication page to show requested, dispensed, remaining status,
+  every allocated batch, and the partial-dispense action.
+- Updated controller eager loading and success feedback for partial versus full
+  dispensing.
+- Applied the central and tenant allocation migrations; tenant 18 completed
+  successfully.
+- Added regression coverage for multi-batch allocation, stock deductions,
+  partial-to-complete fulfillment, allocation totals, and per-operation billing.
+- The focused medication suite passes **9 tests** and the clinical-notes suite
+  passes **5 tests**.
+
+The medication and clinical-notes pages now use the official
+`flowbite-datepicker` stylesheet alongside the datepicker JavaScript. Calendar
+controls are scoped to the picker, render as a seven-column light calendar,
+retain Today/Clear actions, and keep the separate time controls synchronized
+with the backend datetime fields. The focused medication and clinical-notes
+tests pass **18 tests**; Blade compilation and template diagnostics are clean.
+
+The follow-up UI pass gives date and time controls explicit SVG icons, preserves
+seconds with `step="1"` and backend synchronization, keeps the medication
+submit action aligned to the form row, and constrains the clinical-note modal
+below the manager header with its own scroll region. The modal is moved to the
+document body when opened so table/card containing blocks cannot clip its top or
+bottom. Browser checks confirm the sidebar is visible, the time field exposes
+`HH:MM:SS`, and the modal stays between the header and viewport bottom.
 
 ### Manager Medical Store POS layout fix
 

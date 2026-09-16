@@ -22,5 +22,5 @@ class HospitalClinicalNote extends Model
     public function admission() { return $this->belongsTo(HospitalAdmission::class, 'hospital_admission_id'); }
     public function author() { return $this->belongsTo(User::class, 'author_id'); }
     public function voidedBy() { return $this->belongsTo(User::class, 'voided_by'); }
-    public function events() { return $this->hasMany(HospitalClinicalNoteEvent::class, 'hospital_clinical_note_id')->latest('changed_at'); }
+    public function events() { return $this->hasMany(HospitalClinicalNoteEvent::class, 'hospital_clinical_note_id'); }
 }

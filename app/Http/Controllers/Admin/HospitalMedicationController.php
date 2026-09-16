@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Doctor;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalMedicationAdministration;
+use App\Models\HospitalMedicationFulfillment;
 use App\Models\HospitalMedicationOrder;
 use App\Models\Medicine;
 use App\Models\User;
@@ -13,6 +14,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Str;
 use Illuminate\Validation\Rule;
+use App\Services\HospitalMedicationFulfillmentService;
 
 class HospitalMedicationController extends Controller
 {
@@ -70,7 +72,7 @@ class HospitalMedicationController extends Controller
                 ->get()->filter(fn (HospitalAdmission $admission) => $this->canViewAdmission($user, $admission))->pluck('id');
 
         return view('manager.hospital-medication.index', [
-            'orders' => HospitalMedicationOrder::with(['patient', 'admission', 'medicine', 'orderedBy', 'administrations.recordedBy'])
+            'orders' => HospitalMedicationOrder::with(['patient', 'admission', 'medicine', 'orderedBy', 'administrations.recordedBy', 'fulfillment.batch', 'fulfillment.batches.batch'])
                 ->when($admissionIds !== null, fn ($query) => $query->whereIn('hospital_admission_id', $admissionIds))
                 ->latest('ordered_at')->paginate(20),
             'admissions' => HospitalAdmission::with('patient')
@@ -81,6 +83,7 @@ class HospitalMedicationController extends Controller
                 $query->where('restaurant_id', $user->effectiveRestaurantId())->orWhereNull('restaurant_id');
             })->orderBy('name')->get(),
             'canOrder' => $user->isRestaurantManager() || $user->staff_type === 'doctor',
+            'canFulfill' => $user->isRestaurantManager(),
             'canAdminister' => $user->isRestaurantManager() || $user->staff_type === 'nurse',
         ]);
     }
@@ -125,6 +128,29 @@ class HospitalMedicationController extends Controller
         ]);
 
         return back()->with('success', 'Inpatient medication order created.');
+    }
+
+    public function fulfill(Request $request, HospitalMedicationOrder $order, HospitalMedicationFulfillmentService $service)
+    {
+        $user = $this->user();
+        abort_unless($user->isRestaurantManager(), 403, 'Only managers can fulfill inpatient medication orders.');
+        $order = $this->tenantOrder($order, $user);
+        abort_unless(in_array($order->status, ['active', 'completed'], true), 422, 'This medication order is not available for fulfillment.');
+
+        $admission = $order->admission()->firstOrFail();
+        abort_unless(in_array($admission->status, ['admitted', 'transferred'], true), 422, 'Medication can only be fulfilled for an active admission.');
+        $data = $request->validate([
+            'quantity' => ['required', 'numeric', 'gt:0'],
+            'notes' => ['nullable', 'string', 'max:1000'],
+        ]);
+
+        $fulfillment = $service->fulfill($order->load('medicine'), (float) $data['quantity'], $user, $data['notes'] ?? null);
+
+        $message = $fulfillment->status === 'partially_dispensed'
+            ? 'Medication partially dispensed from available stock. Fulfill the remaining quantity when stock arrives.'
+            : 'Medication stock dispensed and pharmacy charge created.';
+
+        return back()->with('success', $message);
     }
 
     public function storeAdministration(Request $request, HospitalMedicationOrder $order)

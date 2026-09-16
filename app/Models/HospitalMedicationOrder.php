@@ -26,4 +26,5 @@ class HospitalMedicationOrder extends Model
     public function medicine() { return $this->belongsTo(Medicine::class); }
     public function orderedBy() { return $this->belongsTo(User::class, 'ordered_by'); }
     public function administrations() { return $this->hasMany(HospitalMedicationAdministration::class); }
+    public function fulfillment() { return $this->hasOne(HospitalMedicationFulfillment::class); }
 }

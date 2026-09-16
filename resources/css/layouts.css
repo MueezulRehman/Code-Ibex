@@ -222,6 +222,80 @@
   .page-field__help, .page-field__error { margin-top: .35rem; font-size: .75rem; }
   .page-field__help { color: #64748b; }
   .page-field__error { color: #b91c1c; }
+  .required-mark { color: #dc2626; }
+  .date-field { position: relative; min-width: 0; }
+  .date-field > span { position: absolute; left: .8rem; top: 50%; z-index: 1; display: grid; width: 1rem; height: 1rem; place-items: center; transform: translateY(-50%); color: #64748b; pointer-events: none; }
+  .date-field > span svg { width: .9rem; height: .9rem; stroke: currentColor; }
+  .date-field > input { padding-left: 2.35rem !important; }
+  .date-field--compact > input { padding-left: 2rem !important; }
+  .date-time-picker { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(7rem, .65fr); gap: .5rem; }
+  .date-time-picker--compact { grid-template-columns: minmax(0, 1.25fr) minmax(6.5rem, .75fr); }
+  .date-time-picker input { min-width: 0; }
+  .date-time-picker .date-field:last-child input[type="time"] { min-width: 8.5rem; padding-left: 2.15rem !important; padding-right: .45rem !important; font-size: .8rem; }
+  .hospital-order-submit { align-self: end; }
+  .datepicker-dropdown { z-index: 100; max-width: calc(100vw - 1rem); }
+  .datepicker-dropdown.active { display: block !important; }
+  .datepicker-picker {
+    width: 20rem; border: 1px solid #dbe3ec; border-radius: .75rem;
+    background: #fff !important; color: #1e293b !important;
+    box-shadow: 0 16px 32px rgb(15 23 42 / .18);
+  }
+  .datepicker-picker * { color: inherit; }
+  .datepicker-picker .datepicker-header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; padding: .75rem; }
+  .datepicker-picker .datepicker-controls { display: flex; align-items: center; justify-content: space-between; }
+  .datepicker-picker .datepicker-controls .button { border-radius: .45rem; color: #475569 !important; }
+  .datepicker-picker .datepicker-controls .button:hover { background: #eff6ff; color: var(--tenant-primary, #2E5E99) !important; }
+  .datepicker-picker .datepicker-view { width: 100%; padding: .5rem .75rem .75rem; }
+  .datepicker-picker .days { display: block; width: 100%; }
+  .datepicker-picker .days-of-week { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .2rem; margin-bottom: .25rem; }
+  .datepicker-picker .datepicker-grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: .2rem; width: 100%; }
+  .datepicker-picker .dow, .datepicker-picker .day { display: grid; min-height: 2rem; place-items: center; border-radius: .4rem; font-size: .75rem; }
+  .datepicker-picker .dow { color: #64748b !important; font-weight: 700; }
+  .datepicker-picker .day:hover { background: #eff6ff; color: var(--tenant-primary, #2E5E99) !important; }
+  .datepicker-picker .day.selected, .datepicker-picker .day.focused { background: var(--tenant-primary, #2E5E99) !important; color: #fff !important; }
+  .datepicker-picker .day.prev, .datepicker-picker .day.next { color: #94a3b8 !important; }
+  .datepicker-picker .datepicker-footer { border-top: 1px solid #e2e8f0; padding: .5rem .75rem; }
+  .datepicker-picker .datepicker-footer .button { color: var(--tenant-primary, #2E5E99) !important; }
+  .datepicker-picker .timepicker { display: none; }
+
+  .dashboard-shell .dashboard-sidebar {
+    display: flex !important;
+  }
+  .dashboard-shell .dashboard-sidebar.hidden {
+    display: flex !important;
+  }
+  @media (max-width: 767px) {
+    .dashboard-shell .dashboard-sidebar,
+    .dashboard-shell .dashboard-sidebar.hidden {
+      display: none !important;
+    }
+  }
+  .form-label { display: block; margin-bottom: .35rem; color: #475569; font-size: .7rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; }
+  .medication-table th { letter-spacing: .06em; }
+  .medication-table td { vertical-align: top; }
+  .clinical-modal { position: fixed; inset: 5.5rem 0 0; z-index: 80; display: flex; align-items: flex-start; justify-content: center; overflow-y: auto; padding: 1rem; }
+  .clinical-modal[hidden] { display: none; }
+  .clinical-modal__backdrop { position: absolute; inset: 0; background: rgb(15 23 42 / .56); }
+  .clinical-modal__panel { position: relative; width: min(100%, 34rem); max-height: calc(100vh - 7.5rem); overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 1rem; background: white; box-shadow: 0 24px 60px rgb(15 23 42 / .24); }
+  .clinical-modal__header { display: flex; align-items: flex-start; justify-content: space-between; border-bottom: 1px solid #e2e8f0; padding: 1.25rem 1.25rem 1rem; }
+  .clinical-modal__close { width: 2.25rem; height: 2.25rem; border-radius: .5rem; color: #64748b; font-size: 1.5rem; line-height: 1; }
+  .clinical-modal__close:hover { background: #f1f5f9; color: #0f172a; }
+  .clinical-modal__actions { display: flex; justify-content: flex-end; border-top: 1px solid #e2e8f0; padding-top: 1rem; }
+  .hospital-dropdown { position: relative; min-width: 0; }
+  .hospital-dropdown__trigger {
+    display: flex; width: 100%; align-items: center; justify-content: space-between;
+    border: 1px solid #dbe3ec; border-radius: .65rem; background: white;
+    padding: .75rem .875rem; color: #1e293b; font-size: .875rem; text-align: left;
+  }
+  .hospital-dropdown__trigger:focus { border-color: var(--tenant-primary, #2E5E99); box-shadow: 0 0 0 3px color-mix(in srgb, var(--tenant-primary, #2E5E99) 16%, transparent); outline: none; }
+  .hospital-dropdown__menu {
+    position: absolute; left: 0; right: 0; z-index: 50; margin-top: .35rem;
+    max-height: 15rem; overflow-y: auto; border: 1px solid #dbe3ec;
+    border-radius: .65rem; background: white; padding: .35rem;
+    box-shadow: 0 12px 24px rgb(15 23 42 / .14);
+  }
+  .hospital-dropdown__option { display: block; width: 100%; border-radius: .4rem; padding: .6rem .65rem; color: #334155; font-size: .875rem; text-align: left; }
+  .hospital-dropdown__option:hover, .hospital-dropdown__option:focus { background: #eff6ff; color: var(--tenant-primary, #2E5E99); outline: none; }
 
   .page-section { margin-top: 1.5rem; }
   .page-section__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }

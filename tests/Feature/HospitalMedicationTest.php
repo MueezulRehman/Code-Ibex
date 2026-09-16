@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Models\Doctor;
 use App\Models\HospitalAdmission;
 use App\Models\HospitalMedicationAdministration;
+use App\Models\HospitalMedicationFulfillment;
 use App\Models\HospitalMedicationOrder;
+use App\Models\MedicineBatch;
 use App\Models\Medicine;
 use App\Models\NursingAssignment;
 use App\Models\Patient;
@@ -169,6 +171,118 @@ class HospitalMedicationTest extends TestCase
         $this->actingAs($manager)->post(route('manager.hospital-medication.administrations.store', $order), $payload)
             ->assertRedirect()->assertSessionHasNoErrors();
         $this->assertDatabaseCount('hospital_medication_administrations', 1);
+    }
+
+    public function test_manager_can_fulfill_from_earliest_valid_batch_and_create_pharmacy_charge(): void
+    {
+        [, $manager, , $admission, $medicine] = $this->context();
+        MedicineBatch::create([
+            'restaurant_id' => $manager->restaurant_id,
+            'medicine_id' => $medicine->id,
+            'batch_number' => 'EXPIRED',
+            'expiry_date' => now()->subDay(),
+            'quantity' => 50,
+            'selling_price' => 9.5,
+        ]);
+        $validBatch = MedicineBatch::create([
+            'restaurant_id' => $manager->restaurant_id,
+            'medicine_id' => $medicine->id,
+            'batch_number' => 'VALID',
+            'expiry_date' => now()->addMonth(),
+            'quantity' => 5,
+            'selling_price' => 10,
+        ]);
+
+        $this->actingAs($manager)->post(route('manager.hospital-medication.orders.store'), $this->orderPayload($admission, $medicine));
+        $order = HospitalMedicationOrder::firstOrFail();
+
+        $this->actingAs($manager)->post(route('manager.hospital-medication.fulfill', $order), [
+            'quantity' => 3,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $fulfillment = HospitalMedicationFulfillment::firstOrFail();
+        $this->assertSame('dispensed', $fulfillment->status);
+        $this->assertSame($validBatch->id, $fulfillment->medicine_batch_id);
+        $this->assertSame(2.0, (float) $validBatch->fresh()->quantity);
+        $this->assertDatabaseHas('hospital_billings', [
+            'id' => $fulfillment->hospital_billing_id,
+            'charge_type' => 'pharmacy',
+            'status' => 'draft',
+        ]);
+    }
+
+    public function test_fulfillment_rejects_out_of_stock_and_non_manager_staff(): void
+    {
+        [, $manager, , $admission, $medicine] = $this->context();
+        $this->actingAs($manager)->post(route('manager.hospital-medication.orders.store'), $this->orderPayload($admission, $medicine));
+        $order = HospitalMedicationOrder::firstOrFail();
+        $doctor = User::create([
+            'name' => 'Doctor', 'email' => uniqid('fulfill-doctor-').'@example.com',
+            'phone' => '03000'.random_int(100000, 999999), 'role' => 'staff',
+            'staff_type' => 'doctor', 'restaurant_id' => $manager->restaurant_id, 'password' => bcrypt('password'),
+        ]);
+
+        $this->actingAs($doctor)->post(route('manager.hospital-medication.fulfill', $order), ['quantity' => 1])
+            ->assertForbidden();
+        $this->actingAs($manager)->post(route('manager.hospital-medication.fulfill', $order), ['quantity' => 1])
+            ->assertSessionHasErrors('quantity');
+        $this->assertDatabaseCount('hospital_medication_fulfillments', 0);
+    }
+
+    public function test_fulfillment_uses_multiple_batches_and_records_partial_stock(): void
+    {
+        [, $manager, , $admission, $medicine] = $this->context();
+        $firstBatch = MedicineBatch::create([
+            'restaurant_id' => $manager->restaurant_id,
+            'medicine_id' => $medicine->id,
+            'batch_number' => 'FIRST',
+            'expiry_date' => now()->addDays(5),
+            'quantity' => 2,
+            'selling_price' => 10,
+        ]);
+        $secondBatch = MedicineBatch::create([
+            'restaurant_id' => $manager->restaurant_id,
+            'medicine_id' => $medicine->id,
+            'batch_number' => 'SECOND',
+            'expiry_date' => now()->addDays(15),
+            'quantity' => 3,
+            'selling_price' => 10,
+        ]);
+
+        $this->actingAs($manager)->post(route('manager.hospital-medication.orders.store'), $this->orderPayload($admission, $medicine));
+        $order = HospitalMedicationOrder::firstOrFail();
+
+        $this->actingAs($manager)->post(route('manager.hospital-medication.fulfill', $order), [
+            'quantity' => 8,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $fulfillment = HospitalMedicationFulfillment::with('batches')->firstOrFail();
+        $this->assertSame('partially_dispensed', $fulfillment->status);
+        $this->assertSame(5.0, (float) $fulfillment->quantity_dispensed);
+        $this->assertSame(0.0, (float) $firstBatch->fresh()->quantity);
+        $this->assertSame(0.0, (float) $secondBatch->fresh()->quantity);
+        $this->assertSame(2, $fulfillment->batches->count());
+        $this->assertSame(5.0, (float) $fulfillment->batches->sum('quantity_dispensed'));
+
+        $thirdBatch = MedicineBatch::create([
+            'restaurant_id' => $manager->restaurant_id,
+            'medicine_id' => $medicine->id,
+            'batch_number' => 'THIRD',
+            'expiry_date' => now()->addDays(30),
+            'quantity' => 3,
+            'selling_price' => 10,
+        ]);
+
+        $this->actingAs($manager)->post(route('manager.hospital-medication.fulfill', $order), [
+            'quantity' => 8,
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $fulfillment->refresh();
+        $this->assertSame('dispensed', $fulfillment->status);
+        $this->assertSame(8.0, (float) $fulfillment->quantity_dispensed);
+        $this->assertSame(0.0, (float) $thirdBatch->fresh()->quantity);
+        $this->assertSame(3, $fulfillment->batches()->count());
+        $this->assertDatabaseCount('hospital_billings', 2);
     }
 
     public function test_administered_timestamp_cannot_be_before_schedule_or_in_the_future(): void

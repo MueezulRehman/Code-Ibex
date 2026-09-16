@@ -560,6 +560,7 @@ Route::prefix('manager')->name('manager.')->group(function () {
         Route::middleware('module:hospital-medication')->group(function () {
             Route::get('/hospital-medication', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'index'])->name('hospital-medication.index');
             Route::post('/hospital-medication/orders', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'storeOrder'])->name('hospital-medication.orders.store');
+            Route::post('/hospital-medication/orders/{order}/fulfill', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'fulfill'])->name('hospital-medication.fulfill');
             Route::post('/hospital-medication/orders/{order}/administrations', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'storeAdministration'])->name('hospital-medication.administrations.store');
             Route::patch('/hospital-medication/administrations/{administration}', [App\Http\Controllers\Admin\HospitalMedicationController::class, 'updateAdministration'])->name('hospital-medication.administrations.update');
         });
