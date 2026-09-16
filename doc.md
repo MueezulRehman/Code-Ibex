@@ -376,6 +376,21 @@ it requires separate hospital approval, scope decisions, donor and inventory
 rules, compatibility/cross-match workflows, authorization, tenant migrations,
 module gating, tests, and browser verification.
 
+### Seeded priced-bed browser verification
+
+- Authenticated Professional Hospital Demo verification completed on
+  `/manager/wards` (the registered route; `/manager/wards-beds` is not a valid
+  route).
+- The page renders the seeded `Executive Ward` with the expected
+  `Private Suite` category and `450.00 per day` rate.
+- Existing Medical Ward 1 and Intensive Care Unit rooms/beds also render with
+  their occupancy states.
+- The Admissions page renders seeded inpatient records and billing totals,
+  including total, paid, and outstanding amounts.
+- This confirms the seeded priced-bed data and billing display are available
+  for the remaining manual transfer/discharge scenario; no application code
+  change was required.
+
 ### Inpatient billing verification and payment retry safety
 
 - Focused inpatient billing, invoice/receipt, insurance, and admission
