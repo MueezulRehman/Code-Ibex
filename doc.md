@@ -402,6 +402,19 @@ invoice/receipt totals, immutable posted or paid charges, and no duplicate
 charges on retry. Then add one cross-module reconciliation regression test
 covering the same scenario.
 
+### Inpatient billing reconciliation verification (implemented)
+
+- Added a cross-module regression covering bed, medication, laboratory, and
+  surgery charges on one admission.
+- Verified that a partial payment leaves the admission admitted and returns the
+  billing error instead of allowing discharge.
+- Verified that settling every charge allows discharge and does not create
+  duplicate billing rows.
+- The focused HospitalBillingPaymentLedgerTest suite passes with the new
+  scenario.
+- Browser billing-page smoke verification remains recommended for a seeded
+  priced-bed scenario before starting the next product module.
+
 ## Progress Log
 
 ### Hospital pharmacy fulfillment foundation (implemented)

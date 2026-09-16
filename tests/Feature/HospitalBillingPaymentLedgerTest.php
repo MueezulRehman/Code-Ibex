@@ -165,4 +165,86 @@ class HospitalBillingPaymentLedgerTest extends TestCase
             'discharged_at' => now()->format('Y-m-d H:i:s'),
         ])->assertSessionHasErrors('billing');
     }
+
+    public function test_mixed_inpatient_charges_must_all_be_settled_before_discharge(): void
+    {
+        [, $manager, $admission, $bedCharge] = $this->fixture('mixed');
+        $charges = [
+            $bedCharge,
+            HospitalBilling::create([
+                'restaurant_id' => $admission->restaurant_id,
+                'patient_id' => $admission->patient_id,
+                'hospital_admission_id' => $admission->id,
+                'charge_type' => 'medication',
+                'description' => 'Dispensed medication',
+                'quantity' => 2,
+                'unit_amount' => 25,
+                'status' => 'posted',
+                'charged_at' => now()->subHour(),
+                'posted_at' => now()->subHour(),
+            ]),
+            HospitalBilling::create([
+                'restaurant_id' => $admission->restaurant_id,
+                'patient_id' => $admission->patient_id,
+                'hospital_admission_id' => $admission->id,
+                'charge_type' => 'laboratory',
+                'description' => 'Inpatient laboratory panel',
+                'quantity' => 1,
+                'unit_amount' => 75,
+                'status' => 'posted',
+                'charged_at' => now()->subHour(),
+                'posted_at' => now()->subHour(),
+            ]),
+            HospitalBilling::create([
+                'restaurant_id' => $admission->restaurant_id,
+                'patient_id' => $admission->patient_id,
+                'hospital_admission_id' => $admission->id,
+                'charge_type' => 'surgery',
+                'description' => 'Operating theatre service',
+                'quantity' => 1,
+                'unit_amount' => 200,
+                'status' => 'posted',
+                'charged_at' => now()->subHour(),
+                'posted_at' => now()->subHour(),
+            ]),
+        ];
+
+        $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $charges[0]), [
+            'amount' => 50,
+            'method' => 'cash',
+            'reference' => 'MIXED-PARTIAL',
+        ])->assertRedirect();
+
+        $this->actingAs($manager)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable',
+            'discharged_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertSessionHasErrors('billing');
+        $this->assertSame('admitted', $admission->fresh()->status);
+
+        foreach ($charges as $index => $charge) {
+            if ($index === 0) {
+                $remaining = $charge->fresh()->outstandingAmount();
+                $this->actingAs($manager)->post(route('manager.hospital-billing.payments.store', $charge), [
+                    'amount' => $remaining,
+                    'method' => 'card',
+                    'reference' => 'MIXED-BALANCE',
+                ])->assertRedirect();
+                continue;
+            }
+
+            $this->actingAs($manager)->patch(route('manager.hospital-billing.pay', $charge), [
+                'payment_method' => 'card',
+                'payment_reference' => 'MIXED-' . $index,
+            ])->assertRedirect();
+        }
+
+        $this->actingAs($manager)->patch(route('manager.admissions.discharge', $admission), [
+            'discharge_diagnosis' => 'Stable',
+            'discharged_at' => now()->format('Y-m-d H:i:s'),
+        ])->assertRedirect()->assertSessionHasNoErrors();
+
+        $this->assertSame('discharged', $admission->fresh()->status);
+        $this->assertSame(4, HospitalBilling::where('hospital_admission_id', $admission->id)->where('status', 'paid')->count());
+        $this->assertSame(4, HospitalBilling::where('hospital_admission_id', $admission->id)->count());
+    }
 }
