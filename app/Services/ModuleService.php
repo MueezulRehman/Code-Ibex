@@ -29,6 +29,10 @@ class ModuleService
             'item-sales',
             'cashbook',
             'expenses',
+            'hr',
+            'staff',
+            'attendance',
+            'salary',
             'reports',
             'notifications',
             'follow-up-reminders',
@@ -46,18 +50,22 @@ class ModuleService
             'hospital-operating-theatre',
             'hospital-billing',
             'hospital-medication',
+            'hospital-emergency',
+            'hospital-icu',
+            'hospital-opd',
+            'hospital-pharmacy-deepening',
+            'hospital-staff-payroll',
         ];
     }
 
     /**
-     * Roadmap modules are deliberately inactive until their routes and
-     * tenant data model are implemented. They are shown as unavailable in
-     * the Super Admin module picker rather than silently being granted.
+     * Deferred modules remain locked until their business rules, tenant data
+     * model, and permissions are formally approved. The current approved
+     * production slice has already been promoted into the main bundle.
      */
     public static function professionalHospitalOptionalModuleKeys(): array
     {
         return [
-            'hospital-emergency',
             'hospital-blood-bank',
             'hospital-dialysis',
         ];
@@ -168,9 +176,13 @@ class ModuleService
             ['name' => 'Hospital Operating Theatre', 'key' => 'hospital-operating-theatre', 'description' => 'Operating rooms and inpatient surgery scheduling', 'sort_order' => 45, 'is_active' => true],
             ['name' => 'Hospital Billing', 'key' => 'hospital-billing', 'description' => 'Inpatient charge capture and payment workflow', 'sort_order' => 46, 'is_active' => true],
             ['name' => 'Hospital Medication Administration', 'key' => 'hospital-medication', 'description' => 'Admission-linked inpatient medication orders and administration records', 'sort_order' => 47, 'is_active' => true],
-            ['name' => 'Hospital Emergency Department', 'key' => 'hospital-emergency', 'description' => 'Planned emergency department workflow (not enabled)', 'sort_order' => 90, 'is_active' => false],
-            ['name' => 'Hospital Blood Bank', 'key' => 'hospital-blood-bank', 'description' => 'Planned blood bank workflow (not enabled)', 'sort_order' => 91, 'is_active' => false],
-            ['name' => 'Hospital Dialysis', 'key' => 'hospital-dialysis', 'description' => 'Planned dialysis workflow (not enabled)', 'sort_order' => 92, 'is_active' => false],
+            ['name' => 'Hospital Emergency Department', 'key' => 'hospital-emergency', 'description' => 'Emergency intake, triage, and urgent-care workflow', 'sort_order' => 90, 'is_active' => true],
+            ['name' => 'Hospital ICU / Critical Care', 'key' => 'hospital-icu', 'description' => 'ICU and critical-care monitoring workflow', 'sort_order' => 91, 'is_active' => true],
+            ['name' => 'Hospital Outpatient Department', 'key' => 'hospital-opd', 'description' => 'OPD and outpatient consultation workflow', 'sort_order' => 92, 'is_active' => true],
+            ['name' => 'Hospital Pharmacy Deepening', 'key' => 'hospital-pharmacy-deepening', 'description' => 'Expanded pharmacy dispensing, stock, and inventory control workflow', 'sort_order' => 93, 'is_active' => true],
+            ['name' => 'Hospital Staff Payroll & Attendance', 'key' => 'hospital-staff-payroll', 'description' => 'Payroll and workforce attendance analytics workflow', 'sort_order' => 94, 'is_active' => true],
+            ['name' => 'Hospital Blood Bank', 'key' => 'hospital-blood-bank', 'description' => 'Planned blood bank workflow (deferred)', 'sort_order' => 95, 'is_active' => false],
+            ['name' => 'Hospital Dialysis', 'key' => 'hospital-dialysis', 'description' => 'Planned dialysis workflow (deferred)', 'sort_order' => 96, 'is_active' => false],
             ['name' => 'Memberships', 'key' => 'memberships', 'description' => 'Membership plans, renewals, and customer status', 'sort_order' => 42, 'is_active' => true],
             ['name' => 'Service Tickets', 'key' => 'service-tickets', 'description' => 'Service jobs, estimates, assignments, and collection status', 'sort_order' => 43, 'is_active' => true],
             ['name' => 'Recipes', 'key' => 'recipes', 'description' => 'Recipe definitions and ingredient consumption', 'sort_order' => 44, 'is_active' => true],

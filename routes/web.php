@@ -476,6 +476,12 @@ Route::prefix('manager')->name('manager.')->group(function () {
             Route::patch('/discharge-summaries/{summary}', [App\Http\Controllers\Admin\HospitalAdmissionController::class, 'updateDischargeSummary'])->name('admissions.discharge-summary.update');
             Route::patch('/admissions/{admission}/transfer', [App\Http\Controllers\Admin\HospitalAdmissionController::class, 'transfer'])->name('admissions.transfer');
         });
+        Route::middleware('module:hospital-emergency')->group(function () {
+            Route::get('/hospital-emergency', [App\Http\Controllers\Admin\HospitalEmergencyController::class, 'index'])->name('hospital-emergency.index');
+            Route::post('/hospital-emergency', [App\Http\Controllers\Admin\HospitalEmergencyController::class, 'store'])->name('hospital-emergency.store');
+            Route::patch('/hospital-emergency/{emergencyCase}/triage', [App\Http\Controllers\Admin\HospitalEmergencyController::class, 'triage'])->name('hospital-emergency.triage');
+            Route::patch('/hospital-emergency/{emergencyCase}/route', [App\Http\Controllers\Admin\HospitalEmergencyController::class, 'routeCase'])->name('hospital-emergency.route');
+        });
         // Operational reporting is manager-only and intentionally performs
         // its own authorization so it can combine several hospital modules.
         Route::get('/hospital-reports', [App\Http\Controllers\Admin\HospitalOperationalReportController::class, 'index'])->name('hospital-reports.index');

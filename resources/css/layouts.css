@@ -297,6 +297,39 @@
   .hospital-dropdown__option { display: block; width: 100%; border-radius: .4rem; padding: .6rem .65rem; color: #334155; font-size: .875rem; text-align: left; }
   .hospital-dropdown__option:hover, .hospital-dropdown__option:focus { background: #eff6ff; color: var(--tenant-primary, #2E5E99); outline: none; }
 
+  .action-dropdown { position: relative; display: inline-block; }
+  .action-dropdown__trigger {
+    display: inline-flex; align-items: center; justify-content: center; gap: .5rem;
+    border: 1px solid #dbe3ec; border-radius: .7rem; background: #f8fafc; color: var(--tenant-dark, #0D2440);
+    padding: .55rem .8rem; font-size: .75rem; font-weight: 700; letter-spacing: .02em; transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+  }
+  .action-dropdown__trigger:hover, .action-dropdown__trigger:focus-visible {
+    border-color: color-mix(in srgb, var(--tenant-primary, #2E5E99) 42%, #dbe3ec);
+    background: #eef6ff; box-shadow: 0 0 0 3px color-mix(in srgb, var(--tenant-primary, #2E5E99) 12%, transparent);
+    outline: none;
+  }
+  .action-dropdown__menu {
+    position: absolute; right: 0; top: calc(100% + .4rem); z-index: 40;
+    min-width: 11rem; display: none; border: 1px solid #e2e8f0; border-radius: .8rem;
+    background: white; box-shadow: 0 16px 36px rgba(15, 23, 42, .14); padding: .35rem;
+  }
+  .action-dropdown.is-open .action-dropdown__menu { display: block; }
+  .action-dropdown__item,
+  .action-dropdown__form button {
+    display: flex; width: 100%; align-items: center; justify-content: flex-start; gap: .5rem;
+    border: 0; border-radius: .5rem; background: transparent; padding: .6rem .7rem; color: #334155; text-align: left; font-size: .8rem; font-weight: 600; transition: background .15s ease, color .15s ease;
+  }
+  .action-dropdown__item:hover,
+  .action-dropdown__item:focus-visible,
+  .action-dropdown__form button:hover,
+  .action-dropdown__form button:focus-visible {
+    background: #eff6ff; color: var(--tenant-primary, #2E5E99); outline: none;
+  }
+  .action-dropdown__form { margin: 0; }
+  .action-dropdown__form button { color: #b91c1c; }
+  .action-dropdown__form button:hover,
+  .action-dropdown__form button:focus-visible { background: #fef2f2; color: #b91c1c; }
+
   .page-section { margin-top: 1.5rem; }
   .page-section__heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: .75rem; }
   .page-section__title { color: var(--tenant-dark, #0D2440); font-size: 1rem; font-weight: 700; }

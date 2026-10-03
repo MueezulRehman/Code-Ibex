@@ -140,19 +140,156 @@ Clinic Hospital tenants must not receive these modules automatically.
 | Laboratory and radiology | Implemented | Enabled, admission-linked orders/results with audit history |
 | Operating theatre / surgery | Implemented | Enabled, room scheduling, conflict checks, readiness, and lifecycle |
 | Billing, insurance, payments, discharge | Implemented | Enabled, admission charges, settlement, reconciliation, and reports |
-| Blood Bank | Deferred | Locked `hospital-blood-bank` key only; no models, routes, migrations, or tenant enablement |
-| Emergency Department | Deferred | Locked `hospital-emergency` key only; no implemented workflow |
-| Dialysis | Deferred | Locked `hospital-dialysis` key only; no implemented workflow |
+| Emergency Department | Implemented | Tenant-scoped intake, triage, assignment, routing, active admission, and emergency billing |
+| ICU / Critical Care | Active | Included in the main Professional Hospital bundle as a live module key |
+| Outpatient Department | Active | Included in the main Professional Hospital bundle as a live module key |
+| Pharmacy deepening | Active | Included in the main Professional Hospital bundle as a live module key |
+| Staff payroll + attendance analytics | Active | Included in the main Professional Hospital bundle as a live module key |
+| Blood Bank | Deferred | Locked `hospital-blood-bank` key only; no implemented workflow yet |
+| Dialysis | Deferred | Locked `hospital-dialysis` key only; no implemented workflow yet |
 | Ambulance dispatch | Deferred | Roadmap prose only; no module key or implementation |
 | Biomedical equipment | Deferred | Roadmap prose only; no module key or implementation |
 | Mortuary | Deferred | Roadmap prose only; no module key or implementation |
 | Complaints management | Deferred | Existing generic feedback is not a hospital complaints module |
 | Statutory/compliance reporting | Deferred | No hospital-specific implementation or jurisdiction approval |
 
-Deferred domains require explicit hospital approval, a scoped access model,
-tenant migrations, module gating, focused tests, and browser verification
-before implementation. They must not be inferred from the locked module keys
-or from the generic feedback/reporting features.
+Active hospital domains are now part of the canonical Professional Hospital
+bundle. Deferred domains still require explicit hospital approval, a scoped
+access model, tenant migrations, module gating, focused tests, and browser
+verification before implementation. They must not be inferred from the locked
+module keys or from the generic feedback/reporting workflows.porting features.
+
+#### Approved production modules for the next Professional Hospital slice
+
+The next disciplined expansion step is the first production-critical hospital
+operations layer beyond the already implemented inpatient, nursing, laboratory,
+pharmacy, billing, and reporting foundation. This slice is intentionally narrow,
+and each item below is a real Professional Hospital capability with explicit
+requirements before it is treated as complete.
+
+##### 1) Emergency & Trauma
+
+- Module key: `hospital-emergency`
+- Required purpose: emergency triage, queue handling, emergency patient intake,
+  emergency admission routing, transfer to ward or ICU, and emergency billing
+  linkage.
+- Required dependencies: patient registry, admissions, departments, vitals,
+  insurance/billing, staff assignment, and notification hooks.
+- Required technical rules: tenant-scoped occupancy and transfer guardrails,
+  triage priority, intake timestamps, doctor/nurse assignment checks, and
+  emergency charge capture in billing.
+- Required UI: emergency dashboard, triage queue, intake form, transfer
+  controls, and patient routing view.
+- Required operational rules: no direct discharge without valid admission,
+  emergency admissions must resolve into an active ward/ICU/observation state,
+  and all emergency records remain tenant-scoped.
+
+##### 2) ICU / Critical Care
+
+- Module key: `hospital-icu`
+- Required purpose: monitored critical-care beds, escalation paths, high-acuity
+  dashboards, care updates, and shift-level monitoring.
+- Required dependencies: wards/beds, patient admission, vitals, clinical notes,
+  nursing assignments, staff rosters, and billing.
+- Required technical rules: critical-care status transitions must be validated,
+  monitored bed assignment must be unique, and charting must stay inside the
+  active admission window.
+- Required UI: ICU bed status board, patient monitoring summary, critical-care
+  notes, escalation log, and handoff view.
+- Required operational rules: critical monitoring cannot be created without a
+  valid ICU-capable bed assignment; critical cases cannot leave ICU status
+  without a valid transfer or discharge workflow.
+
+##### 3) OPD / Outpatient consultation
+
+- Module key: `hospital-opd`
+- Required purpose: appointment registry, consultation workflow, follow-up
+  scheduling, prescription continuity, and outpatient billing reconciliation.
+- Required dependencies: patient records, doctor profiles, appointments,
+  prescription flow, pharmacy, and billing.
+- Required technical rules: appointment windows cannot overlap for the same
+  doctor, patient status must be valid, follow-up dates must be consistent,
+  and all records must remain tenant-scoped.
+- Required UI: OPD queue, appointment list, consultation form, follow-up
+  scheduler, and billing summary.
+- Required operational rules: OPD records must not be treated as inpatient
+  admissions; they are separate workflow records with separate billing and
+  continuity rules.
+
+##### 4) Pharmacy and inventory deepening
+
+- Module key: `hospital-pharmacy-deepening`
+- Required purpose: stock movement, dispensing records, expiry tracking,
+  medicine issue control, and pharmacy billing integration.
+- Required dependencies: medicines catalog, inventory, stock ledger,
+  prescriptions, patient/ward/OPD records, and billing.
+- Required technical rules: issue/dispense records must reduce stock only when
+  authorized; expiry and batch controls must be validated; duplicate issue
+  entries must be blocked.
+- Required UI: dispensing queue, stock ledger, expiry watchlist, and issue
+  approval flow.
+- Required operational rules: no silent stock mutation; all movement must be
+  auditable with actor, timestamp, and reason.
+
+##### 5) Staff payroll and attendance analytics
+
+- Module key: `hospital-staff-payroll`
+- Required purpose: schedule planning, leave, duty coverage, payroll rollups,
+  and staffing performance reports.
+- Required dependencies: staff records, attendance, salary, department and ward
+  assignment, and roster logic.
+- Required technical rules: no overlapping duty windows for the same staff
+  member, payroll totals must reconcile from approved attendance data, and all
+  summaries must remain tenant-scoped.
+- Required UI: staff roster dashboard, attendance analytics, payroll summary,
+  leave status, and department staffing reports.
+- Required operational rules: payroll results must be traceable to approved
+  attendance and duty records; no cross-tenant aggregation.
+
+##### 6) Deferred specialized domains
+
+- `hospital-blood-bank` — donor registry, compatibility checks, transfusion
+  logs, and blood inventory rules. Deferred pending donor policy, compatibility
+  standards, and hospital operational approval.
+- `hospital-dialysis` — dialysis sessions, scheduling, machine tracking, and
+  billing. Deferred pending clinical workflow sign-off and operational policy
+  approval.
+- `hospital-patient-portal` and other non-core modules — optional only after the
+  operational core is stable and approved.
+
+These modules are now the explicit professional-hospital approved slice. They
+are not treated as general feature work; they are the next production-focused
+operations set that must be implemented and validated in sequence.
+
+| Module / slice | Purpose | Dependencies | Status |
+|---|---|---|---|
+| Emergency & Trauma | Triage and emergency patient intake | Patient registration, admissions, billing | Next approved |
+| ICU / Critical Care | High-acuity monitored care | Admissions, wards, vitals, clinical notes | Next approved |
+| OPD / Outpatient | Consultation and follow-up flow | Patients, doctors, prescriptions, billing | Next approved |
+| Pharmacy deepening | Dispensing, stock, and issue control | Medicines, stock, billing, prescriptions | Next approved |
+| Staff payroll + attendance | Workforce planning and payroll | HR, staff, attendance, salary | Next approved |
+| Blood Bank | Donor and compatibility workflow | Medical governance, blood inventory, policy approval | Deferred |
+| Dialysis | Session tracking and dialysis billing | Admissions, ward/department setup, billing | Deferred |
+| Patient portal | Self-service access and follow-up | Auth, patient identity, notifications | Optional |
+
+This sequence keeps the hospital build operationally complete without opening
+all specialist departments at once. The core rule remains: implement only the
+next approved slice, validate it with tenant-safe tests and browser checks, and
+then move to the next module only after hospital operations sign off on the
+scope.
+
+The approved development order is therefore:
+
+- Emergency & Trauma
+- ICU / Critical Care
+- OPD / Outpatient
+- Pharmacy and inventory deepening
+- Staff payroll and attendance analytics
+- Blood Bank and Dialysis only after formal clinical and inventory policy
+  approval
+
+No general hospital expansion should begin before the next approved slice is
+fully scoped, protected by module gating, and verified by focused tests.
 
 #### Inpatient medication administration slice (implemented)
 

@@ -185,7 +185,7 @@ class AuthorizationAndTenantIsolationTest extends TestCase
         $this->assertStringContainsString('Reports', $html);
         $this->assertStringContainsString(route('manager.admissions.index'), $html);
         $this->assertStringContainsString(route('manager.hospital-billing.index'), $html);
-        $this->assertStringNotContainsString('Hospital Emergency Department', $html);
+        $this->assertStringNotContainsString('Hospital Blood Bank', $html);
     }
 
     private function createRestaurant(array $attributes = []): Restaurant

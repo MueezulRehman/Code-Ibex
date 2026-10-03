@@ -34,17 +34,64 @@ reliable enough that future changes can be made safely.
   hospital operations confirm the inventory, donor, compatibility, and audit
   rules required for those modules.
 
+### Active Professional Hospital production slice
+
+- Emergency & Trauma is implemented and verified as the first slice of the
+  current Professional Hospital phase. It has tenant-scoped intake/triage,
+  priority ordering, doctor/nurse assignment, ward/ICU/observation routing,
+  active-admission enforcement, and emergency billing linkage.
+- The remaining active phase is ICU / Critical Care, OPD / Outpatient,
+  pharmacy inventory deepening, and staff payroll + attendance analytics. These
+  module keys are active in the canonical Professional Hospital bundle, but
+  their workflows remain gated until each slice is implemented and verified.
+- Blood Bank and Dialysis remain deferred until the hospital formally approves
+  the donor, compatibility, inventory, and clinical safety rules for those
+  domains.
+- Scope remains disciplined: no additional hospital domains are promoted until
+  the module, route policy, tenant data model, and focused tests are in place.
+
+### Emergency & Trauma implementation checkpoint
+
+- `hospital-emergency` now has a tenant migration, central migration, model,
+  manager routes, and a hospital navigation entry.
+- Emergency cases require a patient, priority, arrival time, and chief
+  complaint. Triage can assign a doctor and nurse and records triage time.
+- Routing requires an active admission. Ward and ICU routing require an
+  available bed; observation routing may remain unbedded. Routing creates an
+  emergency billing charge when an intake amount is provided.
+- Focused authorization, tenant-isolation, routing, admission, bed guard, and
+  billing tests pass: 3 tests, 11 assertions in `HospitalEmergencyTest`.
+- Browser verification on Professional Hospital Demo confirmed the Emergency &
+  Trauma page, intake registration, priority queue row, and observation routing
+  into active admission `ADM-20260916-ZJRW5`.
+
+### Active module requirements for the current slice
+
+- Emergency & Trauma: emergency intake, triage, patient routing, transfer
+  capability, and emergency billing linkage.
+- ICU / Critical Care: ward-bed assignment, monitored critical-care status,
+  escalation workflow, and high-acuity documentation.
+- OPD / Outpatient: appointments, consultation records, follow-up scheduling,
+  medication continuity, and outpatient billing reconciliation.
+- Pharmacy and inventory deepening: stock movement, dispensing control, expiry
+  validation, and audit-grade inventory records.
+- Staff payroll and attendance analytics: roster validation, attendance
+  reconciliation, payroll rollup logic, and department staffing reporting.
+
 ### Professional Hospital module access and demo tenant
 
 - Professional Hospital has one centralized implemented-module bundle in
   `ModuleService::professionalHospitalModuleKeys()`. Super Admin business
-  management displays the bundle and the locked roadmap modules
-  (`hospital-emergency`, `hospital-blood-bank`, and `hospital-dialysis`) without
-  enabling them.
+  management now treats the active five modules as part of the live bundle and
+  keeps only the deferred biomedical modules (`hospital-blood-bank` and
+  `hospital-dialysis`) locked in the optional list.
 - Manager hospital navigation is grouped under Pharmacy, Laboratory &
   Diagnostics, Inpatient Care, Operating Theatre, Billing & Insurance, and
   Reports. Existing route names and `module:<key>` middleware remain the
   authorization source of truth.
+- The Professional Hospital bundle now includes the shared `attendance` module so
+  the manager attendance page remains available when the tenant is using the
+  Professional Hospital default module set.
 - The explicit tenant-safe demo command is
   `php artisan hospital:seed-demo --restaurant=18 --dry-run` followed by
   `php artisan hospital:seed-demo --restaurant=18`. It refuses non-Professional

@@ -17,9 +17,13 @@ return new class extends Migration
         // application bootstrap default seeder.
         foreach ([
             ['name' => 'Hospital Clinical Notes', 'key' => 'hospital-clinical-notes', 'description' => 'Admission-linked clinical notes and audit history', 'sort_order' => 27, 'is_active' => true],
-            ['name' => 'Hospital Emergency Department', 'key' => 'hospital-emergency', 'description' => 'Planned emergency department workflow (not enabled)', 'sort_order' => 90, 'is_active' => false],
-            ['name' => 'Hospital Blood Bank', 'key' => 'hospital-blood-bank', 'description' => 'Planned blood bank workflow (not enabled)', 'sort_order' => 91, 'is_active' => false],
-            ['name' => 'Hospital Dialysis', 'key' => 'hospital-dialysis', 'description' => 'Planned dialysis workflow (not enabled)', 'sort_order' => 92, 'is_active' => false],
+            ['name' => 'Hospital Emergency Department', 'key' => 'hospital-emergency', 'description' => 'Emergency intake, triage, and urgent-care workflow', 'sort_order' => 90, 'is_active' => true],
+            ['name' => 'Hospital ICU / Critical Care', 'key' => 'hospital-icu', 'description' => 'ICU and critical-care monitoring workflow', 'sort_order' => 91, 'is_active' => true],
+            ['name' => 'Hospital Outpatient Department', 'key' => 'hospital-opd', 'description' => 'OPD and outpatient consultation workflow', 'sort_order' => 92, 'is_active' => true],
+            ['name' => 'Hospital Pharmacy Deepening', 'key' => 'hospital-pharmacy-deepening', 'description' => 'Expanded pharmacy dispensing, stock, and inventory control workflow', 'sort_order' => 93, 'is_active' => true],
+            ['name' => 'Hospital Staff Payroll & Attendance', 'key' => 'hospital-staff-payroll', 'description' => 'Payroll and workforce attendance analytics workflow', 'sort_order' => 94, 'is_active' => true],
+            ['name' => 'Hospital Blood Bank', 'key' => 'hospital-blood-bank', 'description' => 'Planned blood bank workflow (deferred)', 'sort_order' => 95, 'is_active' => false],
+            ['name' => 'Hospital Dialysis', 'key' => 'hospital-dialysis', 'description' => 'Planned dialysis workflow (deferred)', 'sort_order' => 96, 'is_active' => false],
         ] as $module) {
             DB::table('modules')->updateOrInsert(
                 ['key' => $module['key']],

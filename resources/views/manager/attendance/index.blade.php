@@ -37,21 +37,20 @@
                                 —
                             @endif
                         </td>
-                        <td class="px-4 py-3 text-right space-x-2 flex justify-end">
-                            <a href="{{ route('manager.attendance.edit', $record) }}"
-                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-emerald-100 bg-emerald-50 text-hut-green transition hover:-translate-y-0.5 hover:bg-emerald-100"
-                                aria-label="Edit attendance record" title="Edit">
-                                <x-icons.edit class="h-4 w-4" />
-                            </a>
-                            <form action="{{ route('manager.attendance.destroy', $record) }}" method="POST" class="inline"
-                                data-confirm="Delete this record?">
-                                @csrf
-                                @method('DELETE')
-                                <button type="submit" aria-label="Delete attendance record" title="Delete"
-                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-red-100 bg-red-50 text-red-600 transition hover:-translate-y-0.5 hover:bg-red-100">
-                                    <x-icons.trash class="h-4 w-4" />
+                        <td class="px-4 py-3 text-right">
+                            <div class="action-dropdown" data-action-dropdown>
+                                <button type="button" class="action-dropdown__trigger" data-action-dropdown-trigger aria-expanded="false" aria-label="Open actions for attendance record">
+                                    Actions <span aria-hidden="true">▾</span>
                                 </button>
-                            </form>
+                                <div class="action-dropdown__menu" role="menu" hidden>
+                                    <a href="{{ route('manager.attendance.edit', $record) }}" class="action-dropdown__item" role="menuitem">Edit record</a>
+                                    <form action="{{ route('manager.attendance.destroy', $record) }}" method="POST" class="action-dropdown__form" data-confirm="Delete this record?">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" role="menuitem">Delete record</button>
+                                    </form>
+                                </div>
+                            </div>
                         </td>
                     </tr>
                 @empty
@@ -66,5 +65,41 @@
     <div class="mt-6">
         {{ $attendance->links() }}
     </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('click', function (event) {
+                const trigger = event.target.closest('[data-action-dropdown-trigger]');
+                if (trigger) {
+                    const dropdown = trigger.closest('[data-action-dropdown]');
+                    const menu = dropdown?.querySelector('.action-dropdown__menu');
+                    const willOpen = !dropdown.classList.contains('is-open');
+
+                    document.querySelectorAll('[data-action-dropdown]').forEach(function (item) {
+                        item.classList.remove('is-open');
+                        const button = item.querySelector('[data-action-dropdown-trigger]');
+                        if (button) button.setAttribute('aria-expanded', 'false');
+                        const itemMenu = item.querySelector('.action-dropdown__menu');
+                        if (itemMenu) itemMenu.hidden = true;
+                    });
+
+                    dropdown.classList.toggle('is-open', willOpen);
+                    trigger.setAttribute('aria-expanded', String(willOpen));
+                    if (menu) menu.hidden = !willOpen;
+                    return;
+                }
+
+                if (!event.target.closest('[data-action-dropdown]')) {
+                    document.querySelectorAll('[data-action-dropdown]').forEach(function (item) {
+                        item.classList.remove('is-open');
+                        const button = item.querySelector('[data-action-dropdown-trigger]');
+                        if (button) button.setAttribute('aria-expanded', 'false');
+                        const menu = item.querySelector('.action-dropdown__menu');
+                        if (menu) menu.hidden = true;
+                    });
+                }
+            });
+        </script>
+    @endpush
 
 @endsection

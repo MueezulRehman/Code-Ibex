@@ -2,6 +2,18 @@
                         <p class="nav-section-label">Hospital operations</p>
                     </div>
 
+                    @if($moduleEnabled('hospital-emergency'))
+                        <div class="nav-dropdown {{ request()->routeIs('manager.hospital-emergency.*') ? 'has-active' : '' }}">
+                            <a href="{{ route('manager.hospital-emergency.index') }}" title="Emergency and trauma"
+                                class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.hospital-emergency.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                                <i class="fas fa-truck-medical text-lg"></i><span class="flex-1 truncate">Emergency &amp; Trauma</span><i class="fas fa-chevron-right nav-chevron"></i>
+                            </a>
+                            <div class="nav-dropdown-menu" aria-label="Emergency and trauma">
+                                <a href="{{ route('manager.hospital-emergency.index') }}" class="{{ request()->routeIs('manager.hospital-emergency.*') ? 'is-active' : '' }}"><i class="fas fa-triage"></i><span>Emergency intake &amp; triage</span></a>
+                            </div>
+                        </div>
+                    @endif
+
                     @if($moduleEnabled('medical') || $moduleEnabled('pharmacy'))
                         <div class="nav-dropdown {{ request()->routeIs('manager.medicines.*') || request()->routeIs('manager.purchases.*') || request()->routeIs('manager.controlled-medicines.*') ? 'has-active' : '' }}">
                             <a href="{{ route('manager.medicines.index') }}" title="Pharmacy"

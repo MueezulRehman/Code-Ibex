@@ -39,7 +39,7 @@ class AdminSuperAdminAccessTest extends TestCase
         $response->assertStatus(200);
     }
 
-    public function test_super_admin_can_see_professional_hospital_bundle_and_locked_roadmap_modules(): void
+    public function test_super_admin_can_see_professional_hospital_bundle_and_deferred_modules(): void
     {
         ModuleService::ensureDefaults();
         $type = BusinessType::where('name', 'Professional Hospital')->firstOrFail();
@@ -66,6 +66,11 @@ class AdminSuperAdminAccessTest extends TestCase
             ->get(route('admin.restaurants.edit', $restaurant))
             ->assertOk()
             ->assertSee('Hospital Emergency Department')
+            ->assertSee('Hospital ICU / Critical Care')
+            ->assertSee('Hospital Outpatient Department')
+            ->assertSee('Hospital Pharmacy Deepening')
+            ->assertSee('Hospital Staff Payroll & Attendance')
+            ->assertSee('Hospital Blood Bank')
             ->assertSee('Unavailable');
     }
 }
