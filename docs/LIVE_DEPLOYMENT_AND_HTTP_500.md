@@ -10,7 +10,7 @@ The repository does not contain production credentials. Never copy a local
 ## Current release
 
 The latest published `main` commit at the time of this guide is
-`92f60451572435df14c6fe5469c1cc60d83e52d4`. Verify the intended release before
+`4d1a3b07564baa61b47e9f3aa04657f462659943`. Verify the intended release before
 deploying:
 
 ```sh
@@ -201,6 +201,24 @@ world-writable.
 
 Back up the central database **and every tenant database** before migrations.
 Keep the server's existing `.env` unchanged. From the release directory:
+
+The current Hostinger installation was manually uploaded and is not a Git
+checkout, so `git pull` inside `public_html/Codeibex` will not update it. For
+that installation, back up the current release first, then upload the changed
+PHP files from the verified Git commit to their matching paths:
+
+- `app/Console/Commands/ProvisionProfessionalHospitalDemoCommand.php`
+- `app/Console/Commands/SeedProfessionalHospitalDemoCommand.php`
+- `app/Http/Controllers/Admin/RestaurantController.php`
+- `database/seeders/ProfessionalHospitalDemoSeeder.php`
+
+Do not replace `.env`, regenerate `APP_KEY`, overwrite `storage`, or remove the
+existing backup. This change has no schema migration or frontend asset
+requirement. After uploading, run `php artisan optimize:clear`, then use the
+demo command's `--dry-run` before any confirmed provisioning. For future full
+releases, clone into a new release directory and preserve the live environment,
+storage, and public assets rather than treating the manually uploaded
+directory as a Git checkout.
 
 ```sh
 git status --short --branch
