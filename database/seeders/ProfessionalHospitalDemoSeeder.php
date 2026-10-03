@@ -33,6 +33,8 @@ use App\Models\Restaurant;
 use App\Support\Tenancy;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 /**
  * Small, deterministic Professional Hospital dataset for demos and browser
@@ -102,24 +104,28 @@ class ProfessionalHospitalDemoSeeder extends Seeder
     protected function seedStaffMirrors(Restaurant $restaurant, string $connection): array
     {
         $definitions = [
-            ['key' => 'doctor', 'name' => 'Dr. Ayesha Khan', 'email' => 'demo.doctor@professional-hospital.test', 'phone' => '03000018001', 'role' => 'manager'],
-            ['key' => 'nurse', 'name' => 'Nurse Sara Ahmed', 'email' => 'demo.nurse@professional-hospital.test', 'phone' => '03000018002', 'role' => 'manager'],
-            ['key' => 'billing', 'name' => 'Bilal Hussain', 'email' => 'demo.billing@professional-hospital.test', 'phone' => '03000018003', 'role' => 'manager'],
+            ['key' => 'doctor', 'name' => 'Dr. Ayesha Khan', 'role' => 'manager'],
+            ['key' => 'nurse', 'name' => 'Nurse Sara Ahmed', 'role' => 'manager'],
+            ['key' => 'billing', 'name' => 'Bilal Hussain', 'role' => 'manager'],
         ];
 
         $staff = [];
-        foreach ($definitions as $definition) {
-            $staff[$definition['key']] = User::updateOrCreate(
-                ['email' => $definition['email']],
-                [
-                    'name' => $definition['name'],
-                    'phone' => $definition['phone'],
-                    'role' => $definition['role'],
-                    'restaurant_id' => $restaurant->id,
-                    'is_active' => true,
-                    'password' => bcrypt('password'),
-                ]
-            );
+        foreach ($definitions as $index => $definition) {
+            $email = "demo.{$definition['key']}.{$restaurant->id}@professional-hospital.test";
+            $user = User::firstOrNew(['email' => $email]);
+            $user->fill([
+                'name' => $definition['name'],
+                'phone' => sprintf('03%09d', ($restaurant->id * 10) + $index + 1),
+                'role' => $definition['role'],
+                'restaurant_id' => $restaurant->id,
+                'is_active' => true,
+            ]);
+            if (! $user->exists) {
+                $user->password = Hash::make(Str::random(48));
+            }
+            $user->save();
+
+            $staff[$definition['key']] = $user;
         }
 
         $now = now();

@@ -50,6 +50,25 @@ reliable enough that future changes can be made safely.
 - Scope remains disciplined: no additional hospital domains are promoted until
   the module, route policy, tenant data model, and focused tests are in place.
 
+### Live demo business provisioning and plan fallback
+
+- Super Admin business creation now uses the first active subscription plan
+  when the submitted plan is blank, falling back to the schema-compatible
+  `basic` value if no active plan exists. This prevents a nullable form value
+  from violating the non-null central `restaurants.plan` column.
+- Use `php artisan hospital:provision-demo --dry-run` to validate creation of
+  one new hidden demo business. Actual creation requires `--confirm` and
+  provisions/seeds only that business's dedicated tenant database.
+- On shared hosting, create a separate empty tenant database in the hosting
+  panel, grant the application database user access, then provide its exact
+  name with `--database=...`. The command refuses a database it cannot verify
+  as empty and refuses duplicate business slugs.
+- The demo seeder uses restaurant-specific staff identities and random,
+  undisclosed password hashes. The generated demo clinical records must not
+  be added to a tenant that contains real patient data.
+- Deployment details and recovery guidance are maintained in
+  `docs/LIVE_DEPLOYMENT_AND_HTTP_500.md`.
+
 ### Emergency & Trauma implementation checkpoint
 
 - `hospital-emergency` now has a tenant migration, central migration, model,

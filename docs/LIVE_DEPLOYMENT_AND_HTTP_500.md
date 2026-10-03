@@ -243,3 +243,54 @@ high-severity authorization and tenant-isolation findings. Restoring the site
 does not mean the clinical system is approved for real patient data or
 clinical operations. Keep real PHI/clinical workflows disabled until those
 findings are remediated and retested.
+
+## Create a Professional Hospital demo business
+
+Do not use `php artisan db:seed --force` to create a live demo: the general
+seeder adds unrelated demo businesses and accounts. The dedicated
+`hospital:provision-demo` command creates exactly one active, hidden
+Professional Hospital business, provisions its own tenant schema, and adds
+the deterministic demo hospital records. A Super Admin can then open the
+business from the Businesses page using **Enter business**. The command does
+not create or reveal Super Admin login credentials.
+
+First validate the inputs without writing:
+
+```sh
+php artisan hospital:provision-demo \
+  --name="Professional Hospital Demo" \
+  --slug="professional-hospital-demo" \
+  --dry-run
+```
+
+On shared hosting, first create a **separate empty tenant database** in hPanel
+and grant the existing application DB user access to it. Pass its exact
+Hostinger-prefixed database name to the command; do not use the central
+database name:
+
+```sh
+php artisan hospital:provision-demo \
+  --name="Professional Hospital Demo" \
+  --slug="professional-hospital-demo" \
+  --database="HOSTINGER_ACCOUNT_hospital_demo" \
+  --confirm
+```
+
+When the hosting DB account is allowed to create databases directly, omit
+`--database` and the application will use its configured tenant database
+prefix. The command refuses duplicate slugs and requires explicit `--confirm`
+for writes. If tenant provisioning fails after the central business row is
+created, do not rerun with another slug; inspect the reported error and resume
+the existing business deliberately.
+
+The demo dataset contains synthetic patient/clinical records and demo staff
+accounts with random, undisclosed passwords. It is for demonstration only,
+not real patient care. Never seed it into a real hospital tenant or a tenant
+containing real PHI. Existing-business data-only seeding remains available
+through `hospital:seed-demo --restaurant=ID`; always use the actual dedicated
+demo tenant ID, never an assumed ID.
+
+The Super Admin restaurant-create form defaults a missing plan to the first
+active subscription plan, or the schema-compatible `basic` value if no active
+plan exists. This prevents an omitted optional plan from inserting `NULL` into
+the non-null `restaurants.plan` column.

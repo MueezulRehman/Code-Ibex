@@ -107,7 +107,7 @@ class RestaurantController extends Controller
             'address' => 'nullable|string|max:500',
             'custom_domain' => 'nullable|string|max:255|unique:restaurants,custom_domain',
             'domain' => 'nullable|string|max:255|unique:restaurants,domain',
-            'plan' => 'nullable|string|max:50',
+            'plan' => ['nullable', 'string', Rule::exists('subscription_plans', 'slug')->where(fn ($query) => $query->where('is_active', true))],
             'status' => 'nullable|in:trial,active,suspended,cancelled',
             'show_on_homepage' => 'nullable|boolean',
             'storefront_enabled' => 'nullable|boolean',
@@ -149,7 +149,10 @@ class RestaurantController extends Controller
                 : [];
         }
 
-        $plan = SubscriptionPlan::where('slug', $validated['plan'] ?? null)->first();
+        $plan = filled($validated['plan'] ?? null)
+            ? SubscriptionPlan::where('slug', $validated['plan'])->where('is_active', true)->first()
+            : SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->first();
+        $validated['plan'] = $plan?->slug ?? 'basic';
         if ($plan?->max_modules !== null && count($selectedModuleKeys) > (int) $plan->max_modules) {
             return back()
                 ->withErrors(['enabled_modules' => "The selected business type requires {$this->countModuleKeys($selectedModuleKeys)} modules, but the {$plan->name} plan allows {$plan->max_modules}. Choose a plan with a higher module cap or select modules manually."])
@@ -257,7 +260,7 @@ class RestaurantController extends Controller
             'address' => 'nullable|string|max:500',
             'custom_domain' => 'nullable|string|max:255|unique:restaurants,custom_domain,' . $restaurant->id,
             'domain' => 'nullable|string|max:255|unique:restaurants,domain,' . $restaurant->id,
-            'plan' => 'nullable|string|max:50',
+            'plan' => ['nullable', 'string', Rule::exists('subscription_plans', 'slug')->where(fn ($query) => $query->where('is_active', true))],
             'status' => 'nullable|in:trial,active,suspended,cancelled',
             'show_on_homepage' => 'nullable|boolean',
             'storefront_enabled' => 'nullable|boolean',
@@ -308,7 +311,11 @@ class RestaurantController extends Controller
             unset($updateData['enabled_modules']);
         }
 
-        $plan = SubscriptionPlan::where('slug', $validated['plan'] ?? $restaurant->plan)->first();
+        $plan = filled($validated['plan'] ?? null)
+            ? SubscriptionPlan::where('slug', $validated['plan'])->where('is_active', true)->first()
+            : SubscriptionPlan::where('slug', $restaurant->plan)->where('is_active', true)->first();
+        $plan ??= SubscriptionPlan::where('is_active', true)->orderBy('sort_order')->first();
+        $updateData['plan'] = $plan?->slug ?? $restaurant->plan ?? 'basic';
         if ($plan?->max_modules !== null && isset($updateData['enabled_modules']) && count($updateData['enabled_modules']) > (int) $plan->max_modules) {
             return back()
                 ->withErrors(['enabled_modules' => "The selected business type requires {$this->countModuleKeys($updateData['enabled_modules'])} modules, but the {$plan->name} plan allows {$plan->max_modules}. Choose a plan with a higher module cap or select modules manually."])
