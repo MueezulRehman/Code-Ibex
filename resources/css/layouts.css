@@ -865,7 +865,7 @@ html[data-dashboard-theme="dark"] .dashboard-shell .bg-slate-200 {
             }
 
             .dashboard-shell .dashboard-sidebar.mobile-open {
-                display: flex;
+                display: flex !important;
             }
 
             .dashboard-shell .mobile-nav-backdrop {

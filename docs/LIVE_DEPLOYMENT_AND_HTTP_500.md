@@ -9,9 +9,7 @@ The repository does not contain production credentials. Never copy a local
 
 ## Current release
 
-The latest published `main` commit at the time of this guide is
-`4d1a3b07564baa61b47e9f3aa04657f462659943`. Verify the intended release before
-deploying:
+Verify the intended release on `main` before deploying:
 
 ```sh
 git ls-remote https://github.com/MueezulRehman/Restaurants-System.git refs/heads/main
@@ -209,16 +207,72 @@ PHP files from the verified Git commit to their matching paths:
 
 - `app/Console/Commands/ProvisionProfessionalHospitalDemoCommand.php`
 - `app/Console/Commands/SeedProfessionalHospitalDemoCommand.php`
+- `app/Console/Commands/SeedDemoBusinessesCommand.php`
 - `app/Http/Controllers/Admin/RestaurantController.php`
+- `database/seeders/DemoBusinessesSeeder.php`
 - `database/seeders/ProfessionalHospitalDemoSeeder.php`
+- `database/seeders/TasteHutSeeder.php`
+- `database/seeders/AlMajidAryansStoreSeeder.php`
+- `database/seeders/AmjdKaryanaStoreSeeder.php`
+- `database/seeders/FastFoodSeeder.php`
+- `database/seeders/FoodClinicSeeder.php`
+- `database/seeders/MedicineSeeder.php`
+- `database/seeders/PakistaniGeneralStoreSeeder.php`
+- `database/seeders/PakistaniMedicineSeeder.php`
+- `resources/css/layouts.css`
 
 Do not replace `.env`, regenerate `APP_KEY`, overwrite `storage`, or remove the
-existing backup. This change has no schema migration or frontend asset
-requirement. After uploading, run `php artisan optimize:clear`, then use the
-demo command's `--dry-run` before any confirmed provisioning. For future full
-releases, clone into a new release directory and preserve the live environment,
-storage, and public assets rather than treating the manually uploaded
-directory as a Git checkout.
+existing backup. There is no schema migration, but the mobile sidebar fix
+requires the rebuilt Vite assets. Build them locally with `npm run build`, copy
+the new files under `public/build/assets/` to the server, then replace
+`public/build/manifest.json` last. Keep old hashed assets until the new
+manifest is in place. After uploading, run `php artisan optimize:clear`.
+
+## Seed the curated demo businesses
+
+`businesses:seed-demos` provisions the demo businesses present in the
+repository's focused seeders: Taste Hut, City Pharmacy, Al-Barkat General
+Store, Karachi Broast, Food Clinic, Al Majid Aryans Store, Amjd Karyana Store,
+and Professional Hospital Demo. It adds missing central rows, applies tenant
+migrations, and seeds the matching synthetic catalogs/records. It does not run
+the general `DatabaseSeeder`, reset the Super Admin, or print manager
+passwords. Use Super Admin **Enter business** to inspect the businesses.
+
+Always inspect the planned scope first:
+
+```sh
+php artisan businesses:seed-demos --dry-run
+```
+
+On shared hosting where the app DB user cannot create databases, create the
+central business rows and get their exact tenant database names first. Replace
+the prefix below with the name prefix accepted by the hosting provider:
+
+```sh
+php artisan businesses:seed-demos \
+  --create-only \
+  --tenant-database-prefix="HOSTINGER_ACCOUNT_codeibex_demo_" \
+  --confirm
+```
+
+Create each reported tenant database as a separate empty database in hPanel
+and grant the application DB user access. Then run the command again without
+`--create-only`:
+
+```sh
+php artisan businesses:seed-demos \
+  --tenant-database-prefix="HOSTINGER_ACCOUNT_codeibex_demo_" \
+  --confirm
+```
+
+If the app DB user is permitted to create tenant databases, omit
+`--tenant-database-prefix` and run once with `--confirm`. The command is
+additive and safe to rerun; it does not delete seeded catalogs or overwrite
+existing manager passwords. All patient and other business records are
+synthetic demo data—never run this against tenants containing real customer,
+clinical, or other production records. Do not use `php artisan db:seed
+--force` as a substitute; the general seeder has unrelated development
+accounts and behavior.
 
 ```sh
 git status --short --branch

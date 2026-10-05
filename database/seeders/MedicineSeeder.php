@@ -6,6 +6,7 @@ use App\Models\Manufacturer;
 use App\Models\Medicine;
 use App\Models\MedicineCategory;
 use App\Models\MedicineUnit;
+use App\Support\Tenancy;
 use Illuminate\Database\Seeder;
 
 class MedicineSeeder extends Seeder
@@ -50,7 +51,7 @@ class MedicineSeeder extends Seeder
                 'requires_prescription' => false,
                 'track_stock' => true,
                 'min_stock' => 10,
-                'restaurant_id' => null,
+                'restaurant_id' => Tenancy::currentId(),
             ]);
         }
     }

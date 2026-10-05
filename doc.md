@@ -69,6 +69,27 @@ reliable enough that future changes can be made safely.
 - Deployment details and recovery guidance are maintained in
   `docs/LIVE_DEPLOYMENT_AND_HTTP_500.md`.
 
+### Super Admin mobile navigation and curated live demo tenants
+
+- The mobile sidebar's `hidden` utility overrode its open state, leaving it
+  invisible after the menu button was tapped. The mobile-open CSS state now
+  explicitly wins.
+- `businesses:seed-demos` safely creates and provisions the repository's
+  curated demo businesses, then runs each business-specific sample dataset.
+  It includes Taste Hut without the old seeder's Super Admin password reset
+  or destructive catalog cleanup.
+- The command supports `--dry-run`, explicit `--confirm`, and a
+  `--create-only` pass for shared hosting. A
+  `--tenant-database-prefix` can target pre-created, empty tenant databases.
+- Demo catalog seeders now run against their intended tenant databases and
+  use additive lookups for reruns. Demo manager passwords are generated
+  randomly only when creating an account and are never printed.
+- Frontend verification: `npm run build` succeeds. Focused tests cover demo
+  command dry-run, create-only, confirmation, and tenant provision flow.
+- Run the dedicated `businesses:seed-demos` command in production only after
+  reviewing its dry run and confirming the target tenant databases are
+  dedicated to synthetic demo data; do not use `db:seed --force`.
+
 ### Emergency & Trauma implementation checkpoint
 
 - `hospital-emergency` now has a tenant migration, central migration, model,
