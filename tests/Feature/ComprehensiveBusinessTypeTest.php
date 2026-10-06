@@ -79,6 +79,22 @@ class ComprehensiveBusinessTypeTest extends TestCase
             'business_type_id' => $retailType->id,
         ]);
 
+        $category = Category::create([
+            'restaurant_id' => $restaurant->id,
+            'name' => 'Karyana Goods',
+            'slug' => 'karyana-goods',
+            'is_active' => true,
+            'pos_show_line_edit' => true,
+        ]);
+        MenuItem::create([
+            'restaurant_id' => $restaurant->id,
+            'category_id' => $category->id,
+            'name' => 'Sample Rice',
+            'price' => 500,
+            'is_available' => true,
+            'track_stock' => false,
+        ]);
+
         $manager = User::create([
             'name' => 'Shop Manager',
             'email' => 'shop-manager@example.com',
@@ -92,7 +108,8 @@ class ComprehensiveBusinessTypeTest extends TestCase
         // Test POS loads for retail mode
         $this->actingAs($manager);
         $response = $this->get(route('manager.pos.index'));
-        $response->assertOk();
+        $response->assertOk()->assertSee('Sample Rice')->assertSee('Karyana Goods');
+        $this->assertTrue($response->viewData('items')->first()->relationLoaded('category'));
         
         // Verify retail-specific behavior: variants should be available
         $this->assertTrue($manager->hasModuleAccess('variants'), 'Shop manager should have variants access');

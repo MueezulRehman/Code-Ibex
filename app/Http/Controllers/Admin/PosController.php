@@ -119,7 +119,7 @@ class PosController extends Controller
         }
 
         // Retail: MenuItem list
-        $items = MenuItem::with('variants')
+        $items = MenuItem::with(['variants', 'category'])
             ->where('is_available', true)
             ->orderBy('name')
             ->get();
