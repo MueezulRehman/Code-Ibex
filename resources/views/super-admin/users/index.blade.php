@@ -19,9 +19,9 @@
         </div>
     @endif
 
-    @if ($errors->any())
+    @if ($errors->getBag('default')->any())
         <div class="mb-5 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700" role="alert">
-            @foreach ($errors->all() as $error)
+            @foreach ($errors->getBag('default')->all() as $error)
                 <p>{{ $error }}</p>
             @endforeach
         </div>
@@ -100,7 +100,7 @@
                                     <div class="mt-1 text-xs text-gray-500">{{ $account->phone }}{{ $account->email ? ' · '.$account->email : '' }}</div>
                                     <button type="button" data-open-dialog="user-dialog-{{ $account->id }}" class="mt-3 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-50">Edit account</button>
 
-                                    <dialog id="user-dialog-{{ $account->id }}" class="m-auto max-h-[90vh] w-[min(95vw,42rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50">
+                                    <dialog id="user-dialog-{{ $account->id }}" style="position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); margin: 0;" class="max-h-[90vh] w-[min(95vw,42rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50">
                                         <div class="border-b border-slate-200 px-6 py-4">
                                             <div class="flex items-start justify-between gap-4">
                                                 <div>
@@ -130,18 +130,32 @@
                                                 <button class="justify-self-start rounded-lg bg-hut-dark px-4 py-2 text-sm font-semibold text-white">Save account details</button>
                                             </form>
 
-                                            <form method="POST" action="{{ route('admin.users.password.reset', $account) }}" class="grid gap-3 border-t border-slate-200 pt-5" onsubmit="return confirm('Set this temporary password? The user must change it after signing in.');">
+                                            <form method="POST" action="{{ route('admin.users.password.reset', $account) }}" class="grid gap-3 border-t border-slate-200 pt-5" data-password-form onsubmit="return confirm('Set this temporary password? The user must change it after signing in.');">
                                                 @csrf
+                                                <input type="hidden" name="_dialog_id" value="user-dialog-{{ $account->id }}">
                                                 <h4 class="font-semibold text-hut-dark">Set temporary password</h4>
                                                 <label class="grid gap-1 text-sm">
                                                     <span>Temporary password</span>
-                                                    <input name="password" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                                    <input name="password" type="password" required minlength="12" autocomplete="new-password" data-password-input aria-describedby="reset-password-rules-{{ $account->id }}" class="rounded-lg border border-gray-300 px-3 py-2">
                                                 </label>
+                                                @if ($errors->hasBag('resetPassword') && $errors->getBag('resetPassword')->has('password'))
+                                                    <p class="-mt-2 text-xs text-red-700" role="alert">{{ $errors->getBag('resetPassword')->first('password') }}</p>
+                                                @endif
+                                                <ul id="reset-password-rules-{{ $account->id }}" data-password-checklist class="grid gap-1 text-xs text-gray-500" aria-label="Password requirements">
+                                                    <li data-password-rule="length"><span data-rule-icon aria-hidden="true">○</span> At least 12 characters</li>
+                                                    <li data-password-rule="uppercase"><span data-rule-icon aria-hidden="true">○</span> At least one uppercase letter</li>
+                                                    <li data-password-rule="lowercase"><span data-rule-icon aria-hidden="true">○</span> At least one lowercase letter</li>
+                                                    <li data-password-rule="number"><span data-rule-icon aria-hidden="true">○</span> At least one number</li>
+                                                    <li data-password-rule="symbol"><span data-rule-icon aria-hidden="true">○</span> At least one symbol</li>
+                                                </ul>
                                                 <label class="grid gap-1 text-sm">
                                                     <span>Confirm password</span>
-                                                    <input name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                                    <input name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" data-password-confirmation class="rounded-lg border border-gray-300 px-3 py-2">
                                                 </label>
-                                                <p class="text-xs text-gray-500">12+ characters with uppercase, lowercase, number, and symbol.</p>
+                                                @if ($errors->hasBag('resetPassword') && $errors->getBag('resetPassword')->has('password_confirmation'))
+                                                    <p class="-mt-2 text-xs text-red-700" role="alert">{{ $errors->getBag('resetPassword')->first('password_confirmation') }}</p>
+                                                @endif
+                                                <p data-password-feedback class="hidden text-xs text-red-700" role="status" aria-live="polite"></p>
                                                 <button class="justify-self-start rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50">Set temporary password</button>
                                             </form>
                                         </div>
@@ -154,7 +168,7 @@
                         <td class="px-4 py-4">
                             @if ($tenantReady)
                                 <button type="button" data-open-dialog="manager-dialog-{{ $business->id }}" class="rounded-lg border border-blue-200 px-3 py-2 text-center text-xs font-semibold text-blue-900 hover:bg-blue-50">Add manager</button>
-                                <dialog id="manager-dialog-{{ $business->id }}" class="m-auto max-h-[90vh] w-[min(95vw,34rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50">
+                                <dialog id="manager-dialog-{{ $business->id }}" style="position: fixed; inset: 50% auto auto 50%; transform: translate(-50%, -50%); margin: 0;" class="max-h-[90vh] w-[min(95vw,34rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50">
                                     <div class="border-b border-slate-200 px-6 py-4">
                                         <div class="flex items-start justify-between gap-4">
                                             <div>
@@ -164,8 +178,9 @@
                                             <button type="button" data-close-dialog class="rounded-lg px-3 py-1 text-xl text-gray-500 hover:bg-gray-100" aria-label="Close">×</button>
                                         </div>
                                     </div>
-                                    <form method="POST" action="{{ route('admin.users.businesses.managers.store', $business) }}" class="grid gap-3 p-6">
+                                    <form method="POST" action="{{ route('admin.users.businesses.managers.store', $business) }}" class="grid gap-3 p-6" data-password-form>
                                         @csrf
+                                        <input type="hidden" name="_dialog_id" value="manager-dialog-{{ $business->id }}">
                                         <label class="grid gap-1 text-sm">
                                             <span>Full name</span>
                                             <input name="name" required maxlength="255" value="{{ old('name') }}" class="rounded-lg border border-gray-300 px-3 py-2">
@@ -180,13 +195,26 @@
                                         </label>
                                         <label class="grid gap-1 text-sm">
                                             <span>Temporary password</span>
-                                            <input name="password" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                            <input name="password" type="password" required minlength="12" autocomplete="new-password" data-password-input aria-describedby="manager-password-rules-{{ $business->id }}" class="rounded-lg border border-gray-300 px-3 py-2">
                                         </label>
+                                        @if ($errors->hasBag('managerCreate') && $errors->getBag('managerCreate')->has('password'))
+                                            <p class="-mt-2 text-xs text-red-700" role="alert">{{ $errors->getBag('managerCreate')->first('password') }}</p>
+                                        @endif
+                                        <ul id="manager-password-rules-{{ $business->id }}" data-password-checklist class="grid gap-1 text-xs text-gray-500" aria-label="Password requirements">
+                                            <li data-password-rule="length"><span data-rule-icon aria-hidden="true">○</span> At least 12 characters</li>
+                                            <li data-password-rule="uppercase"><span data-rule-icon aria-hidden="true">○</span> At least one uppercase letter</li>
+                                            <li data-password-rule="lowercase"><span data-rule-icon aria-hidden="true">○</span> At least one lowercase letter</li>
+                                            <li data-password-rule="number"><span data-rule-icon aria-hidden="true">○</span> At least one number</li>
+                                            <li data-password-rule="symbol"><span data-rule-icon aria-hidden="true">○</span> At least one symbol</li>
+                                        </ul>
                                         <label class="grid gap-1 text-sm">
                                             <span>Confirm password</span>
-                                            <input name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                            <input name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" data-password-confirmation class="rounded-lg border border-gray-300 px-3 py-2">
                                         </label>
-                                        <p class="text-xs text-gray-500">12+ characters with uppercase, lowercase, number, and symbol.</p>
+                                        @if ($errors->hasBag('managerCreate') && $errors->getBag('managerCreate')->has('password_confirmation'))
+                                            <p class="-mt-2 text-xs text-red-700" role="alert">{{ $errors->getBag('managerCreate')->first('password_confirmation') }}</p>
+                                        @endif
+                                        <p data-password-feedback class="hidden text-xs text-red-700" role="status" aria-live="polite"></p>
                                         <button class="rounded-lg bg-hut-dark px-4 py-2 text-sm font-semibold text-white">Create manager login</button>
                                     </form>
                                 </dialog>
@@ -219,5 +247,68 @@
                 closer.closest('dialog')?.close();
             }
         });
+
+        const passwordRules = {
+            length: (value) => value.length >= 12,
+            uppercase: (value) => /\p{Lu}/u.test(value),
+            lowercase: (value) => /\p{Ll}/u.test(value),
+            number: (value) => /\p{N}/u.test(value),
+            symbol: (value) => /[\p{P}\p{S}]/u.test(value),
+        };
+
+        document.querySelectorAll('[data-password-form]').forEach((form) => {
+            const passwordInput = form.querySelector('[data-password-input]');
+            const confirmationInput = form.querySelector('[data-password-confirmation]');
+            const feedback = form.querySelector('[data-password-feedback]');
+
+            const updatePasswordGuidance = () => {
+                const value = passwordInput.value;
+                const results = Object.fromEntries(
+                    Object.entries(passwordRules).map(([rule, check]) => [rule, check(value)])
+                );
+
+                form.querySelectorAll('[data-password-rule]').forEach((item) => {
+                    const passed = results[item.dataset.passwordRule];
+                    item.classList.toggle('font-semibold', passed);
+                    item.classList.toggle('text-green-800', passed);
+                    item.classList.toggle('text-gray-500', !passed);
+                    item.querySelector('[data-rule-icon]').textContent = passed ? '✓' : '○';
+                });
+
+                if (!feedback) {
+                    return results;
+                }
+
+                const messages = [];
+                if (Object.values(results).some((passed) => !passed)) {
+                    messages.push('Meet all password requirements above.');
+                }
+                if (confirmationInput.value && confirmationInput.value !== value) {
+                    messages.push('The password confirmation does not match.');
+                }
+                feedback.textContent = messages.join(' ');
+                feedback.classList.toggle('hidden', messages.length === 0);
+
+                return results;
+            };
+
+            passwordInput.addEventListener('input', updatePasswordGuidance);
+            confirmationInput.addEventListener('input', updatePasswordGuidance);
+            form.addEventListener('submit', (event) => {
+                const results = updatePasswordGuidance();
+                const validPassword = Object.values(results).every(Boolean);
+                const validConfirmation = confirmationInput.value === passwordInput.value;
+
+                if (!validPassword || !validConfirmation) {
+                    event.preventDefault();
+                    (validPassword ? confirmationInput : passwordInput).focus();
+                }
+            });
+        });
+
+        const invalidDialogId = @json(old('_dialog_id'));
+        if (invalidDialogId) {
+            document.getElementById(invalidDialogId)?.showModal();
+        }
     </script>
 @endpush

@@ -63,7 +63,7 @@ class UserCredentialController extends Controller
         $tenantHealth = $provisioner->inspectDatabase($restaurant);
         abort_unless($tenantHealth['ready'], 422, 'A manager login can only be added after this business tenant database is connected, fully migrated, and initialized.');
 
-        $validated = $request->validate([
+        $validated = $request->validateWithBag('managerCreate', [
             'name' => ['required', 'string', 'max:255'],
             'phone' => ['required', 'string', 'max:20', Rule::unique(User::class, 'phone')],
             'email' => ['nullable', 'email', 'max:150', Rule::unique(User::class, 'email')],
@@ -110,7 +110,7 @@ class UserCredentialController extends Controller
         abort_unless(in_array($user->role, self::INTERNAL_ROLES, true), 404);
         abort_if($user->is(Auth::user()), 403, 'Use My Account to change your own password.');
 
-        $validated = $request->validate([
+        $validated = $request->validateWithBag('resetPassword', [
             'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
         ]);
 

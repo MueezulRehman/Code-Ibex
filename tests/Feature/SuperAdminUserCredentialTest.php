@@ -61,10 +61,12 @@ class SuperAdminUserCredentialTest extends TestCase
         $this->actingAs($superAdmin)
             ->from(route('admin.users.index'))
             ->post(route('admin.users.password.reset', $manager), [
+                '_dialog_id' => 'user-dialog-'.$manager->id,
                 'password' => 'weakpassword',
                 'password_confirmation' => 'weakpassword',
             ])
-            ->assertSessionHasErrors('password');
+            ->assertSessionHasErrors('password', null, 'resetPassword')
+            ->assertSessionHas('_old_input._dialog_id', 'user-dialog-'.$manager->id);
 
         $manager->refresh();
         $this->assertSame($originalHash, $manager->password);
@@ -124,6 +126,8 @@ class SuperAdminUserCredentialTest extends TestCase
             ->assertSee('Add manager')
             ->assertSee('Edit account')
             ->assertSee('Save account details')
+            ->assertSee('At least one uppercase letter')
+            ->assertSee('inset: 50% auto auto 50%')
             ->assertSee('Available when tenant is ready');
     }
 
@@ -174,6 +178,43 @@ class SuperAdminUserCredentialTest extends TestCase
         $this->assertSame($business->id, $manager->restaurant_id);
         $this->assertTrue($manager->must_change_password);
         $this->assertTrue(Hash::check($password, $manager->password));
+    }
+
+    public function test_manager_creation_password_errors_return_to_the_manager_modal(): void
+    {
+        $superAdmin = User::factory()->create([
+            'phone' => '03001110018',
+            'role' => 'super_admin',
+        ]);
+        $business = Restaurant::create([
+            'name' => 'Password Validation Business',
+            'slug' => 'password-validation-business',
+            'db_connection' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+            ],
+        ]);
+
+        $provisioner = Mockery::mock(TenantProvisioner::class);
+        $provisioner->shouldReceive('inspectDatabase')
+            ->once()
+            ->with(Mockery::on(fn (Restaurant $candidate): bool => $candidate->is($business)))
+            ->andReturn(['status' => 'ready', 'ready' => true, 'database' => ':memory:']);
+        $this->app->instance(TenantProvisioner::class, $provisioner);
+
+        $this->actingAs($superAdmin)
+            ->from(route('admin.users.index'))
+            ->post(route('admin.users.businesses.managers.store', $business), [
+                '_dialog_id' => 'manager-dialog-'.$business->id,
+                'name' => 'Weak Password Manager',
+                'phone' => '03001110019',
+                'password' => 'weakpassword',
+                'password_confirmation' => 'weakpassword',
+            ])
+            ->assertSessionHasErrors('password', null, 'managerCreate')
+            ->assertSessionHas('_old_input._dialog_id', 'manager-dialog-'.$business->id);
+
+        $this->assertDatabaseMissing('users', ['phone' => '03001110019']);
     }
 
     public function test_super_admin_can_edit_an_internal_account_from_the_modal_form_endpoint(): void
