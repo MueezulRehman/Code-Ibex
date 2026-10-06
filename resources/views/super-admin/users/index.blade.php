@@ -5,12 +5,12 @@
 @section('page-content')
     <div class="mb-6">
         <h2 class="text-2xl font-semibold text-hut-dark">User Access</h2>
-        <p class="mt-1 text-sm text-gray-500">Issue a one-time temporary password when an internal user cannot sign in. They must choose a new password at their next login.</p>
+        <p class="mt-1 text-sm text-gray-500">Set a one-time temporary password for an internal user. They must choose a new password at their next login.</p>
     </div>
 
     @if (session('temporary_password'))
         <div class="mb-6 rounded-xl border border-amber-300 bg-amber-50 p-5 text-amber-950" role="status">
-            <h3 class="font-semibold">Temporary password issued for {{ session('temporary_password.user_name') }}</h3>
+            <h3 class="font-semibold">Temporary password set for {{ session('temporary_password.user_name') }}</h3>
             <p class="mt-1 text-sm">Share this securely with the user. This is shown once; they will be required to replace it after signing in.</p>
             <div class="mt-3 flex flex-wrap items-center gap-3">
                 <code class="select-all rounded-lg border border-amber-300 bg-white px-3 py-2 font-mono text-base">{{ session('temporary_password.password') }}</code>
@@ -68,9 +68,14 @@
                             @endif
                         </td>
                         <td class="px-4 py-3 text-right">
-                            <form method="POST" action="{{ route('admin.users.password.reset', $user) }}" onsubmit="return confirm('Issue a temporary password? The user must change it after signing in.');">
+                            <form method="POST" action="{{ route('admin.users.password.reset', $user) }}" class="ml-auto grid max-w-64 gap-2" onsubmit="return confirm('Set this temporary password? The user must change it after signing in.');">
                                 @csrf
-                                <button class="rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-50">Issue temporary password</button>
+                                <label class="sr-only" for="temporary-password-{{ $user->id }}">Temporary password for {{ $user->name }}</label>
+                                <input id="temporary-password-{{ $user->id }}" name="password" type="password" required minlength="12" autocomplete="new-password" placeholder="Temporary password" class="rounded-lg border border-gray-300 px-3 py-2 text-left text-xs">
+                                <label class="sr-only" for="temporary-password-confirmation-{{ $user->id }}">Confirm temporary password for {{ $user->name }}</label>
+                                <input id="temporary-password-confirmation-{{ $user->id }}" name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" placeholder="Confirm password" class="rounded-lg border border-gray-300 px-3 py-2 text-left text-xs">
+                                <p class="text-left text-xs text-gray-500">12+ chars, uppercase, lowercase, number, and symbol.</p>
+                                <button class="rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-50">Set temporary password</button>
                             </form>
                         </td>
                     </tr>

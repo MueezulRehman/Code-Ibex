@@ -13,6 +13,7 @@ class SuperAdminUserCredentialTest extends TestCase
 
     public function test_super_admin_can_issue_a_temporary_password_for_an_internal_user(): void
     {
+        $temporaryPassword = 'ManagerTempPass123!';
         $superAdmin = User::factory()->create([
             'name' => 'Platform Admin',
             'phone' => '03001110001',
@@ -25,18 +26,46 @@ class SuperAdminUserCredentialTest extends TestCase
         ]);
 
         $response = $this->actingAs($superAdmin)
-            ->post(route('admin.users.password.reset', $manager));
+            ->post(route('admin.users.password.reset', $manager), [
+                'password' => $temporaryPassword,
+                'password_confirmation' => $temporaryPassword,
+            ]);
 
         $response->assertRedirect(route('admin.users.index'));
         $response->assertSessionHas('temporary_password', function (array $temporaryPassword): bool {
             return $temporaryPassword['user_name'] === 'Restaurant Manager'
                 && $temporaryPassword['user_phone'] === '03001110002'
-                && strlen($temporaryPassword['password']) === 32;
+                && $temporaryPassword['password'] === 'ManagerTempPass123!';
         });
 
         $manager->refresh();
         $this->assertTrue($manager->must_change_password);
-        $this->assertTrue(Hash::check(session('temporary_password.password'), $manager->password));
+        $this->assertTrue(Hash::check($temporaryPassword, $manager->password));
+    }
+
+    public function test_super_admin_cannot_set_a_weak_temporary_password(): void
+    {
+        $superAdmin = User::factory()->create([
+            'phone' => '03001110007',
+            'role' => 'super_admin',
+        ]);
+        $manager = User::factory()->create([
+            'phone' => '03001110008',
+            'role' => 'manager',
+        ]);
+        $originalHash = $manager->password;
+
+        $this->actingAs($superAdmin)
+            ->from(route('admin.users.index'))
+            ->post(route('admin.users.password.reset', $manager), [
+                'password' => 'weakpassword',
+                'password_confirmation' => 'weakpassword',
+            ])
+            ->assertSessionHasErrors('password');
+
+        $manager->refresh();
+        $this->assertSame($originalHash, $manager->password);
+        $this->assertFalse($manager->must_change_password);
     }
 
     public function test_manager_cannot_access_super_admin_user_credentials(): void

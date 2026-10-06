@@ -9,6 +9,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\Rules\Password;
 
 class UserCredentialController extends Controller
 {
@@ -43,14 +44,17 @@ class UserCredentialController extends Controller
         ]);
     }
 
-    public function resetPassword(User $user)
+    public function resetPassword(Request $request, User $user)
     {
         abort_unless(in_array($user->role, self::INTERNAL_ROLES, true), 404);
         abort_if($user->is(Auth::user()), 403, 'Use My Account to change your own password.');
 
-        $temporaryPassword = Str::random(32);
+        $validated = $request->validate([
+            'password' => ['required', 'confirmed', Password::min(12)->mixedCase()->numbers()->symbols()],
+        ]);
+
         $user->forceFill([
-            'password' => Hash::make($temporaryPassword),
+            'password' => Hash::make($validated['password']),
             'must_change_password' => true,
             'remember_token' => Str::random(60),
         ])->save();
@@ -66,7 +70,7 @@ class UserCredentialController extends Controller
             ->with('temporary_password', [
                 'user_name' => $user->name,
                 'user_phone' => $user->phone,
-                'password' => $temporaryPassword,
+                'password' => $validated['password'],
             ]);
     }
 }

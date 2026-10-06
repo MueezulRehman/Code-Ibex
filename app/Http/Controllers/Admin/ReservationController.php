@@ -31,7 +31,7 @@ class ReservationController extends Controller
     {
         $id = $this->restaurantId();
         $customers = Customer::where('restaurant_id', $id)->orderBy('name')->get();
-        $tables = Table::where('restaurant_id', $id)->orderBy('name')->get();
+        $tables = Table::where('restaurant_id', $id)->orderBy('number')->get();
         return view('manager.reservations.create', compact('customers', 'tables'));
     }
 
