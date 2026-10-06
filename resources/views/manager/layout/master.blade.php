@@ -103,6 +103,63 @@
 
     @include('partials.manager-new-order-listener')
     <script>
+        (function () {
+            var shell = document.querySelector('.dashboard-shell');
+            var sidebar = shell?.querySelector('.dashboard-sidebar');
+            var toggle = document.getElementById('mobile-nav-toggle');
+            var backdrop = document.getElementById('mobile-nav-backdrop');
+            if (!shell || !sidebar || !toggle || !backdrop) return;
+
+            var setMobileNavigationOpen = function (open) {
+                sidebar.classList.toggle('mobile-open', open);
+                if (open) {
+                    sidebar.style.setProperty('display', 'flex', 'important');
+                    sidebar.style.setProperty('position', 'fixed', 'important');
+                    sidebar.style.setProperty('inset', '0 auto 0 0', 'important');
+                    sidebar.style.setProperty('z-index', '60', 'important');
+                    sidebar.style.setProperty('width', 'min(84vw, 18rem)', 'important');
+                    sidebar.style.setProperty('max-height', '100dvh', 'important');
+                    sidebar.style.setProperty('overflow-y', 'auto', 'important');
+                } else {
+                    ['display', 'position', 'inset', 'z-index', 'width', 'max-height', 'overflow-y']
+                        .forEach(function (property) { sidebar.style.removeProperty(property); });
+                }
+                backdrop.classList.toggle('hidden', !open);
+                toggle.setAttribute('aria-expanded', open ? 'true' : 'false');
+                toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+                var icon = toggle.querySelector('i');
+                if (icon) {
+                    icon.classList.toggle('fa-bars', !open);
+                    icon.classList.toggle('fa-xmark', open);
+                }
+            };
+
+            document.addEventListener('click', function (event) {
+                var target = event.target instanceof Element ? event.target : null;
+                if (!target) return;
+
+                if (target.closest('#mobile-nav-toggle')) {
+                    event.preventDefault();
+                    event.stopImmediatePropagation();
+                    setMobileNavigationOpen(toggle.getAttribute('aria-expanded') !== 'true');
+                } else if (target.closest('#mobile-nav-backdrop')) {
+                    setMobileNavigationOpen(false);
+                } else if (target.closest('.dashboard-sidebar a')) {
+                    setMobileNavigationOpen(false);
+                }
+            }, true);
+
+            document.addEventListener('keydown', function (event) {
+                if (event.key === 'Escape' && toggle.getAttribute('aria-expanded') === 'true') {
+                    setMobileNavigationOpen(false);
+                }
+            });
+
+            window.addEventListener('resize', function () {
+                if (window.innerWidth >= 768) setMobileNavigationOpen(false);
+            });
+        })();
+
         document.addEventListener('DOMContentLoaded', function () {
             document.querySelectorAll('main input[required], main select[required], main textarea[required]').forEach(function (field) {
                 field.setAttribute('aria-required', 'true');

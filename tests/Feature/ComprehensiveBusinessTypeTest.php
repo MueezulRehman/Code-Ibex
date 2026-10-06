@@ -115,6 +115,8 @@ class ComprehensiveBusinessTypeTest extends TestCase
             ->assertSee('Sample Rice')
             ->assertSee('Karyana Goods')
             ->assertSee('.dashboard-shell .dashboard-sidebar.mobile-open', false)
+            ->assertSee('event.stopImmediatePropagation()', false)
+            ->assertSee('min(84vw, 18rem)', false)
             ->assertSee('scanInput?.focus({ preventScroll: true })', false);
         $this->assertTrue($response->viewData('items')->first()->relationLoaded('category'));
         
