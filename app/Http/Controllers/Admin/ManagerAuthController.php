@@ -38,6 +38,10 @@ class ManagerAuthController extends Controller
                 return back()->withErrors(['phone' => 'This account cannot use the internal login.'])->onlyInput('phone');
             }
 
+            if ($user->must_change_password) {
+                return redirect()->route('password.required.edit');
+            }
+
             if ($user->isSuperAdmin()) {
                 $user->forceFill(['last_login_at' => now()])->save();
 
@@ -86,6 +90,10 @@ class ManagerAuthController extends Controller
 
     protected function landingRedirect($user)
     {
+        if ($user->must_change_password) {
+            return redirect()->route('password.required.edit');
+        }
+
         return match ($user->role) {
             'super_admin' => redirect()->route('admin.dashboard'),
             'ceo' => redirect()->route('manager.ceo.dashboard'),

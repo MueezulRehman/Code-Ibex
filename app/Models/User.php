@@ -22,6 +22,7 @@ class User extends Authenticatable
         'role',
         'staff_type',
         'password',
+        'must_change_password',
         'monthly_salary',
         'is_active',
         'joined_at',
@@ -36,6 +37,7 @@ class User extends Authenticatable
 
     protected $casts = [
         'is_active' => 'boolean',
+        'must_change_password' => 'boolean',
         'joined_at' => 'date',
         'monthly_salary' => 'decimal:2',
         'module_access' => 'array',

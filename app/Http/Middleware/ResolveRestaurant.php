@@ -27,6 +27,7 @@ class ResolveRestaurant
             $request->is('admin/*') || $request->is('admin')
             || $request->is('manager/*') || $request->is('manager')
             || $request->is('ceo/*') || $request->is('ceo')
+            || $request->is('password/change-required')
             || $request->is('login') || $request->is('logout')
             || $request->is('register')
         ) {

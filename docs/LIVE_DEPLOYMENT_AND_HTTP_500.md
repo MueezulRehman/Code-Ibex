@@ -197,18 +197,52 @@ world-writable.
 
 ### 3. Deploy the current Git version safely
 
-Back up the central database **and every tenant database** before migrations.
-Keep the server's existing `.env` unchanged. From the release directory:
+Confirm which application directory the domain serves before deploying. In
+the Hostinger layout, `public_html/.htaccess` routes to
+`public_html/Codeibex/public`; a sibling `Codeibex-release-*` directory is a
+separate checkout and does not update the live application by itself. Verify
+the Git repository and working-tree status in the actual app directory before
+pulling.
 
-The current Hostinger installation was manually uploaded and is not a Git
-checkout, so `git pull` inside `public_html/Codeibex` will not update it. For
-that installation, back up the current release first, then upload the changed
-PHP files from the verified Git commit to their matching paths:
+Back up the central database **and every tenant database** before migrations.
+Keep the server's existing `.env` unchanged. Fast-forward the live app checkout
+to the verified release and build Vite assets on a machine with a supported
+Node.js version if the hosting shell has no Node/npm:
+
+```sh
+git fetch origin
+git pull --ff-only origin main
+php artisan migrate --force
+```
+
+The Super Admin User Access feature adds a boolean flag to the central
+`users` table, defaulting to false. Applying central migrations is
+required before using password resets. The migration does not alter tenant
+schemas. Do not run demo seeders for this feature.
+
+When building assets off-server, upload the contents of `public/build` to the
+live app's `public/build` directory, keeping `manifest.json` beside `assets`.
+After upload, refresh compiled views:
+
+```sh
+php artisan optimize:clear
+php artisan view:cache
+```
+
+For an older manually uploaded installation that is not a Git checkout, back
+up the current release first, then upload changed files from the verified Git
+commit to their matching paths:
 
 - `app/Console/Commands/ProvisionProfessionalHospitalDemoCommand.php`
 - `app/Console/Commands/SeedProfessionalHospitalDemoCommand.php`
 - `app/Console/Commands/SeedDemoBusinessesCommand.php`
+- `app/Http/Controllers/Admin/UserCredentialController.php`
+- `app/Http/Controllers/RequiredPasswordChangeController.php`
+- `app/Http/Middleware/RequirePasswordChange.php`
+- `app/Http/Middleware/ResolveRestaurant.php`
 - `app/Http/Controllers/Admin/RestaurantController.php`
+- `app/Models/User.php`
+- `database/migrations/2026_10_06_120000_add_must_change_password_to_users_table.php`
 - `database/seeders/DemoBusinessesSeeder.php`
 - `database/seeders/ProfessionalHospitalDemoSeeder.php`
 - `database/seeders/TasteHutSeeder.php`
@@ -219,14 +253,21 @@ PHP files from the verified Git commit to their matching paths:
 - `database/seeders/MedicineSeeder.php`
 - `database/seeders/PakistaniGeneralStoreSeeder.php`
 - `database/seeders/PakistaniMedicineSeeder.php`
+- `resources/views/auth/required-password-change.blade.php`
+- `resources/views/super-admin/users/index.blade.php`
+- `resources/views/super-admin/layout/navbar.blade.php`
+- `routes/web.php`
 - `resources/css/layouts.css`
 
 Do not replace `.env`, regenerate `APP_KEY`, overwrite `storage`, or remove the
-existing backup. There is no schema migration, but the mobile sidebar fix
-requires the rebuilt Vite assets. Build them locally with `npm run build`, copy
-the new files under `public/build/assets/` to the server, then replace
+existing backup. Back up the central database, then run
+`php artisan migrate --force` to add the password-reset flag before using User
+Access; there is no tenant schema migration. The mobile sidebar fix and Glass
+UI require rebuilt Vite assets. Build them locally with `npm run build`, copy
+new hashed files under `public/build/assets/` to the server, then replace
 `public/build/manifest.json` last. Keep old hashed assets until the new
-manifest is in place. After uploading, run `php artisan optimize:clear`.
+manifest is in place. After uploading, run `php artisan optimize:clear` and
+`php artisan view:cache`.
 
 ## Seed the curated demo businesses
 

@@ -54,6 +54,11 @@
                         <i class="fas fa-bell text-lg"></i>
                         <span class="flex-1 truncate">Notifications</span>
                     </a>
+                    <a href="{{ route('admin.users.index') }}"
+                        class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('admin.users.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
+                        <i class="fas fa-users-cog text-lg"></i>
+                        <span class="flex-1 truncate">User Access</span>
+                    </a>
                     <a href="{{ route('admin.account.edit') }}"
                         class="flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('admin.account.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
                         <i class="fas fa-user-circle text-lg"></i>

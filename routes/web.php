@@ -42,6 +42,7 @@ use App\Http\Middleware\EnsureSuperAdmin;
 use App\Http\Middleware\EnsureCeo;
 use App\Http\Middleware\EnsureCeoBusinessAccess;
 use App\Http\Middleware\EnsureCeoBranchAccess;
+use App\Http\Middleware\RequirePasswordChange;
 use App\Http\Controllers\Ceo\AuthController as CeoAuthController;
 use App\Http\Controllers\Ceo\DashboardController as CeoDashboardController;
 use App\Http\Controllers\Ceo\BusinessController as CeoBusinessController;
@@ -116,10 +117,17 @@ Route::prefix('ceo')->name('ceo.')->group(function () {
         Route::post('/login', [CeoAuthController::class, 'login'])->middleware('throttle:5,10')->name('login.attempt');
     });
 
-    Route::middleware(['auth', EnsureCeo::class])->group(function () {
+    Route::middleware(['auth', EnsureCeo::class, RequirePasswordChange::class])->group(function () {
         Route::post('/logout', [CeoAuthController::class, 'logout'])->name('logout');
         Route::get('/dashboard', [CeoDashboardController::class, 'index'])->name('dashboard');
     });
+});
+
+Route::middleware('auth')->group(function (): void {
+    Route::get('/password/change-required', [App\Http\Controllers\RequiredPasswordChangeController::class, 'edit'])
+        ->name('password.required.edit');
+    Route::patch('/password/change-required', [App\Http\Controllers\RequiredPasswordChangeController::class, 'update'])
+        ->name('password.required.update');
 });
 
 /*
@@ -132,13 +140,16 @@ Route::prefix('admin')->name('admin.')->group(function () {
     Route::get('/login', [AdminAuthController::class, 'showLogin'])->name('login');
     Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,10')->name('login.attempt');
 
-    Route::middleware([AuthenticateAdmin::class, EnsureSuperAdmin::class])->group(function () {
+    Route::middleware([AuthenticateAdmin::class, EnsureSuperAdmin::class, RequirePasswordChange::class])->group(function () {
         Route::post('/logout', [AdminAuthController::class, 'logout'])->name('logout');
 
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
         Route::get('/notifications', [\App\Http\Controllers\Admin\NotificationController::class, 'index'])->name('notifications.index');
         Route::get('/notifications/feed', [\App\Http\Controllers\Admin\NotificationController::class, 'feed'])->name('notifications.feed');
         Route::match(['get', 'post'], '/notifications/{notification}/read', [\App\Http\Controllers\Admin\NotificationController::class, 'markAsRead'])->name('notifications.read');
+
+        Route::get('/users', [App\Http\Controllers\Admin\UserCredentialController::class, 'index'])->name('users.index');
+        Route::post('/users/{user}/password-reset', [App\Http\Controllers\Admin\UserCredentialController::class, 'resetPassword'])->name('users.password.reset');
 
         // Stock analysis
         Route::get('/stock-analysis', [StockAnalysisController::class, 'adminIndex'])->name('stock-analysis.index');
@@ -194,7 +205,7 @@ Route::prefix('manager')->name('manager.')->group(function () {
         Route::post('/logout', [ManagerAuthController::class, 'logout'])->name('logout');
     });
 
-    Route::middleware(['auth', EnsureCeo::class])->group(function () {
+    Route::middleware(['auth', EnsureCeo::class, RequirePasswordChange::class])->group(function () {
         Route::get('/ceo-dashboard', [CeoDashboardController::class, 'index'])->name('ceo.dashboard');
         Route::get('/ceo/businesses', [CeoBusinessController::class, 'index'])->name('ceo.businesses.index');
         Route::get('/ceo/businesses/{business}', [CeoBusinessController::class, 'show'])
@@ -211,7 +222,7 @@ Route::prefix('manager')->name('manager.')->group(function () {
         Route::get('/ceo/profile', [CeoProfileController::class, 'index'])->name('ceo.profile');
     });
 
-    Route::middleware([AuthenticateManager::class, EnsureRestaurantManager::class, EnsureSubscriptionActive::class])->group(function () {
+    Route::middleware([AuthenticateManager::class, EnsureRestaurantManager::class, EnsureSubscriptionActive::class, RequirePasswordChange::class])->group(function () {
         Route::get('/dashboard', [ManagerDashboardController::class, 'index'])->name('dashboard');
 
         // Stock analysis
