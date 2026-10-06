@@ -12,12 +12,21 @@ use Illuminate\Support\Str;
 
 class PakistaniGeneralStoreSeeder extends Seeder
 {
+    private ?Restaurant $restaurant = null;
+
+    public function setRestaurant(Restaurant $restaurant): self
+    {
+        $this->restaurant = $restaurant;
+
+        return $this;
+    }
+
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        $restaurant = Restaurant::where('slug', 'al-barkat-general-store')->first();
+        $restaurant = $this->restaurant ?? Restaurant::where('slug', 'al-barkat-general-store')->first();
 
         if (! $restaurant) {
             throw new \RuntimeException('Create the Al-Barkat General Store demo business before seeding its catalog.');

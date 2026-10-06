@@ -287,6 +287,31 @@ manifest is in place. After uploading, run `php artisan optimize:clear` and
 
 ## Seed the curated demo businesses
 
+### Seed sample General Store items into one existing business
+
+To add the sample General Store catalog to an existing business without running
+the other demo seeders, first check its tenant readiness using its business
+slug. For example, the Hassan Ashraf Karyana Store shown in User Access uses
+the slug `hassankaryanastore`:
+
+```sh
+php artisan businesses:seed-general-store-catalog hassankaryanastore --dry-run
+```
+
+If the command reports `Tenant status: ready`, seed the sample categories and
+items with explicit confirmation:
+
+```sh
+php artisan businesses:seed-general-store-catalog hassankaryanastore --confirm
+```
+
+This command only adds missing sample catalog records to that existing
+business's tenant. It does not create a business or manager login, provision a
+tenant database, or seed any other business. Existing categories and items
+with matching names/SKUs are preserved. The catalog includes example prices
+and opening stock quantities; review and adjust them for the real store before
+using them in sales.
+
 `businesses:seed-demos` provisions the demo businesses present in the
 repository's focused seeders: Taste Hut, City Pharmacy, Al-Barkat General
 Store, Karachi Broast, Food Clinic, Al Majid Aryans Store, Amjd Karyana Store,
