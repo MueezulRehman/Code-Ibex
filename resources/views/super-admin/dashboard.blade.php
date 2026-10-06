@@ -17,43 +17,43 @@
     </form>
 
     <p class="mb-2 text-xs font-semibold uppercase tracking-wide text-gray-500">Platform Owner Portfolio Summary</p>
-    <div class="mb-8 grid grid-cols-2 gap-4 lg:grid-cols-8">
+    <div class="stagger-children mb-8 grid grid-cols-2 gap-4 lg:grid-cols-3 xl:grid-cols-5">
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Active businesses</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ $platformStats['total_active_businesses'] }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ $platformStats['total_active_businesses'] }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Trials expiring this week</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ $platformStats['trials_expiring_this_week'] }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ $platformStats['trials_expiring_this_week'] }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Overdue subscriptions</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ $platformStats['overdue_subscriptions'] }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ $platformStats['overdue_subscriptions'] }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Subscription revenue</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">Rs.
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>Rs.
                 {{ number_format($platformStats['revenue_this_month']) }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">New feedback</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ $platformStats['new_feedback'] }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ $platformStats['new_feedback'] }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Portfolio sales</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">Rs. {{ number_format($portfolioSummary['totals']['sales']) }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>Rs. {{ number_format($portfolioSummary['totals']['sales']) }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Portfolio orders</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ number_format($portfolioSummary['totals']['orders']) }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ number_format($portfolioSummary['totals']['orders']) }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Portfolio branches</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ number_format($portfolioSummary['totals']['branches']) }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ number_format($portfolioSummary['totals']['branches']) }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Low stock rows</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ number_format($portfolioSummary['totals']['low_stock']) }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ number_format($portfolioSummary['totals']['low_stock']) }}</p>
         </div>
     </div>
 

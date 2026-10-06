@@ -11,7 +11,7 @@
 @if($isHospitalBusiness)
     @include('manager.partials.hospital-dashboard')
 @else
-<div class="bg-white rounded-2xl border border-gray-200 p-6 shadow-sm mb-6">
+<div class="glass-strong card-hover tilt-3d rounded-2xl p-6 mb-6">
     <div class="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
             <p class="text-xs text-gray-400 uppercase tracking-wide">Your Restaurant</p>
@@ -40,22 +40,22 @@
     </div>
 </div>
 
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <p class="text-xs text-gray-400">Orders today</p>
-        <p class="text-2xl font-display font-bold text-hut-dark">{{ $stats['orders_today'] }}</p>
+<div class="stagger-children grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
+    <div class="metric-card glass card-hover tilt-3d">
+        <span class="metric-label">Orders today</span>
+        <p class="metric-value text-hut-dark" data-count-up>{{ $stats['orders_today'] }}</p>
     </div>
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <p class="text-xs text-gray-400">Income today</p>
-        <p class="text-2xl font-display font-bold text-hut-green">Rs. {{ number_format($stats['revenue_today']) }}</p>
+    <div class="metric-card glass card-hover tilt-3d">
+        <span class="metric-label">Income today</span>
+        <p class="metric-value text-hut-green" data-count-up>Rs. {{ number_format($stats['revenue_today']) }}</p>
     </div>
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <p class="text-xs text-gray-400">Pending orders</p>
-        <p class="text-2xl font-display font-bold text-hut-yellow-dark">{{ $stats['pending_orders'] }}</p>
+    <div class="metric-card glass card-hover tilt-3d">
+        <span class="metric-label">Pending orders</span>
+        <p class="metric-value text-hut-yellow-dark" data-count-up>{{ $stats['pending_orders'] }}</p>
     </div>
-    <div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100">
-        <p class="text-xs text-gray-400">Expenses today</p>
-        <p class="text-2xl font-display font-bold text-hut-red">Rs. {{ number_format($stats['expenses_today']) }}</p>
+    <div class="metric-card glass card-hover tilt-3d">
+        <span class="metric-label">Expenses today</span>
+        <p class="metric-value text-hut-red" data-count-up>Rs. {{ number_format($stats['expenses_today']) }}</p>
     </div>
 </div>
 
@@ -73,7 +73,7 @@
 @endphp
 
 <div class="grid gap-6 xl:grid-cols-[minmax(0,1.5fr)_minmax(18rem,.8fr)] mb-6">
-    <section class="rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-lg">
+    <section class="glass-dark rounded-2xl p-5 text-white shadow-lg">
         <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[.18em] text-slate-400">Business growth</p>
@@ -100,7 +100,7 @@
         <div class="mt-2 flex justify-between text-[10px] text-slate-500"><span>{{ $stats['growth']->first()['label'] ?? '' }}</span><span>Today</span></div>
     </section>
 
-    <section class="rounded-2xl border border-gray-200 bg-white p-5 shadow-sm">
+    <section class="glass card-hover tilt-3d rounded-2xl p-5 shadow-sm">
         <p class="text-xs font-semibold uppercase tracking-[.18em] text-gray-400">Cash position</p>
         <h3 class="mt-1 text-lg font-semibold text-hut-dark">Income and costs</h3>
         <div class="mt-5 space-y-4">
@@ -114,7 +114,7 @@
     </section>
 </div>
 
-<div class="bg-white rounded-xl p-4 shadow-sm border border-gray-100 mb-6">
+<div class="glass-strong rounded-xl p-4 shadow-sm mb-6">
     <div class="flex items-center justify-between mb-4">
         <div>
             <p class="text-xs text-gray-400 uppercase tracking-wide">Business Performance</p>

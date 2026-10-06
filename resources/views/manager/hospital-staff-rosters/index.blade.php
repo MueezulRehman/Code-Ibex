@@ -2,9 +2,10 @@
 @section('title', 'Hospital Staff Rosters')
 @section('page-content')
 <div class="space-y-6">
-    <div>
-        <h1 class="font-display text-lg font-bold text-hut-dark">Hospital Staff Rosters</h1>
-        <p class="text-sm text-gray-500">{{ $viewOnly ? 'Your assigned inpatient shifts.' : 'Schedule and confirm inpatient nurse and doctor shifts.' }}</p>
+    <div class="glass-strong rounded-2xl p-5">
+        <p class="page-eyebrow">Hospital operations</p>
+        <h1 class="font-display text-xl font-bold text-hut-dark">Hospital Staff Rosters</h1>
+        <p class="mt-1 text-sm text-gray-500">{{ $viewOnly ? 'Your assigned inpatient shifts.' : 'Schedule and confirm inpatient nurse and doctor shifts.' }}</p>
     </div>
 
     @if(session('success'))
@@ -15,7 +16,7 @@
     @endif
 
     @unless($viewOnly)
-        <form method="POST" action="{{ route('manager.staff-rosters.store') }}" class="grid gap-3 rounded-xl border border-gray-200 bg-white p-5 md:grid-cols-4">
+        <form method="POST" action="{{ route('manager.staff-rosters.store') }}" class="glass-strong grid gap-3 rounded-2xl p-5 md:grid-cols-4">
             @csrf
             <select name="staff_user_id" required class="rounded-lg border-gray-200">
                 <option value="">Select nurse or doctor</option>
@@ -44,7 +45,7 @@
         </form>
     @endunless
 
-    <div class="overflow-x-auto rounded-xl border border-gray-200 bg-white">
+    <div class="glass-strong overflow-x-auto rounded-2xl">
         <table class="w-full min-w-[900px] text-left text-sm">
             <thead class="border-b bg-gray-50 text-xs uppercase text-gray-500">
                 <tr><th class="px-5 py-3">Staff</th><th class="px-3 py-3">Date</th><th class="px-3 py-3">Window</th><th class="px-3 py-3">Type</th><th class="px-3 py-3">Department / Ward</th><th class="px-3 py-3">Status</th><th class="px-5 py-3">Actions</th></tr>

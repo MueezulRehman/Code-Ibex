@@ -18,19 +18,19 @@
     <div class="mb-6 grid grid-cols-2 gap-4 lg:grid-cols-4">
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Businesses</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ $summary['totals']['businesses'] }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ $summary['totals']['businesses'] }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Branches</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ $summary['totals']['branches'] }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ $summary['totals']['branches'] }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Orders</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">{{ number_format($summary['totals']['orders']) }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>{{ number_format($summary['totals']['orders']) }}</p>
         </div>
         <div class="rounded-xl border border-gray-100 bg-white p-4 shadow-sm">
             <p class="text-xs text-gray-400">Sales</p>
-            <p class="text-2xl font-display font-bold text-hut-dark">Rs. {{ number_format($summary['totals']['sales']) }}</p>
+            <p class="text-2xl font-display font-bold text-hut-dark" data-count-up>Rs. {{ number_format($summary['totals']['sales']) }}</p>
         </div>
     </div>
 

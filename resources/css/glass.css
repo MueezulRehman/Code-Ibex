@@ -1,0 +1,617 @@
+/*
+ * Shared Liquid Glass tokens and primitives. Theme variables remain the
+ * source of every tint; role shells only adjust opacity for contrast.
+ */
+:root {
+  --glass-blur: 12px;
+  --glass-blur-strong: 16px;
+  --glass-border-width: 1px;
+  --glass-border: color-mix(in srgb, var(--dashboard-primary, #2E5E99) 24%, white);
+  --glass-shadow: 0 12px 32px color-mix(in srgb, var(--dashboard-dark, #0D2440) 14%, transparent), inset 0 1px 0 rgb(255 255 255 / .34);
+  --glass-motion-fast: 180ms;
+  --glass-motion-base: 240ms;
+  --glass-motion-enter: 280ms;
+  --glass-ease: cubic-bezier(.2, .7, .2, 1);
+}
+
+.glass-card-mounted {
+  animation: dashboard-card-enter var(--glass-motion-enter) var(--glass-ease) both;
+}
+
+:is(.dashboard-shell, .ceo-shell, .customer-shell) {
+  --glass-surface: color-mix(in srgb, var(--dashboard-light, #E7F0FA) 82%, transparent);
+  --glass-surface-strong: color-mix(in srgb, var(--dashboard-light, #E7F0FA) 90%, transparent);
+  --glass-tint: color-mix(in srgb, var(--dashboard-primary, #2E5E99) 12%, transparent);
+}
+
+html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) {
+  --glass-surface: color-mix(in srgb, var(--dashboard-dark-surface, #1b1b1b) 88%, transparent);
+  --glass-surface-strong: color-mix(in srgb, var(--dashboard-dark-surface, #1b1b1b) 94%, transparent);
+  --glass-border: color-mix(in srgb, var(--dashboard-dark-accent, #d4d4d4) 20%, transparent);
+  --glass-tint: color-mix(in srgb, var(--dashboard-dark-primary, #333333) 22%, transparent);
+  --glass-shadow: 0 14px 36px rgb(0 0 0 / .3), inset 0 1px 0 rgb(255 255 255 / .1);
+}
+
+html[data-dashboard-theme="dark"] .dashboard-shell .dashboard-sidebar.glass-dark {
+  background: linear-gradient(155deg,
+    color-mix(in srgb, var(--dashboard-dark-dark, #050505) 92%, transparent),
+    color-mix(in srgb, var(--dashboard-dark-primary, #333333) 82%, transparent)) !important;
+}
+
+html[data-dashboard-theme="dark"] .dashboard-shell .dashboard-header.glass-header {
+  border-color: color-mix(in srgb, var(--dashboard-dark-accent, #ffffff) 20%, transparent);
+  background: linear-gradient(90deg,
+    color-mix(in srgb, var(--dashboard-dark-dark, #050505) 92%, transparent),
+    color-mix(in srgb, var(--dashboard-dark-primary, #333333) 88%, transparent),
+    color-mix(in srgb, var(--dashboard-dark-dark, #050505) 92%, transparent)) !important;
+}
+
+html[data-dashboard-theme="dark"] .ceo-shell :is(.ceo-sidebar, .ceo-header) {
+  background: linear-gradient(135deg,
+    color-mix(in srgb, var(--dashboard-dark-dark, #050505) 92%, transparent),
+    color-mix(in srgb, var(--dashboard-dark-primary, #333333) 88%, transparent)) !important;
+}
+
+html[data-dashboard-theme="dark"] .customer-shell :is(.platform-header, .business-header) {
+  background: linear-gradient(110deg,
+    color-mix(in srgb, var(--dashboard-dark-dark, #050505) 92%, transparent),
+    color-mix(in srgb, var(--dashboard-dark-primary, #333333) 86%, transparent)) !important;
+}
+
+.glass {
+  border: var(--glass-border-width) solid var(--glass-border);
+  background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: saturate(140%) blur(var(--glass-blur));
+  backdrop-filter: saturate(140%) blur(var(--glass-blur));
+}
+
+.glass-strong {
+  border: var(--glass-border-width) solid var(--glass-border);
+  background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint);
+  box-shadow: var(--glass-shadow);
+  -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+  backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+}
+
+.glass-dark {
+  border-color: rgb(255 255 255 / .2);
+  background: linear-gradient(155deg,
+    var(--dashboard-dark, #0D2440),
+    color-mix(in srgb, var(--dashboard-primary, #2E5E99) 86%, var(--dashboard-dark, #0D2440))) !important;
+  box-shadow: 12px 0 48px rgb(13 36 64 / .28), inset -1px 0 0 rgb(255 255 255 / .12);
+}
+
+  .card-hover {
+    transition: transform var(--glass-motion-base) var(--glass-ease), box-shadow var(--glass-motion-base) var(--glass-ease), border-color var(--glass-motion-base) var(--glass-ease), background-color var(--glass-motion-base) var(--glass-ease);
+  }
+
+  .card-hover:hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--tenant-primary-light, #7BA4D0) 58%, white);
+    box-shadow: 0 16px 32px color-mix(in srgb, var(--dashboard-dark, #0D2440) 18%, transparent), inset 0 1px 0 rgb(255 255 255 / .45);
+  }
+
+  .tilt-3d {
+    transition: transform var(--glass-motion-base) var(--glass-ease), box-shadow var(--glass-motion-base) var(--glass-ease);
+  }
+
+  .tilt-3d:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px color-mix(in srgb, var(--dashboard-dark, #0D2440) 16%, transparent);
+  }
+
+  .dashboard-shell {
+    position: relative;
+    isolation: isolate;
+    min-height: 100vh;
+    background: var(--dashboard-light, #E7F0FA);
+    color: var(--tenant-dark, #0D2440);
+  }
+
+  .dashboard-shell.manager-panel,
+  .dashboard-shell.platform-panel {
+    background: var(--dashboard-light, #E7F0FA) !important;
+  }
+
+  .ceo-shell {
+    --dashboard-light: var(--ceo-light, #E7F0FA);
+    --dashboard-accent: var(--ceo-accent, #7BA4D0);
+    --dashboard-primary: var(--ceo-primary, #2E5E99);
+    --dashboard-dark: var(--ceo-dark, #0D2440);
+  }
+
+  .customer-shell {
+    --dashboard-light: var(--tenant-cream, #E7F0FA);
+    --dashboard-accent: var(--tenant-accent, #7BA4D0);
+    --dashboard-primary: var(--tenant-primary, #2E5E99);
+    --dashboard-dark: var(--tenant-dark, #0D2440);
+  }
+
+  html[data-dashboard-theme="dark"] .dashboard-shell {
+    background: var(--dashboard-dark-light, #111827) !important;
+  }
+
+  .dashboard-shell > * {
+    position: relative;
+    z-index: 1;
+  }
+
+  .dashboard-shell .dashboard-sidebar.glass-dark {
+    border-right: 1px solid rgb(255 255 255 / .18);
+    background: linear-gradient(155deg,
+      color-mix(in srgb, var(--dashboard-dark, #0D2440) 90%, transparent),
+      color-mix(in srgb, var(--dashboard-primary, #2E5E99) 82%, transparent)) !important;
+    -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    animation: dashboard-sidebar-enter .42s ease-out both;
+  }
+
+  .dashboard-shell .dashboard-sidebar > .absolute.inset-0 {
+    background-color: transparent !important;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+
+  .dashboard-shell .dashboard-sidebar nav > a,
+  .dashboard-shell .dashboard-sidebar nav > .nav-dropdown > .nav-dropdown-trigger,
+  .ceo-shell .ceo-sidebar nav > a,
+  .customer-shell :is(.platform-header, .business-header) nav a {
+    position: relative;
+    transition: transform var(--glass-motion-fast) var(--glass-ease), background-color var(--glass-motion-fast) ease, color var(--glass-motion-fast) ease, box-shadow var(--glass-motion-fast) ease;
+  }
+
+  .dashboard-shell .dashboard-sidebar nav > a:hover,
+  .dashboard-shell .dashboard-sidebar nav > .nav-dropdown > .nav-dropdown-trigger:hover,
+  .ceo-shell .ceo-sidebar nav > a:hover,
+  .customer-shell :is(.platform-header, .business-header) nav a:hover {
+    transform: translateX(3px);
+    background-color: color-mix(in srgb, var(--dashboard-accent, #7BA4D0) 18%, transparent);
+  }
+
+  .dashboard-shell .dashboard-sidebar nav > a[class~="bg-white/20"],
+  .ceo-shell .ceo-sidebar nav > a.active {
+    background: color-mix(in srgb, var(--dashboard-accent, #7BA4D0) 22%, transparent);
+    box-shadow: inset 3px 0 0 var(--dashboard-accent, #7BA4D0), 0 6px 16px color-mix(in srgb, var(--dashboard-dark, #0D2440) 20%, transparent);
+    transition: background-color .2s ease, box-shadow .2s ease, color .2s ease;
+  }
+
+  .dashboard-shell .dashboard-sidebar nav > a[class~="bg-white/20"]::before,
+  .ceo-shell .ceo-sidebar nav > a.active::before {
+    content: "";
+    position: absolute;
+    inset: .5rem auto .5rem 0;
+    width: 3px;
+    border-radius: 999px;
+    background: var(--dashboard-accent, #7BA4D0);
+    transition: inset var(--glass-motion-base) var(--glass-ease), opacity var(--glass-motion-fast) ease;
+  }
+
+  .dashboard-shell .dashboard-sidebar .nav-dropdown-menu {
+    display: flex;
+    max-height: 0;
+    overflow: hidden;
+    visibility: hidden;
+    margin-block: 0;
+    padding-block: 0;
+    opacity: 0;
+    transition: max-height var(--glass-motion-base) var(--glass-ease), opacity var(--glass-motion-fast) ease, margin var(--glass-motion-fast) ease, padding var(--glass-motion-fast) ease, visibility 0s linear var(--glass-motion-base);
+  }
+
+  .dashboard-shell .dashboard-sidebar .nav-dropdown:hover .nav-dropdown-menu,
+  .dashboard-shell .dashboard-sidebar .nav-dropdown.is-open .nav-dropdown-menu,
+  .dashboard-shell .dashboard-sidebar .nav-dropdown:focus-within .nav-dropdown-menu,
+  .dashboard-shell .dashboard-sidebar .nav-dropdown.has-active .nav-dropdown-menu {
+    max-height: 40rem;
+    visibility: visible;
+    margin-block: .15rem .3rem;
+    padding-block: .2rem;
+    opacity: 1;
+    transition-delay: 0s;
+  }
+
+  .dashboard-shell .dashboard-header.glass-header {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    border-color: color-mix(in srgb, var(--dashboard-primary, #2E5E99) 24%, white);
+    background: linear-gradient(90deg,
+      color-mix(in srgb, var(--dashboard-dark, #0D2440) 92%, transparent),
+      color-mix(in srgb, var(--dashboard-primary, #2E5E99) 88%, transparent),
+      color-mix(in srgb, var(--dashboard-dark, #0D2440) 92%, transparent)) !important;
+    box-shadow: 0 12px 32px color-mix(in srgb, var(--dashboard-dark, #0D2440) 20%, transparent), inset 0 -1px 0 rgb(255 255 255 / .18);
+    -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+  }
+
+  .ceo-shell .ceo-sidebar,
+  .ceo-shell .ceo-header {
+    background: linear-gradient(135deg,
+      color-mix(in srgb, var(--ceo-dark, #0D2440) 92%, transparent),
+      color-mix(in srgb, var(--ceo-primary, #2E5E99) 88%, transparent)) !important;
+    -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+  }
+
+  .ceo-shell .ceo-sidebar {
+    animation: dashboard-sidebar-enter .42s ease-out both;
+  }
+
+  .customer-shell :is(.platform-header, .business-header) {
+    border-bottom: var(--glass-border-width) solid var(--glass-border);
+    background: linear-gradient(110deg,
+      color-mix(in srgb, var(--dashboard-dark, #0D2440) 92%, transparent),
+      color-mix(in srgb, var(--dashboard-primary, #2E5E99) 84%, transparent)) !important;
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+  }
+
+  .dashboard-shell main.glass-canvas {
+    position: relative;
+    isolation: isolate;
+    background: transparent !important;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main {
+    animation: glass-page-enter var(--glass-motion-enter) var(--glass-ease) both;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(div, section, article, form)[class*="bg-white"][class*="rounded"] {
+    border-color: var(--glass-border);
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint) !important;
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: saturate(140%) blur(var(--glass-blur));
+    backdrop-filter: saturate(140%) blur(var(--glass-blur));
+    transition: transform var(--glass-motion-base) var(--glass-ease), box-shadow var(--glass-motion-base) var(--glass-ease), border-color var(--glass-motion-base) var(--glass-ease), opacity var(--glass-motion-fast) ease, display var(--glass-motion-fast) allow-discrete;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main > :is(div, section, article)[class*="rounded"][class*="shadow"],
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main > .grid > :is(div, section, article)[class*="rounded"]:nth-child(-n+8),
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(.metric-card, .page-card, .page-table-wrap, [class*="chart-container"]) {
+    animation: dashboard-card-enter var(--glass-motion-enter) var(--glass-ease) both;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .grid > :is(div, section, article)[class*="rounded"]:nth-child(2) { animation-delay: 35ms; }
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .grid > :is(div, section, article)[class*="rounded"]:nth-child(3) { animation-delay: 70ms; }
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .grid > :is(div, section, article)[class*="rounded"]:nth-child(4) { animation-delay: 105ms; }
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .grid > :is(div, section, article)[class*="rounded"]:nth-child(5) { animation-delay: 140ms; }
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .grid > :is(div, section, article)[class*="rounded"]:nth-child(6) { animation-delay: 175ms; }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .glass-strong,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .glass {
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint) !important;
+    border-color: var(--glass-border);
+    -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(div, section, article)[class*="bg-white"][class*="rounded"]:not(.tilt-3d):not(.card-hover):hover {
+    transform: translateY(-2px);
+    border-color: color-mix(in srgb, var(--dashboard-primary, #2E5E99) 30%, white);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--dashboard-dark, #0D2440) 15%, transparent);
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(.metric-card, .page-card, .page-table-wrap, [class*="chart-container"], .pos-item-card, div[class*="bg-white"][class*="rounded"], section[class*="bg-white"][class*="rounded"], article[class*="bg-white"][class*="rounded"]).hidden,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(.metric-card, .page-card, .page-table-wrap, [class*="chart-container"], .pos-item-card, div[class*="bg-white"][class*="rounded"], section[class*="bg-white"][class*="rounded"], article[class*="bg-white"][class*="rounded"])[hidden] {
+    opacity: 0;
+    transform: translateY(5px);
+    transition: opacity var(--glass-motion-fast) ease, transform var(--glass-motion-fast) var(--glass-ease), display var(--glass-motion-fast) allow-discrete;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(#admin-confirm-modal, #confirm-modal, .clinical-modal, .notification-panel, .header-nav-search-results, .ceo-nav-search-results, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel) {
+    border: var(--glass-border-width) solid var(--glass-border);
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    backdrop-filter: saturate(145%) blur(var(--glass-blur-strong));
+    transform-origin: top center;
+    transition: opacity var(--glass-motion-fast) ease, transform var(--glass-motion-fast) var(--glass-ease), display var(--glass-motion-fast) allow-discrete;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(#admin-confirm-modal, #confirm-modal, .clinical-modal, .notification-panel, .header-nav-search-results, .ceo-nav-search-results, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel):not(.hidden):not([hidden]) {
+    animation: glass-pop-in var(--glass-motion-fast) var(--glass-ease) both;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(#admin-confirm-modal, #confirm-modal, .clinical-modal, .notification-panel, .header-nav-search-results, .ceo-nav-search-results, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel).hidden,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(#admin-confirm-modal, #confirm-modal, .clinical-modal, .notification-panel, .header-nav-search-results, .ceo-nav-search-results, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel)[hidden] {
+    opacity: 0;
+    transform: scale(.97) translateY(-4px);
+    transition-behavior: allow-discrete;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main details > :not(summary) {
+    animation: glass-details-enter var(--glass-motion-fast) ease-out both;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main details:not([open]) > :not(summary) {
+    display: none;
+  }
+
+  .metric-card,
+  .glass-panel,
+  .section-panel {
+    border: 1px solid var(--glass-border);
+    background: var(--glass-surface);
+    box-shadow: var(--glass-shadow);
+    border-radius: 1.25rem;
+  }
+
+  .metric-card {
+    padding: 1rem 1.1rem;
+  }
+
+  .metric-card .metric-label {
+    display: block;
+    color: color-mix(in srgb, var(--tenant-dark, #0D2440) 62%, #64748b);
+    font-size: .72rem;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+  }
+
+  .metric-card .metric-value {
+    margin-top: .5rem;
+    font-size: clamp(1.4rem, 2vw, 2rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -.03em;
+  }
+
+  .section-panel {
+    padding: 1.2rem 1.25rem;
+  }
+
+  .section-panel .panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: .75rem;
+    margin-bottom: 1rem;
+  }
+
+  .section-panel .panel-eyebrow {
+    font-size: .72rem;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: color-mix(in srgb, var(--tenant-primary, #2E5E99) 78%, #64748b);
+    font-weight: 700;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-card,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-table-wrap,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main .clinical-modal__panel,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main [class*="chart-container"] {
+    border-color: var(--glass-border);
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint);
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: saturate(140%) blur(var(--glass-blur));
+    backdrop-filter: saturate(140%) blur(var(--glass-blur));
+    animation: dashboard-card-enter var(--glass-motion-enter) var(--glass-ease) both;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main table thead {
+    background: color-mix(in srgb, var(--dashboard-light, #E7F0FA) 86%, var(--dashboard-primary, #2E5E99));
+    -webkit-backdrop-filter: saturate(130%) blur(var(--glass-blur));
+    backdrop-filter: saturate(130%) blur(var(--glass-blur));
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main table th {
+    color: color-mix(in srgb, var(--tenant-dark, #0D2440) 76%, #64748b);
+    font-weight: 700;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main table tbody tr {
+    transition: background-color var(--glass-motion-fast) ease;
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main table tbody tr:hover {
+    background-color: color-mix(in srgb, var(--tenant-primary-light, #7BA4D0) 10%, transparent);
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main select,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main textarea {
+    border-radius: .75rem;
+    background-color: color-mix(in srgb, var(--dashboard-light, #E7F0FA) 88%, var(--dashboard-primary, #2E5E99)) !important;
+    animation: dashboard-field-enter var(--glass-motion-enter) ease-out both;
+    transition: border-color var(--glass-motion-fast) ease, box-shadow var(--glass-motion-fast) ease, background-color var(--glass-motion-fast) ease, transform var(--glass-motion-fast) var(--glass-ease);
+  }
+
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]):focus,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main select:focus,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main textarea:focus {
+    background-color: white;
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--tenant-primary, #2E5E99) 13%, transparent);
+    transform: translateY(-1px);
+  }
+
+  @keyframes dashboard-card-enter {
+    from { opacity: 0; translate: 0 8px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  @keyframes dashboard-field-enter {
+    from { opacity: 0; translate: 0 4px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  @keyframes dashboard-sidebar-enter {
+    from { opacity: .72; }
+    to { opacity: 1; }
+  }
+
+  @keyframes glass-page-enter {
+    from { opacity: .7; translate: 0 5px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  @keyframes glass-pop-in {
+    from { opacity: 0; transform: scale(.97) translateY(-4px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  @keyframes glass-details-enter {
+    from { opacity: 0; translate: 0 -3px; }
+    to { opacity: 1; translate: 0 0; }
+  }
+
+  @view-transition {
+    navigation: auto;
+  }
+
+  .dashboard-shell main button:focus-visible,
+  .dashboard-shell main a:focus-visible,
+  .dashboard-shell .dashboard-sidebar a:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--tenant-primary-light, #7BA4D0) 72%, white);
+    outline-offset: 2px;
+  }
+
+  .pos-workspace .pos-item-card {
+    border-color: var(--glass-border);
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint) !important;
+    box-shadow: var(--glass-shadow);
+    -webkit-backdrop-filter: saturate(145%) blur(var(--glass-blur));
+    backdrop-filter: saturate(145%) blur(var(--glass-blur));
+    transition: transform var(--glass-motion-base) var(--glass-ease), border-color var(--glass-motion-base) ease, box-shadow var(--glass-motion-base) ease;
+  }
+
+  .pos-workspace .pos-item-card:hover {
+    transform: translateY(-2px) scale(1.01);
+    border-color: rgb(255 255 255 / .86);
+    box-shadow: 0 12px 28px color-mix(in srgb, var(--dashboard-dark, #0D2440) 16%, transparent);
+  }
+
+  .pos-workspace > div > div[class*="bg-white"][class*="rounded"],
+  .pos-workspace .rounded-2xl.border-gray-200.bg-white {
+    border-color: var(--glass-border);
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint) !important;
+    box-shadow: var(--glass-shadow);
+  }
+
+  html[data-dashboard-theme="dark"] .dashboard-shell main.glass-canvas {
+    color: #e5edf8;
+    background: transparent !important;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-card,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-table-wrap,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main [class*="chart-container"],
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(div, section, article, form)[class*="bg-white"][class*="rounded"],
+  html[data-dashboard-theme="dark"] .pos-workspace .pos-item-card {
+    border-color: var(--glass-border);
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint);
+    color: #e5edf8;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main table thead {
+    background: rgb(255 255 255 / .09) !important;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main table th,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main table td,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-title,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-field label {
+    color: #e5edf8;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main select,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main textarea {
+    border-color: rgb(148 163 184 / .28);
+    background-color: color-mix(in srgb, var(--dashboard-dark-surface, #1b1b1b) 90%, var(--dashboard-dark-primary, #333333)) !important;
+    color: #e5edf8;
+    color-scheme: dark;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main input::placeholder,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main textarea::placeholder {
+    color: #94a3b8;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main [class*="bg-white"],
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main [class*="bg-gray-50"] {
+    border-color: var(--glass-border);
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint) !important;
+    color: #e5edf8;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(div, section, article, form)[class*="bg-white"][class*="rounded"],
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-card,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main .page-table-wrap {
+    border-color: var(--glass-border) !important;
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint) !important;
+    box-shadow: var(--glass-shadow);
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(div, section, article, form)[class*="bg-gray-50"][class*="rounded"] {
+    border-color: var(--glass-border) !important;
+    background-color: color-mix(in srgb, var(--dashboard-dark-surface, #1b1b1b) 90%, var(--dashboard-dark-primary, #333333)) !important;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main table tbody tr:hover {
+    background-color: color-mix(in srgb, var(--dashboard-dark-primary, #333333) 45%, transparent) !important;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main .metric-label {
+    color: #cbd5e1;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(.notification-panel, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel) {
+    color: #e5edf8;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(.notification-panel, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel) :is(.text-gray-500, .text-gray-600, .text-gray-700, .text-slate-500, .text-slate-600, .text-slate-700, .text-hut-dark) {
+    color: #d4ddea !important;
+  }
+
+@layer components {
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) .bg-white,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) .bg-gray-50,
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) .bg-slate-50 {
+    border-color: var(--glass-border) !important;
+    background: linear-gradient(145deg, var(--glass-surface-strong), var(--glass-surface)), var(--glass-tint) !important;
+  }
+
+  html[data-dashboard-theme="dark"] :is(.dashboard-shell, .ceo-shell, .customer-shell) main table thead.bg-gray-50 {
+    background-color: rgb(255 255 255 / .09) !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-hover,
+  .tilt-3d,
+  .pos-workspace .pos-item-card,
+  .dashboard-shell .dashboard-sidebar,
+  .ceo-shell .ceo-sidebar,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main > :is(div, section, article)[class*="rounded"][class*="shadow"],
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main > .grid > :is(div, section, article)[class*="rounded"],
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(.metric-card, .page-card, .page-table-wrap, [class*="chart-container"]),
+  .glass-card-mounted,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(.notification-panel, .header-nav-search-results, .ceo-nav-search-results, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel),
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main input:not([type="checkbox"]):not([type="radio"]):not([type="hidden"]),
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main select,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main textarea,
+  .dashboard-shell .dashboard-sidebar nav > a,
+  .dashboard-shell .dashboard-sidebar nav > .nav-dropdown > .nav-dropdown-trigger,
+  .ceo-shell .ceo-sidebar nav > a,
+  .dashboard-shell .dashboard-sidebar .nav-dropdown-menu {
+    animation: none;
+    transition: none;
+  }
+
+  .card-hover:hover,
+  .tilt-3d:hover,
+  .pos-workspace .pos-item-card:hover,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main :is(div, section, article)[class*="bg-white"][class*="rounded"]:hover,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main input:focus,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main select:focus,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) main textarea:focus,
+  :is(.dashboard-shell, .ceo-shell, .customer-shell) :is(.notification-panel, .header-nav-search-results, .ceo-nav-search-results, .action-dropdown__menu, .hospital-dropdown__menu, [role="dialog"], .clinical-modal__panel),
+  .dashboard-shell .dashboard-sidebar nav > a:hover,
+  .dashboard-shell .dashboard-sidebar nav > .nav-dropdown > .nav-dropdown-trigger:hover,
+  .ceo-shell .ceo-sidebar nav > a:hover,
+  .customer-shell :is(.platform-header, .business-header) nav a:hover {
+    transform: none;
+  }
+}

@@ -1,4 +1,4 @@
-    <aside class="dashboard-sidebar w-64 text-white shrink-0 hidden md:flex flex-col shadow-2xl overflow-hidden relative">
+    <aside class="dashboard-sidebar glass-dark w-64 text-white shrink-0 hidden md:flex flex-col shadow-2xl overflow-hidden relative">
         <!-- Glassmorphism backdrop -->
         <div class="absolute inset-0 bg-white/5 backdrop-blur-xl pointer-events-none"></div>
 

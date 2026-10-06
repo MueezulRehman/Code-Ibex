@@ -11,7 +11,7 @@
         </div>
     @endif
 
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div class="glass-strong card-hover rounded-2xl p-6">
         <div class="mb-6">
             <h2 class="text-2xl font-semibold text-hut-dark">My Account</h2>
             <p class="text-sm text-gray-500">Update your own login name, email and phone number.</p>
@@ -54,7 +54,7 @@
         </form>
     </div>
 
-    <div class="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div class="glass-strong card-hover rounded-2xl p-6">
         <div class="mb-6">
             <h2 class="text-xl font-semibold text-hut-dark">Change Password</h2>
             <p class="text-sm text-gray-500">Use a strong password you don't use anywhere else.</p>

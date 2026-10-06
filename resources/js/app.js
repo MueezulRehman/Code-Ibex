@@ -10,4 +10,5 @@ import './echo';
 import './barcode-scanner';
 import './layouts';
 import './super-admin/layout';
+import './glass-ui';
 import './pages/sales-returns';

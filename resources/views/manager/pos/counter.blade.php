@@ -29,7 +29,7 @@
     @endif
     {{-- Line edit inputs are part of the modal; stray duplicates removed to avoid ID conflicts --}}
 
-    <div class="grid lg:grid-cols-3 gap-4 items-start">
+    <div class="pos-workspace grid lg:grid-cols-3 gap-4 items-start">
         <div class="lg:col-span-2 space-y-4 min-w-0">
             <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
                 <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">

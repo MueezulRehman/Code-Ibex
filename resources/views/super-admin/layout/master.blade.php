@@ -53,7 +53,7 @@
 
         <!-- Main Content -->
         {{-- Master layout content section: pages provide only this region. --}}
-        <main class="flex-1 p-6 overflow-auto" data-master-section="content">
+        <main class="glass-canvas flex-1 p-6 overflow-auto" data-master-section="content">
             @yield('page-content')
         </main>
         @include('super-admin.layout.footer')

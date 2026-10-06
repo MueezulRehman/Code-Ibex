@@ -1,5 +1,5 @@
         <x-manager.header variant="manager"
-            class="dashboard-header text-white border-b border-white/10 px-6 py-4 shadow-lg backdrop-blur-md">
+            class="dashboard-header glass-header text-white border-b border-white/10 px-6 py-4 shadow-lg backdrop-blur-md">
             <div class="dashboard-header-inner flex justify-between items-center gap-6">
                 <div class="dashboard-header-title flex min-w-0 flex-1 items-start gap-2">
                     <button type="button" id="mobile-nav-toggle"

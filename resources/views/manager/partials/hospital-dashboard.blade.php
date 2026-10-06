@@ -33,7 +33,7 @@
         ] as [$label, $value, $color])
         <div class="rounded-xl border border-white bg-white p-3 shadow-sm">
             <p class="text-[11px] leading-tight text-gray-500">{{ $label }}</p>
-            <p class="mt-2 text-2xl font-bold {{ $color }}">{{ $value }}</p>
+            <p class="mt-2 text-2xl font-bold {{ $color }}" data-count-up>{{ $value }}</p>
         </div>
         @endforeach
     </div>

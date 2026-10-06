@@ -36,11 +36,11 @@
             </ul>
         </div>
     @endif
-    <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+    <div class="pos-workspace grid grid-cols-1 lg:grid-cols-3 gap-4">
 
         {{-- Menu / item picker --}}
         <div class="lg:col-span-2 space-y-4 min-w-0">
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+            <div class="glass-strong rounded-2xl p-4 space-y-3">
                 <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">Restaurant POS</p>
@@ -81,7 +81,7 @@
                 @foreach($categories as $cat)
                     @foreach($cat->availableMenuItems as $item)
                         <button type="button"
-                            class="pos-item-card relative bg-white border border-gray-100 rounded-xl p-3 text-left shadow-sm hover:shadow-md hover:border-hut-yellow transition"
+                            class="pos-item-card card-hover tilt-3d relative bg-white/70 border border-gray-100 rounded-xl p-3 text-left shadow-sm hover:shadow-md hover:border-hut-yellow transition"
                             data-cat="{{ $cat->id }}" data-id="{{ $item->id }}" data-name="{{ $item->name }}"
                             data-price="{{ (float) ($item->price ?? $item->display_price ?? 0) }}"
                             data-has-sizes="{{ $item->has_sizes ? '1' : '0' }}"
@@ -115,7 +115,7 @@
 
                 @foreach($deals as $deal)
                     <button type="button"
-                        class="pos-item-card bg-hut-yellow/10 border border-hut-yellow/30 rounded-xl p-3 text-left shadow-sm hover:shadow-md transition"
+                        class="pos-item-card card-hover tilt-3d bg-hut-yellow/10 border border-hut-yellow/30 rounded-xl p-3 text-left shadow-sm hover:shadow-md transition"
                         data-cat="deals" data-deal="1" data-id="{{ $deal->id }}" data-name="{{ $deal->name }}"
                         data-price="{{ $deal->price }}" data-has-sizes="0" data-sizes="[]" data-allows-toppings="0">
                         @php
