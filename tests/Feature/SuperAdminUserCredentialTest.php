@@ -128,6 +128,7 @@ class SuperAdminUserCredentialTest extends TestCase
             ->assertSee('Save account details')
             ->assertSee('At least one uppercase letter')
             ->assertSee('inset: 50% auto auto 50%')
+            ->assertSee('.dashboard-shell .dashboard-sidebar.mobile-open', false)
             ->assertSee('Available when tenant is ready');
     }
 
