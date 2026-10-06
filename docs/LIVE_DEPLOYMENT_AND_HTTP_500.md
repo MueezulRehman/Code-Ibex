@@ -278,12 +278,13 @@ commit to their matching paths:
 Do not replace `.env`, regenerate `APP_KEY`, overwrite `storage`, or remove the
 existing backup. Back up the central database, then run
 `php artisan migrate --force` to add the password-reset flag before using User
-Access; there is no tenant schema migration. The mobile sidebar fix and Glass
-UI require rebuilt Vite assets. Build them locally with `npm run build`, copy
+Access; there is no tenant schema migration. The POS PDF share/download action
+requires rebuilt Vite assets. Build them with `npm ci && npm run build`, copy
 new hashed files under `public/build/assets/` to the server, then replace
 `public/build/manifest.json` last. Keep old hashed assets until the new
-manifest is in place. After uploading, run `php artisan optimize:clear` and
-`php artisan view:cache`.
+manifest is in place. The manager and Super Admin mobile sidebar visibility
+fallbacks are rendered by their Blade layouts. After uploading, run
+`php artisan optimize:clear` and `php artisan view:cache`.
 
 ## Seed the curated demo businesses
 

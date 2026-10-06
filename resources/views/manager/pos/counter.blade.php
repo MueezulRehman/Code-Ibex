@@ -909,7 +909,7 @@
                 if (!chip) return;
                 const stock = chip.dataset.stock === '' ? null : parseInt(chip.dataset.stock, 10);
                 addToCart(chip.dataset.type, parseInt(chip.dataset.id, 10), chip.dataset.name, parseFloat(chip.dataset.price), Number.isNaN(stock) ? null : stock);
-                scanInput.focus();
+                afterAddClear();
             });
 
             // Scanners type digits very fast and often do NOT send Enter.
@@ -1126,13 +1126,11 @@
             }
 
             function afterAddClear() {
-                if (scanInput) {
-                    scanInput.value = '';
-                    scanInput.focus();
-                }
+                if (scanInput) scanInput.value = '';
                 if (resultsBox) resultsBox.innerHTML = '';
                 activeResultIndex = -1;
                 lastScanValue = '';
+                scanInput?.focus({ preventScroll: true });
             }
 
             function renderResults(items) {

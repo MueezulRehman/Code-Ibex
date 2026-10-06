@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Receipt {{ $order->order_number }}</title>
+    @vite('resources/js/app.js')
     <style>
         * { box-sizing: border-box; }
         body {
@@ -217,12 +218,49 @@
     </div>
 
     <div class="no-print">
+        <button type="button" class="primary" id="share-receipt-pdf">Share PDF</button>
+        <button type="button" id="download-receipt-pdf">Download PDF</button>
         <button type="button" class="primary" onclick="window.print()">Print / Save as PDF</button>
         <a href="{{ route('manager.pos.index') }}">Back to POS</a>
         @if(!empty($customerShowUrl))
             <a href="{{ $customerShowUrl }}">Back to customer</a>
         @endif
+        <p id="receipt-share-status" role="status" aria-live="polite"></p>
     </div>
+
+    @php
+        $receiptPdfData = [
+            'business' => $restaurant->name ?? 'Receipt',
+            'address' => $restaurant?->address,
+            'phone' => $restaurant?->phone,
+            'receiptNumber' => $order->invoice_number ?? $order->order_number,
+            'orderNumber' => $order->order_number,
+            'date' => $order->created_at->format('M d, Y h:i A'),
+            'paymentMethod' => ucfirst($order->payment_method ?? 'cash'),
+            'customer' => trim($order->customer_name . (($order->customer_phone && $order->customer_phone !== '0000000000') ? ' · ' . $order->customer_phone : '') . ($order->table_number ? ' · Table ' . $order->table_number : '')),
+            'items' => $order->items->map(static function ($item) {
+                $details = array_filter([
+                    $item->size_label ? 'Size: ' . $item->size_label : null,
+                    $item->toppings->pluck('topping_name')->filter()->implode(', ') ?: null,
+                    $item->unit_price ? 'Unit: ' . number_format((float) $item->unit_price, 2) : null,
+                ]);
+
+                return [
+                    'name' => $item->item_name,
+                    'quantity' => $item->quantity,
+                    'total' => $item->total_price,
+                    'details' => implode(' · ', $details),
+                ];
+            })->values(),
+            'subtotal' => $order->subtotal,
+            'deliveryFee' => $order->delivery_fee,
+            'total' => $order->total,
+            'notes' => $order->notes,
+            'amountReceived' => $order->amount_received,
+            'changeAmount' => $order->change_amount,
+        ];
+    @endphp
+    <script id="receipt-pdf-data" type="application/json">@json($receiptPdfData)</script>
 
     <script>
         @if(request()->boolean('print'))

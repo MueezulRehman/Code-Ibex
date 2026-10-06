@@ -108,7 +108,11 @@ class ComprehensiveBusinessTypeTest extends TestCase
         // Test POS loads for retail mode
         $this->actingAs($manager);
         $response = $this->get(route('manager.pos.index'));
-        $response->assertOk()->assertSee('Sample Rice')->assertSee('Karyana Goods');
+        $response->assertOk()
+            ->assertSee('Sample Rice')
+            ->assertSee('Karyana Goods')
+            ->assertSee('.dashboard-shell .dashboard-sidebar.mobile-open', false)
+            ->assertSee('scanInput?.focus({ preventScroll: true })', false);
         $this->assertTrue($response->viewData('items')->first()->relationLoaded('category'));
         
         // Verify retail-specific behavior: variants should be available

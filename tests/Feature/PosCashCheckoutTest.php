@@ -79,6 +79,43 @@ class PosCashCheckoutTest extends TestCase
         $this->assertSame('cash', $order->payment_method);
     }
 
+    public function test_receipt_page_offers_pdf_download_and_share_while_retaining_print_action(): void
+    {
+        $restaurant = Restaurant::create([
+            'name' => 'PDF Receipt Shop',
+            'slug' => 'pdf-receipt-shop',
+            'status' => 'active',
+            'plan' => 'basic',
+        ]);
+        $manager = User::factory()->create([
+            'phone' => '2222222299',
+            'role' => 'manager',
+            'restaurant_id' => $restaurant->id,
+        ]);
+        $order = Order::create([
+            'restaurant_id' => $restaurant->id,
+            'order_number' => 'PDF-RECEIPT-1',
+            'tracking_token' => (string) \Illuminate\Support\Str::uuid(),
+            'order_type' => 'takeaway',
+            'status' => 'confirmed',
+            'customer_name' => 'Test Customer',
+            'customer_phone' => '03001234567',
+            'subtotal' => 250,
+            'delivery_fee' => 0,
+            'total' => 250,
+            'payment_method' => 'cash',
+        ]);
+
+        $this->actingAs($manager);
+        $response = app(PosController::class)->receipt($order);
+        $html = $response->render();
+
+        $this->assertStringContainsString('id="share-receipt-pdf"', $html);
+        $this->assertStringContainsString('id="download-receipt-pdf"', $html);
+        $this->assertStringContainsString('Print / Save as PDF', $html);
+        $this->assertStringContainsString('PDF Receipt Shop', $html);
+    }
+
     public function test_pos_checkout_adds_partial_payment_to_customer_balance(): void
     {
         $restaurant = Restaurant::create([
