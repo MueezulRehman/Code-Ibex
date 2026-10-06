@@ -18,8 +18,11 @@ use App\Models\ProductVariant;
 use App\Models\Restaurant;
 use App\Models\StockAdjustment;
 use App\Models\User;
+use App\View\Composers\DashboardLayoutComposer;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Foundation\Testing\WithoutMiddleware;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\View;
 use Tests\TestCase;
 
 class ComprehensiveBusinessTypeTest extends TestCase
@@ -118,6 +121,53 @@ class ComprehensiveBusinessTypeTest extends TestCase
         // Verify retail-specific behavior: variants should be available
         $this->assertTrue($manager->hasModuleAccess('variants'), 'Shop manager should have variants access');
         $this->assertTrue($manager->hasModuleAccess('inventory'), 'Shop manager should have inventory access');
+    }
+
+    public function test_manager_layout_handles_notification_db_failure_gracefully(): void
+    {
+        $retailType = BusinessType::where('name', 'Retail / Shop')->first()
+            ?? BusinessType::where('name', 'General Business')->first();
+        $this->assertNotNull($retailType, 'Retail/General business type should exist');
+
+        $restaurant = Restaurant::create([
+            'name' => 'Notification Failure Shop',
+            'slug' => 'notification-failure-shop',
+            'status' => 'active',
+            'business_type_id' => $retailType->id,
+        ]);
+
+        $manager = User::create([
+            'name' => 'Notification Manager',
+            'email' => 'notification-manager@example.com',
+            'phone' => date('Ym') . rand(10000000, 99999999),
+            'role' => 'manager',
+            'restaurant_id' => $restaurant->id,
+            'password' => bcrypt('password'),
+            'module_access' => ['pos', 'inventory', 'categories', 'variants', 'stock'],
+        ]);
+
+        $this->actingAs($manager);
+        $originalDefault = config('database.default');
+        $failureConnection = config("database.connections.{$originalDefault}");
+        $failureConnection['database'] = ':memory:';
+        config([
+            'database.connections.notification_failure' => $failureConnection,
+            'database.default' => 'notification_failure',
+        ]);
+
+        try {
+            $view = View::make('manager.layout.master');
+            app(DashboardLayoutComposer::class)->compose($view);
+
+            $this->assertSame(0, $view->getData()['unreadNotificationCount']);
+            $this->assertCount(0, $view->getData()['recentNotifications']);
+        } finally {
+            DB::purge('notification_failure');
+            config(['database.connections.notification_failure' => null]);
+            config(['database.default' => $originalDefault]);
+        }
+
+        $this->assertSame($originalDefault, config('database.default'));
     }
 
     public function test_pharmacy_medical_store_mode_works_end_to_end(): void

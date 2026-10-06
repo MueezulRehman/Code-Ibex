@@ -14,6 +14,7 @@ function initMobileNavigation() {
 
     const close = () => {
         sidebar.classList.remove('mobile-open');
+        sidebar.style.removeProperty('display');
         backdrop.classList.add('hidden');
         toggle.setAttribute('aria-expanded', 'false');
         toggle.setAttribute('aria-label', 'Open navigation');
@@ -23,6 +24,11 @@ function initMobileNavigation() {
     toggle.addEventListener('click', () => {
         const open = !sidebar.classList.contains('mobile-open');
         sidebar.classList.toggle('mobile-open', open);
+        if (open) {
+            sidebar.style.setProperty('display', 'flex', 'important');
+        } else {
+            sidebar.style.removeProperty('display');
+        }
         backdrop.classList.toggle('hidden', !open);
         toggle.setAttribute('aria-expanded', String(open));
         toggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');

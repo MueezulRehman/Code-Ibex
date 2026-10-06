@@ -63,7 +63,7 @@
                 <td class="px-4 py-3 capitalize text-gray-600">{{ $sale->payment_method }}</td>
                 <td class="px-4 py-3 text-right font-medium">Rs. {{ number_format($sale->total) }}</td>
                 <td class="px-4 py-3 text-right">
-                    <a href="{{ route('manager.pos.receipt', $sale) }}" target="_blank"
+                    <a href="{{ route('manager.pos.receipt', ['order' => $sale->id]) }}" target="_blank"
                         title="View receipt" aria-label="View receipt"
                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg text-hut-green hover:bg-hut-green/10 hover:text-hut-dark">
                         <x-icons.eye class="h-4 w-4" />

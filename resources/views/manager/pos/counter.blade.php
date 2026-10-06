@@ -31,7 +31,7 @@
 
     <div class="pos-workspace grid lg:grid-cols-3 gap-4 items-start">
         <div class="lg:col-span-2 space-y-4 min-w-0">
-            <div class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
+            <div id="pos-scan-panel" class="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm space-y-3">
                 <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
                         <p class="text-xs font-semibold uppercase tracking-wide text-gray-500">
@@ -65,7 +65,7 @@
             </div>
             <div id="recent-items" class="hidden flex flex-wrap gap-2 items-center"></div>
 
-            <div
+            <div id="pos-catalog-panel"
                 class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 max-h-[calc(100vh-8rem)] overflow-hidden flex flex-col">
                 <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                     <div>
@@ -328,7 +328,7 @@
 
         {{-- Fixed billing panel (not movable) --}}
         <aside id="pos-cart-panel"
-            class="bg-white rounded-2xl border border-gray-200 shadow-md p-0 h-fit lg:sticky lg:top-4 lg:self-start max-h-[calc(100vh-5rem)] overflow-hidden flex flex-col w-full">
+            class="bg-white rounded-2xl border border-gray-200 shadow-md p-0 h-fit lg:sticky lg:top-4 lg:self-start flex flex-col w-full">
             <div class="bg-hut-dark text-white px-4 py-3 flex items-center justify-between shrink-0">
                 <div>
                     <p class="text-[10px] font-bold uppercase tracking-widest text-hut-yellow/90">Billing</p>
@@ -337,9 +337,9 @@
                 <span id="cart-count-badge"
                     class="inline-flex h-7 min-w-7 items-center justify-center rounded-full bg-hut-yellow text-hut-dark px-2 text-xs font-bold">0</span>
             </div>
-            <div class="p-4 overflow-y-auto flex-1 min-h-0">
+            <div class="p-4">
 
-                <div id="cart-lines" class="space-y-2 max-h-64 overflow-y-auto mb-3">
+                <div id="cart-lines" class="space-y-2 mb-3">
                     <p id="cart-empty" class="text-sm text-gray-400 text-center py-6">No items yet — scan or search a
                         {{ strtolower($posConfig['item_label']) }}.
                     </p>
@@ -1996,22 +1996,6 @@
         })();
     </script>
 
-
-    @if(session('print_order_id'))
-        <script>
-            (function () {
-                var receiptUrl = @json(route('manager.pos.receipt', ['order' => session('print_order_id'), 'print' => 1]));
-                var iframe = document.createElement('iframe');
-                iframe.setAttribute('src', receiptUrl);
-                iframe.setAttribute('title', 'Print receipt');
-                iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
-                document.body.appendChild(iframe);
-                setTimeout(function () {
-                    try { iframe.remove(); } catch (e) { }
-                }, 60000);
-            })();
-        </script>
-    @endif
 
 @endsection
 

@@ -70,10 +70,13 @@ class PosCashCheckoutTest extends TestCase
         $response = app(PosController::class)->checkout($request);
 
         $this->assertTrue($response->isRedirect());
-        $this->assertStringContainsString('print=1', $response->getTargetUrl());
 
         $order = Order::where('restaurant_id', $restaurant->id)->latest()->first();
         $this->assertNotNull($order);
+        $this->assertSame(
+            route('manager.pos.receipt', ['order' => $order->id, 'print' => 1]),
+            $response->getTargetUrl()
+        );
         $this->assertSame(300.0, (float) $order->amount_received);
         $this->assertSame(180.0, (float) $order->change_amount);
         $this->assertSame('cash', $order->payment_method);
@@ -94,9 +97,11 @@ class PosCashCheckoutTest extends TestCase
         ]);
         $order = Order::create([
             'restaurant_id' => $restaurant->id,
+            'cashier_id' => $manager->id,
             'order_number' => 'PDF-RECEIPT-1',
             'tracking_token' => (string) \Illuminate\Support\Str::uuid(),
             'order_type' => 'takeaway',
+            'channel' => 'pos',
             'status' => 'confirmed',
             'customer_name' => 'Test Customer',
             'customer_phone' => '03001234567',
@@ -107,8 +112,15 @@ class PosCashCheckoutTest extends TestCase
         ]);
 
         $this->actingAs($manager);
-        $response = app(PosController::class)->receipt($order);
-        $html = $response->render();
+        $this->withoutMiddleware(\App\Http\Middleware\EnsureModuleEnabled::class);
+        $salesResponse = $this->get(route('manager.sales.index'));
+        $salesResponse->assertOk()
+            ->assertSee(route('manager.pos.receipt', ['order' => $order->id]), false);
+
+        $response = $this->get(route('manager.pos.receipt', ['order' => $order->id]));
+
+        $response->assertOk();
+        $html = $response->getContent();
 
         $this->assertStringContainsString('id="share-receipt-pdf"', $html);
         $this->assertStringContainsString('id="download-receipt-pdf"', $html);

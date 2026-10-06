@@ -868,6 +868,29 @@ html[data-dashboard-theme="dark"] .dashboard-shell .bg-slate-200 {
                 display: flex !important;
             }
 
+            .dashboard-shell .pos-workspace {
+                display: flex;
+                flex-direction: column;
+            }
+
+            .dashboard-shell .pos-workspace > div:first-child {
+                display: contents;
+            }
+
+            .dashboard-shell .pos-workspace #pos-cart-panel {
+                order: 2;
+                position: static;
+            }
+
+            .dashboard-shell .pos-workspace #pos-catalog-panel {
+                order: 3;
+                max-height: none;
+            }
+
+            .dashboard-shell .pos-workspace #all-items {
+                overflow: visible;
+            }
+
             .dashboard-shell .mobile-nav-backdrop {
                 display: block;
                 position: fixed;

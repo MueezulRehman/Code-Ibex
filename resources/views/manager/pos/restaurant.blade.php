@@ -884,22 +884,6 @@
     </script>
 
 
-        @if(session('print_order_id'))
-            <script>
-                (function () {
-                    var receiptUrl = @json(route('manager.pos.receipt', ['order' => session('print_order_id'), 'print' => 1]));
-                    var iframe = document.createElement('iframe');
-                    iframe.setAttribute('src', receiptUrl);
-                    iframe.setAttribute('title', 'Print receipt');
-                    iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;opacity:0;pointer-events:none;';
-                    document.body.appendChild(iframe);
-                    setTimeout(function () {
-                        try { iframe.remove(); } catch (e) { }
-                    }, 60000);
-                })();
-            </script>
-        @endif
-
 @endsection
 
 @push('scripts')

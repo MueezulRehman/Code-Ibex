@@ -964,18 +964,20 @@ class PosController extends Controller
 
         session()->forget(['pos_last_cart', 'pos_last_customer_id', 'pos_error_message', 'pos_error_highlight']);
 
-        // Back to POS for the next bill; flash triggers silent receipt print on the POS page
-        return redirect()->route('manager.pos.index', ['print' => 1])
-            ->with('success', "Sale complete — {$order->order_number}. Receipt sent to printer.")
-            ->with('print_order_id', $order->id);
+        return redirect()->route('manager.pos.receipt', [
+            'order' => $order->id,
+            'print' => 1,
+        ]);
     }
 
     /**
      * Printable receipt/invoice for a completed POS sale.
      */
-    public function receipt(Order $order)
+    public function receipt(string $orderId)
     {
         $user = Auth::user();
+        $order = Order::query()->findOrFail($orderId);
+
         if (! $user->isSuperAdmin() && $order->restaurant_id !== $user->effectiveRestaurantId()) {
             abort(403);
         }

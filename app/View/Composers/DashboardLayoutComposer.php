@@ -7,6 +7,7 @@ use App\Models\PlatformSetting;
 use App\Models\User;
 use App\Support\Tenancy;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Illuminate\View\View;
 
 class DashboardLayoutComposer
@@ -61,8 +62,19 @@ class DashboardLayoutComposer
         $recentNotifications = new Collection();
         $unreadNotificationCount = 0;
         if ($user instanceof User && ($restaurant || $isSuperAdmin)) {
-            $recentNotifications = Notification::query()->latest()->limit(5)->get();
-            $unreadNotificationCount = Notification::query()->whereNull('read_at')->count();
+            try {
+                $recentNotifications = Notification::query()->latest()->limit(5)->get();
+                $unreadNotificationCount = Notification::query()->whereNull('read_at')->count();
+            } catch (\Throwable $exception) {
+                Log::warning('Dashboard notification query failed; rendering without tenant notifications.', [
+                    'restaurant_id' => $restaurant?->id ?? $impersonatedRestaurant?->id ?? null,
+                    'user_id' => $user->id,
+                    'is_super_admin' => $isSuperAdmin,
+                    'error' => $exception->getMessage(),
+                ]);
+                $recentNotifications = new Collection();
+                $unreadNotificationCount = 0;
+            }
         }
 
         $view->with(compact(
