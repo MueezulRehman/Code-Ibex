@@ -455,10 +455,6 @@ html[data-dashboard-theme="dark"] .customer-shell :is(.platform-header, .busines
     to { opacity: 1; translate: 0 0; }
   }
 
-  @view-transition {
-    navigation: auto;
-  }
-
   .dashboard-shell main button:focus-visible,
   .dashboard-shell main a:focus-visible,
   .dashboard-shell .dashboard-sidebar a:focus-visible {
