@@ -50,6 +50,12 @@
                 <span>{{ session('success') }}</span>
             </div>
         @endif
+        @if(session('error'))
+            <div class="border-b border-red-200 bg-red-50 px-6 py-3 text-sm text-red-800" role="alert">
+                <i class="fas fa-circle-exclamation mr-2"></i>
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
 
         <!-- Main Content -->
         {{-- Master layout content section: pages provide only this region. --}}

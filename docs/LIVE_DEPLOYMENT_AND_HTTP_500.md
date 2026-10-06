@@ -123,6 +123,22 @@ the central database and can create missing tenant databases. It requires the
 database privileges described above. Do not run `db:seed` or provision demo
 accounts in production unless the exact seeder has been reviewed and approved.
 
+New business registration automatically creates a dedicated tenant database,
+applies every tenant migration, and seeds the tenant's initial catalog when
+`TENANCY_AUTO_PROVISION=true` (the default). The configured central database
+user must be allowed to create databases. On shared hosting that does not grant
+`CREATE DATABASE`, create an empty database in the hosting panel, grant the
+configured tenant database user access, and supply that database's connection
+details in the business form. The business form must not be treated as using
+the central database when those details are left blank.
+
+When a release adds tenant tables for a new module, deploy the code and then
+run `php artisan tenants:migrate` to apply pending tenant migrations to existing
+business databases. New businesses receive all tenant migrations during
+provisioning. Module enablement itself remains in the central database; module
+tables are installed from the tenant migration files, not created per enabled
+module.
+
 Ensure the deploy/web-server user owns or can write to `storage` and
 `bootstrap/cache`. Fix ownership with the host's correct application user; do
 not use world-writable permissions such as `chmod -R 777`.

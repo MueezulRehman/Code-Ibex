@@ -5,7 +5,7 @@
 @section('page-content')
     <div class="mb-6">
         <h2 class="text-2xl font-semibold text-hut-dark">User Access</h2>
-        <p class="mt-1 text-sm text-gray-500">Set a one-time temporary password for an internal user. They must choose a new password at their next login.</p>
+        <p class="mt-1 text-sm text-gray-500">Set a one-time temporary password for an existing internal user. They must choose a new password at their next login. New business owners are created on the Register Business form.</p>
     </div>
 
     @if (session('temporary_password'))
@@ -80,7 +80,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">No internal user accounts match this search.</td></tr>
+                    <tr><td colspan="5" class="px-4 py-10 text-center text-gray-500">No other internal accounts match. Register a business owner on the Register Business form or create a manager from that business's Manager &gt; Staff page; those accounts will appear here.</td></tr>
                 @endforelse
             </tbody>
         </table>

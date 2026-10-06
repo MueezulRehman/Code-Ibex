@@ -57,7 +57,7 @@
                             <td class="px-4 py-3 text-sm text-gray-600">
                                 {{ $restaurant->subscription?->plan?->name ?? 'No active plan' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">
-                                {{ $restaurant->hasTenantDatabase() ? 'Tenant DB' : 'Shared DB' }}</td>
+                                {{ $restaurant->hasTenantDatabase() ? 'Tenant configured' : 'Not provisioned' }}</td>
                             <td class="px-4 py-3 text-sm text-gray-600">
                                 <div>{{ is_array($restaurant->enabled_modules) ? count($restaurant->enabled_modules) : 0 }} enabled</div>
                                 @if($restaurant->businessType?->name === 'Professional Hospital')

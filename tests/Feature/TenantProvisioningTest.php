@@ -13,8 +13,20 @@ class TenantProvisioningTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function tearDown(): void
+    {
+        DB::purge('tenant');
+        $dbPath = database_path('tenant-provision-test.sqlite');
+        if (file_exists($dbPath)) {
+            @unlink($dbPath);
+        }
+
+        parent::tearDown();
+    }
+
     public function test_provisioning_creates_tenant_schema_and_seed_data_for_selected_modules(): void
     {
+        DB::purge('tenant');
         $dbPath = database_path('tenant-provision-test.sqlite');
         if (file_exists($dbPath)) {
             @unlink($dbPath);

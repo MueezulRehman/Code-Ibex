@@ -95,6 +95,7 @@
                     <label class="mb-2 block text-sm font-medium text-gray-700">Tenant Database Configuration</label>
                     <textarea name="db_connection" rows="4" class="w-full rounded-lg border border-gray-300 px-3 py-2"
                         placeholder='{"driver":"mysql","host":"127.0.0.1","database":"tenant_db","username":"tenant_user","password":"secret"}'>{{ old('db_connection', is_array($restaurant->db_connection) ? json_encode($restaurant->db_connection) : '') }}</textarea>
+                    <p class="mt-2 text-xs text-gray-500">For shared hosting, enter the connection details of the empty tenant database created in the hosting panel and assigned to the configured database user. Saving runs the tenant migrations and initial catalog seeder.</p>
                 </div>
                 <div>
                     <label class="mb-2 block text-sm font-medium text-gray-700">Plan</label>

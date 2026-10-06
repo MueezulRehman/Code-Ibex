@@ -74,8 +74,10 @@
                     <label class="mb-2 block text-sm font-medium text-gray-700">Tenant Database Configuration</label>
                     <textarea name="db_connection" rows="4" class="w-full rounded-lg border border-gray-300 px-3 py-2"
                         placeholder='{"driver":"mysql","host":"127.0.0.1","database":"tenant_db","username":"tenant_user","password":"secret"}'>{{ old('db_connection') }}</textarea>
-                    <p class="text-xs text-gray-500 mt-2">Optional JSON for a dedicated tenant database. Leave blank to use
-                        the shared platform database.</p>
+                    <p class="text-xs text-gray-500 mt-2">Leave blank to create a dedicated tenant database using the
+                        configured tenant prefix and database credentials. If your host requires databases to be created
+                        in its control panel, create an empty database, grant the configured database user access, and
+                        enter its connection details here.</p>
                 </div>
                 <div>
                     <label class="mb-2 block text-sm font-medium text-gray-700">Plan</label>
@@ -139,7 +141,7 @@
                     </div>
                     <div>
                         <label class="mb-2 block text-sm font-medium text-gray-700">Owner Password</label>
-                        <input type="text" name="owner_password" value="{{ old('owner_password') }}"
+                        <input type="password" name="owner_password" autocomplete="new-password"
                             class="w-full rounded-lg border border-gray-300 px-3 py-2" />
                     </div>
                 </div>

@@ -11,13 +11,11 @@ use App\Models\SubscriptionPlan;
 use App\Models\User;
 use App\Services\ModuleService;
 use App\Services\SubscriptionManager;
+use App\Services\TenantProvisioner;
 use App\Support\Tenancy;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -185,7 +183,13 @@ class RestaurantController extends Controller
         }
 
         $this->syncSubscriptionPlan($restaurant, $restaurantData['plan'] ?? null, $restaurantData['status'] ?? 'trial');
-        $this->provisionTenantDatabase($restaurant);
+        $tenantProvisioningFailed = false;
+        try {
+            $this->provisionTenantDatabase($restaurant);
+        } catch (\Throwable $exception) {
+            report($exception);
+            $tenantProvisioningFailed = true;
+        }
 
         $ownerCredentials = null;
 
@@ -213,7 +217,13 @@ class RestaurantController extends Controller
             $message .= ' Owner login: ' . $ownerCredentials['email'] . ' / ' . $ownerCredentials['password'];
         }
 
-        return redirect()->route('admin.restaurants.index')->with('success', $message);
+        $redirect = redirect()->route('admin.restaurants.index')->with('success', $message);
+
+        if ($tenantProvisioningFailed) {
+            $redirect->with('error', "Business #{$restaurant->id} was saved, but its tenant database could not be created or migrated. Grant the configured database user CREATE DATABASE, or enter the hPanel-created tenant connection under Edit Business, then retry with: php artisan tenants:migrate {$restaurant->id}");
+        }
+
+        return $redirect;
     }
 
     public function edit(Restaurant $restaurant)
@@ -336,7 +346,14 @@ class RestaurantController extends Controller
             $restaurant->forceFill(['activated_at' => now()])->save();
         }
         $this->syncSubscriptionPlan($restaurant, $updateData['plan'] ?? null, $updateData['status'] ?? $restaurant->status);
-        $this->provisionTenantDatabase($restaurant);
+        try {
+            $this->provisionTenantDatabase($restaurant);
+        } catch (\Throwable $exception) {
+            report($exception);
+
+            return redirect()->route('admin.restaurants.index')
+                ->with('error', "Business #{$restaurant->id} was updated, but its tenant database could not be migrated. Grant the configured database user CREATE DATABASE, or verify the hPanel tenant connection, then retry with: php artisan tenants:migrate {$restaurant->id}");
+        }
 
         return redirect()->route('admin.restaurants.index')->with('success', 'Restaurant updated successfully.');
     }
@@ -433,36 +450,11 @@ class RestaurantController extends Controller
 
     protected function provisionTenantDatabase(Restaurant $restaurant): void
     {
-        if (! $restaurant->hasTenantDatabase()) {
+        if (! config('tenancy.auto_provision', true)) {
             return;
         }
 
-        try {
-            config(['database.connections.tenant' => $restaurant->getTenantDatabaseConfig()]);
-            DB::purge('tenant');
-            DB::reconnect('tenant');
-            Tenancy::configureTenantConnection($restaurant);
-
-            Artisan::call('migrate', [
-                '--database' => 'tenant',
-                '--path' => database_path('tenant_migrations'),
-                '--force' => true,
-                '--realpath' => true,
-            ]);
-
-            $seeder = app(\Database\Seeders\TenantDatabaseSeeder::class);
-            if (method_exists($seeder, 'setRestaurant')) {
-                $seeder->setRestaurant($restaurant);
-            }
-            $seeder->run();
-        } catch (\Throwable $exception) {
-            Log::error('Tenant database provisioning failed for restaurant ' . $restaurant->id . ': ' . $exception->getMessage(), [
-                'restaurant_id' => $restaurant->id,
-                'db_connection' => $restaurant->db_connection,
-            ]);
-        } finally {
-            Tenancy::end();
-        }
+        app(TenantProvisioner::class)->provision($restaurant);
     }
 
     protected function syncSubscriptionPlan(Restaurant $restaurant, ?string $planSlug, string $status): void
