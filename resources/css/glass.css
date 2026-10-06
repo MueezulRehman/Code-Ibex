@@ -200,8 +200,7 @@ html[data-dashboard-theme="dark"] .customer-shell :is(.platform-header, .busines
 
   .dashboard-shell .dashboard-sidebar .nav-dropdown:hover .nav-dropdown-menu,
   .dashboard-shell .dashboard-sidebar .nav-dropdown.is-open .nav-dropdown-menu,
-  .dashboard-shell .dashboard-sidebar .nav-dropdown:focus-within .nav-dropdown-menu,
-  .dashboard-shell .dashboard-sidebar .nav-dropdown.has-active .nav-dropdown-menu {
+  .dashboard-shell .dashboard-sidebar .nav-dropdown:focus-within .nav-dropdown-menu {
     max-height: 40rem;
     visibility: visible;
     margin-block: .15rem .3rem;

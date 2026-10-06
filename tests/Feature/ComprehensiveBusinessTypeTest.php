@@ -118,6 +118,12 @@ class ComprehensiveBusinessTypeTest extends TestCase
             ->assertSee('event.stopImmediatePropagation()', false)
             ->assertSee('min(84vw, 18rem)', false)
             ->assertSee('scanInput?.focus({ preventScroll: true })', false);
+        $response->assertDontSee('Hospital operations');
+
+        preg_match_all('/<div class="nav-dropdown-menu"[^>]*>(.*?)<\\/div>/s', $response->getContent(), $dropdownMenus);
+        foreach ($dropdownMenus[1] as $dropdownMenu) {
+            $this->assertMatchesRegularExpression('/<a\\b[^>]*href=/', $dropdownMenu, 'Sidebar dropdowns should not be rendered without links.');
+        }
         $this->assertTrue($response->viewData('items')->first()->relationLoaded('category'));
         
         // Verify retail-specific behavior: variants should be available

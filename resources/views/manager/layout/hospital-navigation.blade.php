@@ -1,6 +1,8 @@
-                    <div class="pt-4 pb-1">
-                        <p class="nav-section-label">Hospital operations</p>
-                    </div>
+                    @if($moduleEnabled('hospital-emergency') || $moduleEnabled('medical') || $moduleEnabled('pharmacy') || $moduleEnabled('hospital-medication') || $moduleEnabled('hospital-laboratory') || $moduleEnabled('hospital-radiology') || $moduleEnabled('hospital-departments') || $moduleEnabled('hospital-admissions') || $moduleEnabled('hospital-wards-beds') || $moduleEnabled('hospital-nursing') || $moduleEnabled('hospital-staff-rosters') || $moduleEnabled('hospital-vital-signs') || $moduleEnabled('hospital-clinical-notes') || $moduleEnabled('hospital-care-plans') || $moduleEnabled('hospital-operating-theatre') || $moduleEnabled('hospital-billing') || $moduleEnabled('insurance'))
+                        <div class="pt-4 pb-1">
+                            <p class="nav-section-label">Hospital operations</p>
+                        </div>
+                    @endif
 
                     @if($moduleEnabled('hospital-emergency'))
                         <div class="nav-dropdown {{ request()->routeIs('manager.hospital-emergency.*') ? 'has-active' : '' }}">
@@ -88,6 +90,7 @@
                     @endif
 
                     @if($moduleEnabled('reports') || $moduleEnabled('hospital-admissions'))
+                        <p class="nav-section-label">Reports</p>
                         <div class="nav-dropdown {{ request()->routeIs('manager.reports.*') || request()->routeIs('manager.hospital-reports.*') ? 'has-active' : '' }}">
                             <a href="{{ $moduleEnabled('hospital-admissions') ? route('manager.hospital-reports.index') : route('manager.reports.index') }}" title="Reports"
                                 class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.reports.*') || request()->routeIs('manager.hospital-reports.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">

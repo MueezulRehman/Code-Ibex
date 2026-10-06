@@ -67,8 +67,8 @@
                     </a>
                 @else
                     <!-- Manager Navigation -->
-                    <p class="nav-section-label">Daily operations</p>
                     @if($moduleEnabled('orders') || $moduleEnabled('delivery') || $moduleEnabled('reservations') || $moduleEnabled('kitchen-display') || $moduleEnabled('fitting-room'))
+                        <p class="nav-section-label">Daily operations</p>
                         <div class="nav-dropdown {{ request()->routeIs('manager.orders.*') || request()->routeIs('manager.deliveries.*') || request()->routeIs('manager.reservations.*') || request()->routeIs('manager.kitchen-display.*') || request()->routeIs('manager.fitting-room.*') ? 'has-active' : '' }}">
                             <a href="{{ $moduleEnabled('orders') ? route('manager.orders.index') : route('manager.deliveries.index') }}" title="Operations"
                                 class="nav-dropdown-trigger flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 {{ request()->routeIs('manager.orders.*') || request()->routeIs('manager.deliveries.*') || request()->routeIs('manager.reservations.*') || request()->routeIs('manager.kitchen-display.*') || request()->routeIs('manager.fitting-room.*') ? 'bg-white/20 text-hut-yellow shadow-lg' : 'text-gray-200 hover:bg-white/10' }}">
@@ -297,7 +297,7 @@
                         </div>
                     @endif
 
-                    @if($moduleEnabled('hr') || $moduleEnabled('staff') || $moduleEnabled('attendance') || $moduleEnabled('salary'))
+                    @if($moduleEnabled('hr') || $moduleEnabled('staff') || $moduleEnabled('attendance'))
                         <div class="pt-4 pb-1">
                             <p class="nav-section-label">People</p>
                         </div>
