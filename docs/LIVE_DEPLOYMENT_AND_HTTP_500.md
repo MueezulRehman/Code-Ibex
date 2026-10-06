@@ -293,7 +293,12 @@ Store, Karachi Broast, Food Clinic, Al Majid Aryans Store, Amjd Karyana Store,
 and Professional Hospital Demo. It adds missing central rows, applies tenant
 migrations, and seeds the matching synthetic catalogs/records. It does not run
 the general `DatabaseSeeder`, reset the Super Admin, or print manager
-passwords. Use Super Admin **Enter business** to inspect the businesses.
+passwords. After tenant provisioning and the curated seeders succeed, it also
+ensures each demo business has at least one central admin/manager account.
+Existing manager accounts and passwords are preserved. Any newly created
+fallback account gets a random password and requires a password reset from
+Super Admin **User Access** before it can be used. Use Super Admin **Enter
+business** to inspect the businesses.
 
 Always inspect the planned scope first:
 

@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\Restaurant;
+use App\Models\User;
 use App\Services\ModuleService;
 use App\Services\TenantProvisioner;
 use Database\Seeders\AlMajidAryansStoreSeeder;
@@ -20,6 +21,7 @@ use Database\Seeders\PakistaniMedicineSeeder;
 use Database\Seeders\ProfessionalHospitalDemoSeeder;
 use Database\Seeders\TasteHutSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Hash;
 use Mockery;
 use Tests\TestCase;
 
@@ -63,6 +65,19 @@ class SeedDemoBusinessesCommandTest extends TestCase
     public function test_confirmed_command_provisions_and_runs_curated_dataset_seeders(): void
     {
         ModuleService::ensureDefaults();
+        app(DemoBusinessesSeeder::class)->createBusinesses();
+        $existingManager = User::factory()->create([
+            'name' => 'Existing Taste Hut Manager',
+            'phone' => '03005550001',
+            'role' => 'admin',
+            'restaurant_id' => Restaurant::where('slug', 'tastehut')->value('id'),
+            'password' => Hash::make('ExistingManagerPass123!'),
+        ]);
+        $existingPasswordHash = $existingManager->password;
+        $superAdmin = User::factory()->create([
+            'phone' => '03005550999',
+            'role' => 'super_admin',
+        ]);
 
         $provisioner = Mockery::mock(TenantProvisioner::class);
         $provisioner->shouldReceive('provision')->times(count(DemoBusinessesSeeder::definitions()))->andReturn(true);
@@ -98,7 +113,30 @@ class SeedDemoBusinessesCommandTest extends TestCase
 
         $this->artisan('businesses:seed-demos', ['--confirm' => true])
             ->expectsOutput('All curated demo businesses and sample datasets are ready.')
+            ->expectsOutput('Created 7 missing demo manager account(s). Assign their one-time passwords from Super Admin → User Access.')
             ->assertExitCode(0);
+
+        foreach (DemoBusinessesSeeder::definitions() as $definition) {
+            $business = Restaurant::where('slug', $definition['slug'])->firstOrFail();
+            $manager = User::where('restaurant_id', $business->id)
+                ->whereIn('role', ['admin', 'manager'])
+                ->first();
+
+            $this->assertNotNull($manager, "No internal manager account was created for {$business->name}.");
+            if ($business->slug === 'tastehut') {
+                $this->assertSame($existingManager->id, $manager->id);
+                $this->assertFalse($manager->must_change_password);
+            } else {
+                $this->assertTrue($manager->must_change_password);
+            }
+        }
+
+        $this->assertSame($existingPasswordHash, $existingManager->fresh()->password);
+        $this->actingAs($superAdmin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('Al-Barkat General Store Manager')
+            ->assertSee('Professional Hospital Demo Manager');
     }
 
     public function test_command_requires_explicit_confirmation(): void

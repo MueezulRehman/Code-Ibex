@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App\Models\Restaurant;
+use App\Models\User;
 use App\Services\TenantProvisioner;
 use App\Support\Tenancy;
 use Database\Seeders\AlMajidAryansStoreSeeder;
@@ -21,6 +22,8 @@ use Database\Seeders\ProfessionalHospitalDemoSeeder;
 use Database\Seeders\TasteHutSeeder;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 use Throwable;
 
 class SeedDemoBusinessesCommand extends Command
@@ -128,6 +131,7 @@ class SeedDemoBusinessesCommand extends Command
 
         try {
             $this->seedBusinessRecords($businesses);
+            $createdManagerAccounts = $this->ensureDemoManagerAccounts($businesses);
         } catch (Throwable $exception) {
             report($exception);
             $this->error('Tenant schemas are ready, but one or more demo datasets could not be seeded. Review the Laravel log, correct the issue, then safely rerun this command.');
@@ -139,9 +143,56 @@ class SeedDemoBusinessesCommand extends Command
         }
 
         $this->info('All curated demo businesses and sample datasets are ready.');
+        if ($createdManagerAccounts > 0) {
+            $this->line("Created {$createdManagerAccounts} missing demo manager account(s). Assign their one-time passwords from Super Admin → User Access.");
+        } else {
+            $this->line('Every demo business already had an internal manager account; existing accounts and passwords were left unchanged.');
+        }
         $this->line('Open the Super Admin Businesses page and use Enter business to inspect each tenant.');
 
         return self::SUCCESS;
+    }
+
+    /**
+     * @param  array<int, Restaurant>  $businesses
+     */
+    private function ensureDemoManagerAccounts(array $businesses): int
+    {
+        $created = 0;
+
+        foreach ($businesses as $business) {
+            if (User::where('restaurant_id', $business->id)
+                ->whereIn('role', ['admin', 'manager'])
+                ->exists()) {
+                continue;
+            }
+
+            $sequence = (int) $business->id;
+            do {
+                $phone = sprintf('030%08d', $sequence++);
+            } while (User::where('phone', $phone)->exists());
+
+            $email = sprintf(
+                'manager.%s.%d@demo.codeibex.invalid',
+                Str::slug($business->slug ?: $business->name),
+                $business->id,
+            );
+
+            User::create([
+                'name' => $business->name . ' Manager',
+                'phone' => $phone,
+                'email' => $email,
+                'role' => 'admin',
+                'restaurant_id' => $business->id,
+                'password' => Hash::make(Str::random(48)),
+                'is_active' => true,
+                'must_change_password' => true,
+            ]);
+
+            $created++;
+        }
+
+        return $created;
     }
 
     /**
