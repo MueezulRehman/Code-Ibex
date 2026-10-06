@@ -82,6 +82,9 @@ class SeedDemoBusinessesCommandTest extends TestCase
         $provisioner = Mockery::mock(TenantProvisioner::class);
         $provisioner->shouldReceive('provision')->times(count(DemoBusinessesSeeder::definitions()))->andReturn(true);
         $provisioner->shouldReceive('restoreCentralConnection')->once();
+        $provisioner->shouldReceive('inspectDatabase')
+            ->times(count(DemoBusinessesSeeder::definitions()))
+            ->andReturn(['status' => 'ready', 'ready' => true, 'database' => 'demo_tenant']);
         $this->app->instance(TenantProvisioner::class, $provisioner);
 
         foreach ([

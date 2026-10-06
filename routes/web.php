@@ -150,6 +150,7 @@ Route::prefix('admin')->name('admin.')->group(function () {
 
         Route::get('/users', [App\Http\Controllers\Admin\UserCredentialController::class, 'index'])->name('users.index');
         Route::post('/users/{user}/password-reset', [App\Http\Controllers\Admin\UserCredentialController::class, 'resetPassword'])->name('users.password.reset');
+        Route::post('/users/businesses/{restaurant}/managers', [App\Http\Controllers\Admin\UserCredentialController::class, 'createManager'])->name('users.businesses.managers.store');
 
         // Stock analysis
         Route::get('/stock-analysis', [StockAnalysisController::class, 'adminIndex'])->name('stock-analysis.index');

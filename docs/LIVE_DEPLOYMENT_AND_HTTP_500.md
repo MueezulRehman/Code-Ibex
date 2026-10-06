@@ -300,6 +300,14 @@ fallback account gets a random password and requires a password reset from
 Super Admin **User Access** before it can be used. Use Super Admin **Enter
 business** to inspect the businesses.
 
+Super Admin **User Access** lists businesses, their tenant database
+connectivity/migration status, and the internal login accounts linked to each
+business. A manager account can only be created there when the tenant database
+is reachable, all tenant migrations are applied, and its business mirror row
+is initialized. The manager is stored centrally for authentication and mirrored
+into the tenant users table for tenant-side relationships. The supplied
+temporary password must be changed at first login.
+
 Always inspect the planned scope first:
 
 ```sh

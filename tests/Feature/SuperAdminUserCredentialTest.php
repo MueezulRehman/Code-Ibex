@@ -2,9 +2,12 @@
 
 namespace Tests\Feature;
 
+use App\Models\Restaurant;
 use App\Models\User;
+use App\Services\TenantProvisioner;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
+use Mockery;
 use Tests\TestCase;
 
 class SuperAdminUserCredentialTest extends TestCase
@@ -78,6 +81,126 @@ class SuperAdminUserCredentialTest extends TestCase
         $this->actingAs($manager)
             ->get(route('admin.users.index'))
             ->assertForbidden();
+    }
+
+    public function test_user_access_lists_businesses_with_tenant_and_login_status(): void
+    {
+        $superAdmin = User::factory()->create([
+            'phone' => '03001110009',
+            'role' => 'super_admin',
+        ]);
+        $withLogin = Restaurant::create([
+            'name' => 'Business With Manager',
+            'slug' => 'business-with-manager',
+        ]);
+        $withoutLogin = Restaurant::create([
+            'name' => 'Business Without Manager',
+            'slug' => 'business-without-manager',
+        ]);
+        User::factory()->create([
+            'name' => 'Existing Business Manager',
+            'phone' => '03001110010',
+            'role' => 'manager',
+            'restaurant_id' => $withLogin->id,
+        ]);
+
+        $provisioner = Mockery::mock(TenantProvisioner::class);
+        $provisioner->shouldReceive('inspectDatabase')
+            ->twice()
+            ->andReturn(
+                ['status' => 'ready', 'ready' => true, 'database' => 'tenant_with_login'],
+                ['status' => 'not_configured', 'ready' => false, 'database' => null],
+            );
+        $this->app->instance(TenantProvisioner::class, $provisioner);
+
+        $this->actingAs($superAdmin)
+            ->get(route('admin.users.index'))
+            ->assertOk()
+            ->assertSee('Business With Manager')
+            ->assertSee('Business Without Manager')
+            ->assertSee('Existing Business Manager')
+            ->assertSee('tenant_with_login')
+            ->assertSee('No internal login account')
+            ->assertSee('Add manager')
+            ->assertSee('Available when tenant is ready');
+    }
+
+    public function test_super_admin_can_add_manager_only_to_a_ready_tenant(): void
+    {
+        $superAdmin = User::factory()->create([
+            'phone' => '03001110011',
+            'role' => 'super_admin',
+        ]);
+        $business = Restaurant::create([
+            'name' => 'Ready Business',
+            'slug' => 'ready-business',
+            'db_connection' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+            ],
+        ]);
+
+        $provisioner = Mockery::mock(TenantProvisioner::class);
+        $provisioner->shouldReceive('inspectDatabase')
+            ->once()
+            ->with(Mockery::on(fn (Restaurant $candidate): bool => $candidate->is($business)))
+            ->andReturn(['status' => 'ready', 'ready' => true, 'database' => ':memory:']);
+        $provisioner->shouldReceive('syncManagerAccount')
+            ->once()
+            ->with(
+                Mockery::on(fn (Restaurant $candidate): bool => $candidate->is($business)),
+                Mockery::on(fn (User $candidate): bool => $candidate->phone === '03001110012'
+                    && $candidate->role === 'manager'
+                    && $candidate->must_change_password),
+            );
+        $this->app->instance(TenantProvisioner::class, $provisioner);
+
+        $password = 'NewManagerPass123!';
+        $this->actingAs($superAdmin)
+            ->post(route('admin.users.businesses.managers.store', $business), [
+                'name' => 'New Business Manager',
+                'phone' => '03001110012',
+                'email' => 'new-manager@example.test',
+                'password' => $password,
+                'password_confirmation' => $password,
+            ])
+            ->assertRedirect(route('admin.users.index'))
+            ->assertSessionHas('temporary_password.password', $password);
+
+        $manager = User::where('phone', '03001110012')->firstOrFail();
+        $this->assertSame('manager', $manager->role);
+        $this->assertSame($business->id, $manager->restaurant_id);
+        $this->assertTrue($manager->must_change_password);
+        $this->assertTrue(Hash::check($password, $manager->password));
+    }
+
+    public function test_super_admin_cannot_add_manager_when_tenant_database_is_not_ready(): void
+    {
+        $superAdmin = User::factory()->create([
+            'phone' => '03001110013',
+            'role' => 'super_admin',
+        ]);
+        $business = Restaurant::create([
+            'name' => 'Not Ready Business',
+            'slug' => 'not-ready-business',
+        ]);
+
+        $provisioner = Mockery::mock(TenantProvisioner::class);
+        $provisioner->shouldReceive('inspectDatabase')
+            ->once()
+            ->andReturn(['status' => 'not_configured', 'ready' => false, 'database' => null]);
+        $this->app->instance(TenantProvisioner::class, $provisioner);
+
+        $this->actingAs($superAdmin)
+            ->post(route('admin.users.businesses.managers.store', $business), [
+                'name' => 'Blocked Manager',
+                'phone' => '03001110014',
+                'password' => 'BlockedManagerPass123!',
+                'password_confirmation' => 'BlockedManagerPass123!',
+            ])
+            ->assertStatus(422);
+
+        $this->assertDatabaseMissing('users', ['phone' => '03001110014']);
     }
 
     public function test_internal_user_with_temporary_password_is_sent_to_required_password_change_after_login(): void

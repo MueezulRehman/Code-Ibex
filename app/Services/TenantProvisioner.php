@@ -3,11 +3,13 @@
 namespace App\Services;
 
 use App\Models\Restaurant;
+use App\Models\User;
 use App\Support\Tenancy;
 use Database\Seeders\TenantDatabaseSeeder;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Throwable;
 
 /**
@@ -24,6 +26,113 @@ use Throwable;
  */
 class TenantProvisioner
 {
+    /**
+     * Mirror a central manager into the tenant users table for tenant-local
+     * foreign keys. Tenant schemas represent internal users with the legacy
+     * admin role even when the central account uses the manager role.
+     */
+    public function syncManagerAccount(Restaurant $restaurant, User $manager): void
+    {
+        $tenantConfig = $restaurant->getTenantDatabaseConfig();
+        $connection = 'tenant_manager_sync_' . $restaurant->id;
+        config(["database.connections.{$connection}" => $tenantConfig]);
+
+        try {
+            $db = DB::connection($connection);
+            $db->getPdo();
+            $schema = Schema::connection($connection);
+
+            if (! $schema->hasTable('users')) {
+                throw new \RuntimeException("Tenant users table is missing for business #{$restaurant->id}.");
+            }
+
+            $now = now();
+            $record = [
+                'name' => $manager->name,
+                'phone' => $manager->phone,
+                'email' => $manager->email,
+                'role' => 'admin',
+                'password' => $manager->password,
+                'is_active' => $manager->is_active ?? true,
+                'updated_at' => $now,
+                'created_at' => $manager->created_at ?? $now,
+            ];
+
+            if ($schema->hasColumn('users', 'joined_at')) {
+                $record['joined_at'] = $manager->joined_at?->format('Y-m-d');
+            }
+
+            $db->table('users')->updateOrInsert(['id' => $manager->id], $record);
+        } finally {
+            DB::purge($connection);
+            config(["database.connections.{$connection}" => null]);
+        }
+    }
+
+    /**
+     * Inspect tenant connectivity and migration state without changing the
+     * application's active tenant connection or default database.
+     *
+     * @return array{status:string,ready:bool,database:?string}
+     */
+    public function inspectDatabase(Restaurant $restaurant): array
+    {
+        if (! $restaurant->hasTenantDatabase()) {
+            return ['status' => 'not_configured', 'ready' => false, 'database' => null];
+        }
+
+        $tenantConfig = $restaurant->getTenantDatabaseConfig();
+        $database = $tenantConfig['database'] ?? null;
+        $connection = 'tenant_inspect_' . $restaurant->id;
+
+        if (! is_string($database) || trim($database) === '') {
+            return ['status' => 'not_configured', 'ready' => false, 'database' => null];
+        }
+
+        config(["database.connections.{$connection}" => $tenantConfig]);
+
+        try {
+            $db = DB::connection($connection);
+            $db->getPdo();
+
+            $schema = Schema::connection($connection);
+            foreach (['migrations', 'restaurants', 'users'] as $table) {
+                if (! $schema->hasTable($table)) {
+                    return ['status' => 'schema_incomplete', 'ready' => false, 'database' => $database];
+                }
+            }
+
+            $applied = array_fill_keys($db->table('migrations')->pluck('migration')->all(), true);
+            $migrationFiles = glob(base_path(config('tenancy.migrations_path', 'database/tenant_migrations') . '/*.php')) ?: [];
+            foreach ($migrationFiles as $migrationFile) {
+                if (! isset($applied[pathinfo($migrationFile, PATHINFO_FILENAME)])) {
+                    return ['status' => 'migrations_pending', 'ready' => false, 'database' => $database];
+                }
+            }
+
+            $tenantMirror = $db->table('restaurants')
+                ->where('id', $restaurant->id)
+                ->where('slug', $restaurant->slug)
+                ->exists();
+
+            if (! $tenantMirror) {
+                return ['status' => 'not_initialized', 'ready' => false, 'database' => $database];
+            }
+
+            return ['status' => 'ready', 'ready' => true, 'database' => $database];
+        } catch (Throwable $exception) {
+            Log::warning('Tenant database inspection failed', [
+                'restaurant_id' => $restaurant->id,
+                'error' => $exception->getMessage(),
+            ]);
+
+            return ['status' => 'unreachable', 'ready' => false, 'database' => $database];
+        } finally {
+            DB::purge($connection);
+            config(["database.connections.{$connection}" => null]);
+        }
+    }
+
     /**
      * Ensure the restaurant has a dedicated database with full schema.
      * Safe to call multiple times (idempotent migrate).
