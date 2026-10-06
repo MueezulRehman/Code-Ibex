@@ -122,6 +122,8 @@ class SuperAdminUserCredentialTest extends TestCase
             ->assertSee('tenant_with_login')
             ->assertSee('No internal login account')
             ->assertSee('Add manager')
+            ->assertSee('Edit account')
+            ->assertSee('Save account details')
             ->assertSee('Available when tenant is ready');
     }
 
@@ -172,6 +174,59 @@ class SuperAdminUserCredentialTest extends TestCase
         $this->assertSame($business->id, $manager->restaurant_id);
         $this->assertTrue($manager->must_change_password);
         $this->assertTrue(Hash::check($password, $manager->password));
+    }
+
+    public function test_super_admin_can_edit_an_internal_account_from_the_modal_form_endpoint(): void
+    {
+        $superAdmin = User::factory()->create([
+            'phone' => '03001110016',
+            'role' => 'super_admin',
+        ]);
+        $business = Restaurant::create([
+            'name' => 'Editable Business',
+            'slug' => 'editable-business',
+            'db_connection' => [
+                'driver' => 'sqlite',
+                'database' => ':memory:',
+            ],
+        ]);
+        $manager = User::factory()->create([
+            'name' => 'Old Manager Name',
+            'phone' => '03001110017',
+            'email' => 'old-manager@example.test',
+            'role' => 'manager',
+            'restaurant_id' => $business->id,
+        ]);
+
+        $provisioner = Mockery::mock(TenantProvisioner::class);
+        $provisioner->shouldReceive('inspectDatabase')
+            ->once()
+            ->with(Mockery::on(fn (Restaurant $candidate): bool => $candidate->is($business)))
+            ->andReturn(['status' => 'ready', 'ready' => true, 'database' => ':memory:']);
+        $provisioner->shouldReceive('syncManagerAccount')
+            ->once()
+            ->with(
+                Mockery::on(fn (Restaurant $candidate): bool => $candidate->is($business)),
+                Mockery::on(fn (User $candidate): bool => $candidate->id === $manager->id
+                    && $candidate->name === 'Updated Manager Name'
+                    && $candidate->phone === '03001110018'
+                    && $candidate->email === 'updated-manager@example.test'),
+            );
+        $this->app->instance(TenantProvisioner::class, $provisioner);
+
+        $this->actingAs($superAdmin)
+            ->patch(route('admin.users.update', $manager), [
+                'name' => 'Updated Manager Name',
+                'phone' => '03001110018',
+                'email' => 'updated-manager@example.test',
+            ])
+            ->assertRedirect(route('admin.users.index'))
+            ->assertSessionHas('success', 'Account details updated for Updated Manager Name.');
+
+        $manager->refresh();
+        $this->assertSame('Updated Manager Name', $manager->name);
+        $this->assertSame('03001110018', $manager->phone);
+        $this->assertSame('updated-manager@example.test', $manager->email);
     }
 
     public function test_super_admin_cannot_add_manager_when_tenant_database_is_not_ready(): void

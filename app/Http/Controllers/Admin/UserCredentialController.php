@@ -134,4 +134,48 @@ class UserCredentialController extends Controller
                 'password' => $validated['password'],
             ]);
     }
+
+    public function updateUser(Request $request, User $user, TenantProvisioner $provisioner)
+    {
+        abort_unless(in_array($user->role, self::INTERNAL_ROLES, true), 404);
+        abort_if($user->is(Auth::user()), 403, 'Use My Account to change your own details.');
+
+        $validated = $request->validate([
+            'name' => ['required', 'string', 'max:100'],
+            'phone' => ['required', 'string', 'max:20', Rule::unique(User::class, 'phone')->ignore($user->id)],
+            'email' => ['nullable', 'email', 'max:150', Rule::unique(User::class, 'email')->ignore($user->id)],
+        ]);
+
+        $user->fill($validated)->save();
+
+        $tenantSyncFailed = false;
+        if ($user->restaurant_id) {
+            $business = Restaurant::find($user->restaurant_id);
+            if ($business && $provisioner->inspectDatabase($business)['ready']) {
+                try {
+                    $provisioner->syncManagerAccount($business, $user);
+                } catch (Throwable $exception) {
+                    report($exception);
+                    $tenantSyncFailed = true;
+                }
+            }
+        }
+
+        Log::notice('Super Admin updated internal user details', [
+            'actor_id' => Auth::id(),
+            'target_user_id' => $user->id,
+            'target_role' => $user->role,
+            'restaurant_id' => $user->restaurant_id,
+            'tenant_mirror_sync_failed' => $tenantSyncFailed,
+        ]);
+
+        $redirect = redirect()->route('admin.users.index')
+            ->with('success', "Account details updated for {$user->name}.");
+
+        if ($tenantSyncFailed) {
+            $redirect->with('error', 'The central login details were saved, but the tenant user mirror could not be updated. Check the tenant database before relying on tenant-side user references.');
+        }
+
+        return $redirect;
+    }
 }

@@ -98,18 +98,54 @@
                                         @endunless
                                     </div>
                                     <div class="mt-1 text-xs text-gray-500">{{ $account->phone }}{{ $account->email ? ' · '.$account->email : '' }}</div>
-                                    <details class="mt-3">
-                                        <summary class="cursor-pointer text-xs font-semibold text-amber-900">Set temporary password</summary>
-                                        <form method="POST" action="{{ route('admin.users.password.reset', $account) }}" class="mt-2 grid max-w-72 gap-2" onsubmit="return confirm('Set this temporary password? The user must change it after signing in.');">
-                                            @csrf
-                                            <label class="sr-only" for="temporary-password-{{ $account->id }}">Temporary password for {{ $account->name }}</label>
-                                            <input id="temporary-password-{{ $account->id }}" name="password" type="password" required minlength="12" autocomplete="new-password" placeholder="Temporary password" class="rounded-lg border border-gray-300 px-3 py-2 text-xs">
-                                            <label class="sr-only" for="temporary-password-confirmation-{{ $account->id }}">Confirm temporary password for {{ $account->name }}</label>
-                                            <input id="temporary-password-confirmation-{{ $account->id }}" name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" placeholder="Confirm password" class="rounded-lg border border-gray-300 px-3 py-2 text-xs">
-                                            <p class="text-xs text-gray-500">12+ chars, uppercase, lowercase, number, and symbol.</p>
-                                            <button class="rounded-lg border border-amber-300 px-3 py-2 text-xs font-semibold text-amber-900 hover:bg-amber-50">Set temporary password</button>
-                                        </form>
-                                    </details>
+                                    <button type="button" data-open-dialog="user-dialog-{{ $account->id }}" class="mt-3 rounded-lg border border-blue-200 px-3 py-1.5 text-xs font-semibold text-blue-900 hover:bg-blue-50">Edit account</button>
+
+                                    <dialog id="user-dialog-{{ $account->id }}" class="m-auto max-h-[90vh] w-[min(95vw,42rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50">
+                                        <div class="border-b border-slate-200 px-6 py-4">
+                                            <div class="flex items-start justify-between gap-4">
+                                                <div>
+                                                    <h3 class="text-lg font-semibold text-hut-dark">Manage {{ $account->name }}</h3>
+                                                    <p class="mt-1 text-xs text-gray-500">{{ $business->name }} · {{ str_replace('_', ' ', $account->role) }}</p>
+                                                </div>
+                                                <button type="button" data-close-dialog class="rounded-lg px-3 py-1 text-xl text-gray-500 hover:bg-gray-100" aria-label="Close">×</button>
+                                            </div>
+                                        </div>
+                                        <div class="grid gap-6 p-6">
+                                            <form method="POST" action="{{ route('admin.users.update', $account) }}" class="grid gap-3">
+                                                @csrf
+                                                @method('PATCH')
+                                                <h4 class="font-semibold text-hut-dark">Edit account details</h4>
+                                                <label class="grid gap-1 text-sm">
+                                                    <span>Name</span>
+                                                    <input name="name" value="{{ $account->name }}" required maxlength="100" class="rounded-lg border border-gray-300 px-3 py-2">
+                                                </label>
+                                                <label class="grid gap-1 text-sm">
+                                                    <span>Login phone</span>
+                                                    <input name="phone" type="tel" value="{{ $account->phone }}" required maxlength="20" class="rounded-lg border border-gray-300 px-3 py-2">
+                                                </label>
+                                                <label class="grid gap-1 text-sm">
+                                                    <span>Email <span class="text-gray-500">(optional)</span></span>
+                                                    <input name="email" type="email" value="{{ $account->email }}" maxlength="150" class="rounded-lg border border-gray-300 px-3 py-2">
+                                                </label>
+                                                <button class="justify-self-start rounded-lg bg-hut-dark px-4 py-2 text-sm font-semibold text-white">Save account details</button>
+                                            </form>
+
+                                            <form method="POST" action="{{ route('admin.users.password.reset', $account) }}" class="grid gap-3 border-t border-slate-200 pt-5" onsubmit="return confirm('Set this temporary password? The user must change it after signing in.');">
+                                                @csrf
+                                                <h4 class="font-semibold text-hut-dark">Set temporary password</h4>
+                                                <label class="grid gap-1 text-sm">
+                                                    <span>Temporary password</span>
+                                                    <input name="password" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                                </label>
+                                                <label class="grid gap-1 text-sm">
+                                                    <span>Confirm password</span>
+                                                    <input name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                                </label>
+                                                <p class="text-xs text-gray-500">12+ characters with uppercase, lowercase, number, and symbol.</p>
+                                                <button class="justify-self-start rounded-lg border border-amber-300 px-4 py-2 text-sm font-semibold text-amber-900 hover:bg-amber-50">Set temporary password</button>
+                                            </form>
+                                        </div>
+                                    </dialog>
                                 </div>
                             @empty
                                 <span class="text-sm text-amber-800">No internal login account</span>
@@ -117,24 +153,43 @@
                         </td>
                         <td class="px-4 py-4">
                             @if ($tenantReady)
-                                <details>
-                                    <summary class="cursor-pointer rounded-lg border border-blue-200 px-3 py-2 text-center text-xs font-semibold text-blue-900 hover:bg-blue-50">Add manager</summary>
-                                    <form method="POST" action="{{ route('admin.users.businesses.managers.store', $business) }}" class="mt-3 grid min-w-64 gap-2">
+                                <button type="button" data-open-dialog="manager-dialog-{{ $business->id }}" class="rounded-lg border border-blue-200 px-3 py-2 text-center text-xs font-semibold text-blue-900 hover:bg-blue-50">Add manager</button>
+                                <dialog id="manager-dialog-{{ $business->id }}" class="m-auto max-h-[90vh] w-[min(95vw,34rem)] overflow-y-auto rounded-2xl border border-white/70 bg-white p-0 text-slate-900 shadow-2xl backdrop:bg-slate-950/50">
+                                    <div class="border-b border-slate-200 px-6 py-4">
+                                        <div class="flex items-start justify-between gap-4">
+                                            <div>
+                                                <h3 class="text-lg font-semibold text-hut-dark">Add manager to {{ $business->name }}</h3>
+                                                <p class="mt-1 text-xs text-gray-500">The manager must change this temporary password at first login.</p>
+                                            </div>
+                                            <button type="button" data-close-dialog class="rounded-lg px-3 py-1 text-xl text-gray-500 hover:bg-gray-100" aria-label="Close">×</button>
+                                        </div>
+                                    </div>
+                                    <form method="POST" action="{{ route('admin.users.businesses.managers.store', $business) }}" class="grid gap-3 p-6">
                                         @csrf
-                                        <label class="sr-only" for="manager-name-{{ $business->id }}">Manager name</label>
-                                        <input id="manager-name-{{ $business->id }}" name="name" required maxlength="255" value="{{ old('name') }}" placeholder="Full name" class="rounded-lg border border-gray-300 px-3 py-2 text-xs">
-                                        <label class="sr-only" for="manager-phone-{{ $business->id }}">Manager login phone</label>
-                                        <input id="manager-phone-{{ $business->id }}" name="phone" type="tel" required maxlength="20" value="{{ old('phone') }}" placeholder="Unique login phone" class="rounded-lg border border-gray-300 px-3 py-2 text-xs">
-                                        <label class="sr-only" for="manager-email-{{ $business->id }}">Manager email</label>
-                                        <input id="manager-email-{{ $business->id }}" name="email" type="email" maxlength="150" value="{{ old('email') }}" placeholder="Email (optional)" class="rounded-lg border border-gray-300 px-3 py-2 text-xs">
-                                        <label class="sr-only" for="manager-password-{{ $business->id }}">Temporary password</label>
-                                        <input id="manager-password-{{ $business->id }}" name="password" type="password" required minlength="12" autocomplete="new-password" placeholder="Temporary password" class="rounded-lg border border-gray-300 px-3 py-2 text-xs">
-                                        <label class="sr-only" for="manager-password-confirmation-{{ $business->id }}">Confirm temporary password</label>
-                                        <input id="manager-password-confirmation-{{ $business->id }}" name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" placeholder="Confirm password" class="rounded-lg border border-gray-300 px-3 py-2 text-xs">
-                                        <p class="text-xs text-gray-500">12+ chars, uppercase, lowercase, number, and symbol. User must change it at first login.</p>
-                                        <button class="rounded-lg bg-hut-dark px-3 py-2 text-xs font-semibold text-white">Create manager login</button>
+                                        <label class="grid gap-1 text-sm">
+                                            <span>Full name</span>
+                                            <input name="name" required maxlength="255" value="{{ old('name') }}" class="rounded-lg border border-gray-300 px-3 py-2">
+                                        </label>
+                                        <label class="grid gap-1 text-sm">
+                                            <span>Unique login phone</span>
+                                            <input name="phone" type="tel" required maxlength="20" value="{{ old('phone') }}" class="rounded-lg border border-gray-300 px-3 py-2">
+                                        </label>
+                                        <label class="grid gap-1 text-sm">
+                                            <span>Email <span class="text-gray-500">(optional)</span></span>
+                                            <input name="email" type="email" maxlength="150" value="{{ old('email') }}" class="rounded-lg border border-gray-300 px-3 py-2">
+                                        </label>
+                                        <label class="grid gap-1 text-sm">
+                                            <span>Temporary password</span>
+                                            <input name="password" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                        </label>
+                                        <label class="grid gap-1 text-sm">
+                                            <span>Confirm password</span>
+                                            <input name="password_confirmation" type="password" required minlength="12" autocomplete="new-password" class="rounded-lg border border-gray-300 px-3 py-2">
+                                        </label>
+                                        <p class="text-xs text-gray-500">12+ characters with uppercase, lowercase, number, and symbol.</p>
+                                        <button class="rounded-lg bg-hut-dark px-4 py-2 text-sm font-semibold text-white">Create manager login</button>
                                     </form>
-                                </details>
+                                </dialog>
                             @else
                                 <span class="text-xs text-gray-500">Available when tenant is ready</span>
                             @endif
@@ -149,3 +204,20 @@
 
     <div class="mt-4">{{ $businesses->links() }}</div>
 @endsection
+
+@push('scripts')
+    <script>
+        document.addEventListener('click', (event) => {
+            const opener = event.target.closest('[data-open-dialog]');
+            if (opener) {
+                document.getElementById(opener.dataset.openDialog)?.showModal();
+                return;
+            }
+
+            const closer = event.target.closest('[data-close-dialog]');
+            if (closer) {
+                closer.closest('dialog')?.close();
+            }
+        });
+    </script>
+@endpush
