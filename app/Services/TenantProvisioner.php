@@ -232,7 +232,12 @@ class TenantProvisioner
         }
 
         if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            $safe = str_replace('`', '``', basename($dbName)); // safety
+            // Allowlist: only [a-zA-Z0-9_] chars, max 64 chars (MySQL identifier limit).
+            // Backtick-escaping alone is insufficient against edge-case MySQL modes.
+            $safe = basename($dbName);
+            if (! preg_match('/^[a-zA-Z0-9_]{1,64}$/', $safe)) {
+                throw new \InvalidArgumentException("Unsafe tenant database name rejected: [{$safe}]");
+            }
             $pdo = DB::connection(config('tenancy.central_connection', env('DB_CONNECTION', 'mysql')))->getPdo();
             $pdo->exec("DROP DATABASE IF EXISTS `{$safe}`");
         } elseif ($driver === 'sqlite' && is_file($dbName)) {
@@ -252,9 +257,14 @@ class TenantProvisioner
         $charset = $template['charset'] ?? 'utf8mb4';
         $collation = $template['collation'] ?? 'utf8mb4_unicode_ci';
 
+        // Allowlist: only [a-zA-Z0-9_] chars, max 64 chars.
+        $safe = $dbName;
+        if (! preg_match('/^[a-zA-Z0-9_]{1,64}$/', $safe)) {
+            throw new \InvalidArgumentException("Unsafe tenant database name rejected: [{$safe}]");
+        }
+
         $central = config('tenancy.central_connection', env('DB_CONNECTION', 'mysql'));
         $pdo = DB::connection($central)->getPdo();
-        $safe = str_replace('`', '``', $dbName);
         $pdo->exec("CREATE DATABASE IF NOT EXISTS `{$safe}` CHARACTER SET {$charset} COLLATE {$collation}");
     }
 

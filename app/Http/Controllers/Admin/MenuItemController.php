@@ -8,6 +8,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 use App\Support\Tenancy;
+use Illuminate\Support\Facades\Storage;
 
 class MenuItemController extends Controller
 {
@@ -74,17 +75,12 @@ class MenuItemController extends Controller
             'track_stock' => 'boolean',
             'stock_quantity' => 'nullable|numeric|min:0',
             'low_stock_threshold' => 'nullable|numeric|min:0',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
         $category = Category::where('restaurant_id', $restaurantId)->findOrFail($validated['category_id']);
 
         if ($request->hasFile('image')) {
-            $dir = public_path('images/menu');
-            if (! is_dir($dir)) mkdir($dir, 0755, true);
-            $file = $request->file('image');
-            $filename = uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move($dir, $filename);
-            $validated['image'] = 'menu/' . $filename;
+            $validated['image'] = $request->file('image')->store('menu-items', 'public');
         }
 
         $validated['is_available'] = $validated['available'] ?? false;
@@ -141,19 +137,14 @@ class MenuItemController extends Controller
             'track_stock' => 'boolean',
             'stock_quantity' => 'nullable|numeric|min:0',
             'low_stock_threshold' => 'nullable|numeric|min:0',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            if ($item->image && file_exists(public_path('images/' . $item->image))) {
-                @unlink(public_path('images/' . $item->image));
+            if ($item->image) {
+                Storage::disk('public')->delete($item->image);
             }
-            $dir = public_path('images/menu');
-            if (! is_dir($dir)) mkdir($dir, 0755, true);
-            $file = $request->file('image');
-            $filename = uniqid() . '_' . time() . '.' . $file->getClientOriginalExtension();
-            $file->move($dir, $filename);
-            $validated['image'] = 'menu/' . $filename;
+            $validated['image'] = $request->file('image')->store('menu-items', 'public');
         } else {
             unset($validated['image']);
         }

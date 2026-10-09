@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Admin;
 use App\Models\Deal;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 class DealController extends Controller
 {
@@ -28,16 +29,11 @@ class DealController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'active' => 'boolean',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            $dir = public_path('images/deals');
-            if (! is_dir($dir)) mkdir($dir, 0755, true);
-            $file = $request->file('image');
-            $filename = uniqid().'_'.time().'.'.$file->getClientOriginalExtension();
-            $file->move($dir, $filename);
-            $validated['image'] = 'deals/'.$filename;
+            $validated['image'] = $request->file('image')->store('deals', 'public');
         }
 
         $validated['is_active'] = $validated['active'] ?? false;
@@ -63,19 +59,14 @@ class DealController extends Controller
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'active' => 'boolean',
-            'image' => 'nullable|image|max:2048',
+            'image' => 'nullable|file|mimes:jpg,jpeg,png,gif,webp|max:2048',
         ]);
 
         if ($request->hasFile('image')) {
-            if ($deal->image && file_exists(public_path('images/'.$deal->image))) {
-                @unlink(public_path('images/'.$deal->image));
+            if ($deal->image) {
+                Storage::disk('public')->delete($deal->image);
             }
-            $dir = public_path('images/deals');
-            if (! is_dir($dir)) mkdir($dir, 0755, true);
-            $file = $request->file('image');
-            $filename = uniqid().'_'.time().'.'.$file->getClientOriginalExtension();
-            $file->move($dir, $filename);
-            $validated['image'] = 'deals/'.$filename;
+            $validated['image'] = $request->file('image')->store('deals', 'public');
         }
 
         $validated['is_active'] = $validated['active'] ?? false;
